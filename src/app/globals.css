@@ -47,6 +47,9 @@
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
+  /* Brand: Boingo */
+  --boingo-red: #E41F26; /* Approximated from logo; easy to tweak */
+  --boingo-red-dark: #B5121B; /* Complementary darker tone for contrast */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -81,6 +84,9 @@
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
+  /* Brand: Boingo (dark mode keeps same tones for consistency) */
+  --boingo-red: #E41F26;
+  --boingo-red-dark: #B5121B;
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);

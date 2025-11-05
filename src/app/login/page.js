@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
+import BoingoGradientButton from "@/components/ui/boingo-gradient-button"
 import LoadingIcon from "@/components/ui/loading-icon"
 
 export default function LoginPage() {
@@ -22,33 +23,30 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-white text-foreground">
-      {/* Left branding panel - full height */}
-      <section className="relative hidden lg:block">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600" />
-        <div className="relative flex h-screen items-center pl-16 pr-12">
-          <div className="max-w-lg text-white">
-            <div className="flex items-center gap-3 mb-6">
-              <Image
-                src="/logo boingo B_Round_PS FILE.png"
-                alt="SalesHub Logo"
-                width={44}
-                height={44}
-                className="rounded-lg"
-                priority
-              />
-              <span className="text-3xl font-bold">SalesHub</span>
-            </div>
-            <p className="text-white/90 text-base">
-              Unlock your project performance with advanced monitoring and analytics
-            </p>
-          </div>
-        </div>
+      {/* Left: responsive image panel */}
+      <section className="relative hidden lg:block min-h-screen">
+        <Image
+          src="/login.jpg"
+          alt="Login page visual"
+          fill
+          priority
+          sizes="(min-width: 1024px) 50vw, 100vw"
+          className="object-cover"
+        />
       </section>
 
       {/* Right: login form (no header, no container) */}
       <section className="flex min-h-screen items-center justify-center px-6">
         <div className="w-full max-w-md animate-in fade-in zoom-in duration-300">
           <div className="mb-6 text-center">
+            <Image
+              src="/logo boingo B_Round_PS FILE.png"
+              alt="Boingo Logo"
+              width={60}
+              height={60}
+              className="mx-auto mb-3 rounded-lg"
+              priority
+            />
             <h1 className="text-2xl font-bold">Welcome back</h1>
             <p className="text-sm text-muted-foreground">Sign in to continue to SalesHub</p>
           </div>
@@ -91,10 +89,10 @@ export default function LoginPage() {
                 </Link>
               </div>
 
-              <Button
+              <BoingoGradientButton
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 px-4 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                className="w-full h-10 px-4 py-2"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -104,7 +102,7 @@ export default function LoginPage() {
                 ) : (
                   "Sign in"
                 )}
-              </Button>
+              </BoingoGradientButton>
 
               <p className="text-center text-sm text-muted-foreground">
                 Don’t have an account? {" "}
