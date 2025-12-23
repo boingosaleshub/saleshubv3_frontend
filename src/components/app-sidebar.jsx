@@ -118,8 +118,6 @@ export function AppSidebar({ ...props }) {
       items: [
         { title: "Create New", url: "#" },
         { title: "Search ROM", url: "#" },
-        { title: "Update ROM", url: "#" },
-        { title: "Update Pricing Model", url: "#" },
       ],
     },
     {
@@ -141,21 +139,31 @@ export function AppSidebar({ ...props }) {
   ]
 
   return (
-    <Sidebar collapsible="offcanvas" className="border-r-4 border-[var(--boingo-red)] bg-[#2C2C2C] text-white" {...props}>
-      <SidebarHeader className="border-b border-white/10">
-        <div className="flex items-center gap-2 px-2 py-4">
-          <div className="relative h-10 w-full">
+    <Sidebar collapsible="icon" className="border-r-4 border-[var(--boingo-red)] bg-[#3D434A] text-white" {...props}>
+      <SidebarHeader className="px-2 py-4">
+        <div className={`flex items-center ${state === 'collapsed' ? 'justify-center' : 'justify-start'}`}>
+          {state === 'collapsed' ? (
             <Image
-              src="/SalesHub 2.0 Logo Text.png"
-              alt="SalesHub Logo"
-              fill
+              src="/images.jpg"
+              alt="Boingo Logo"
+              width={32}
+              height={32}
+              className="object-contain rounded-full border-2 border-white"
+              priority
+            />
+          ) : (
+            <Image
+              src="/SocialShare_400x225.png"
+              alt="Boingo Logo"
+              width={100}
+              height={56}
               className="object-contain object-left"
               priority
             />
-          </div>
+          )}
         </div>
       </SidebarHeader>
-      <SidebarContent className="text-white">
+      <SidebarContent className="text-white px-2">
         <SidebarMenu>
           {menuItems.map((item) => (
             <Collapsible
@@ -168,19 +176,19 @@ export function AppSidebar({ ...props }) {
                 {item.items ? (
                   <>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip={item.title} className="text-black hover:bg-white/10 hover:text-black font-medium text-sm">
-                        {item.icon && <item.icon className="size-4 text-black" />}
-                        <span className="font-sans text-black">{item.title}</span>
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-black" />
+                      <SidebarMenuButton tooltip={item.title} className="text-white hover:bg-white/10 hover:text-white font-medium text-sm px-2">
+                        {item.icon && <item.icon className="size-4 text-white" />}
+                        <span className="font-sans text-white">{item.title}</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-white" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <SidebarMenuSub className="border-l-white/20">
+                      <SidebarMenuSub className="border-l-white/20 ml-4">
                         {item.items.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild className="text-black hover:bg-white/10 hover:text-black font-normal text-sm">
+                            <SidebarMenuSubButton asChild className="text-white hover:bg-white/10 hover:text-white font-normal text-sm">
                               <Link href={subItem.url}>
-                                <span className="font-sans text-black">{subItem.title}</span>
+                                <span className="font-sans text-white">{subItem.title}</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
@@ -189,10 +197,10 @@ export function AppSidebar({ ...props }) {
                     </CollapsibleContent>
                   </>
                 ) : (
-                  <SidebarMenuButton asChild tooltip={item.title} className={`text-black hover:bg-white/10 hover:text-black font-medium text-sm ${pathname === item.url ? 'bg-white/10 font-bold' : ''}`}>
+                  <SidebarMenuButton asChild tooltip={item.title} className={`text-white hover:bg-white/10 hover:text-white font-medium text-sm px-2 ${pathname === item.url ? 'bg-white/10 font-bold' : ''}`}>
                     <Link href={item.url}>
-                      {item.icon && <item.icon className="size-4 text-black" />}
-                      <span className="font-sans text-black">{item.title}</span>
+                      {item.icon && <item.icon className="size-4 text-white" />}
+                      <span className="font-sans text-white">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 )}
@@ -201,32 +209,34 @@ export function AppSidebar({ ...props }) {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="px-2">
         <SidebarMenu>
-          {/* User Info */}
-          <SidebarMenuItem>
-            <div className="flex items-center gap-2 px-2 py-2">
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarFallback className="rounded-lg bg-red-600 text-white">
-                  {user?.email?.charAt(0).toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold text-black">{user?.email?.split('@')[0] || 'User'}</span>
-                <span className="truncate text-xs text-gray-600">{user?.email || ''}</span>
+          {/* User Info - Only show when expanded */}
+          {state === 'expanded' && (
+            <SidebarMenuItem>
+              <div className="flex items-center gap-3 px-2 py-2">
+                <Avatar className="h-8 w-8 rounded-lg flex-shrink-0">
+                  <AvatarFallback className="rounded-lg bg-red-600 text-white">
+                    {user?.email?.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
+                  <span className="truncate font-semibold text-white">{user?.email?.split('@')[0] || 'User'}</span>
+                  <span className="truncate text-xs text-white/70">{user?.email || ''}</span>
+                </div>
               </div>
-            </div>
-          </SidebarMenuItem>
+            </SidebarMenuItem>
+          )}
 
           {/* Logout Button */}
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={signOut}
-              className="text-black hover:bg-red-600 hover:text-white transition-colors font-medium text-sm"
+              className="text-white hover:bg-red-600 hover:text-white transition-colors font-medium text-sm px-2"
               tooltip="Logout"
             >
-              <LogOut className="size-4 text-black" />
-              <span className="font-sans text-black">Logout</span>
+              <LogOut className="size-4 text-white" />
+              <span className="font-sans text-white">Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
