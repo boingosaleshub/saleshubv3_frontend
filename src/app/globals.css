@@ -1,10 +1,27 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Haboro Soft Font - Light (300) */
+@font-face {
+  font-family: "Haboro Soft Norm";
+  src: url("/fonnts.com-Haboro_Soft_Norm_Light.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+}
+
+/* Haboro Soft Font - Medium (500) */
+@font-face {
+  font-family: "Haboro Soft Norm";
+  src: url("/fonnts.com-Haboro_Soft_Norm_Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+/* Haboro Soft Font - Bold (700) */
 @font-face {
   font-family: "Haboro Soft Norm";
   src: url("/fonnts.com-Haboro_Soft_Norm_Bold.otf") format("opentype");
-  font-weight: 100 900;
+  font-weight: 700;
   font-style: normal;
 }
 
@@ -57,8 +74,10 @@
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   /* Brand: Boingo */
-  --boingo-red: #E41F26; /* Approximated from logo; easy to tweak */
-  --boingo-red-dark: #B5121B; /* Complementary darker tone for contrast */
+  --boingo-red: #E41F26;
+  /* Approximated from logo; easy to tweak */
+  --boingo-red-dark: #B5121B;
+  /* Complementary darker tone for contrast */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -80,14 +99,14 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #3D434A;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #3D434A;
+  --sidebar-accent: rgba(255, 255, 255, 0.1);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: rgba(255, 255, 255, 0.3);
   --color-green-400: oklch(0.792 0.209 151.711);
   --color-green-600: oklch(0.577 0.245 137.05);
 }
@@ -133,7 +152,39 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-family: "Haboro Soft Norm", system-ui, sans-serif;
+  }
+
+  /* Headers - Bold (700) */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Haboro Soft Norm", system-ui, sans-serif;
+    font-weight: 700;
+  }
+
+  /* Sub-headers / Labels - Medium (500) */
+  label,
+  th,
+  .subheader,
+  .label {
+    font-family: "Haboro Soft Norm", system-ui, sans-serif;
+    font-weight: 500;
+  }
+
+  /* Small text / Body - Light (300) */
+  p,
+  span,
+  small,
+  .text-sm,
+  .text-xs {
+    font-family: "Haboro Soft Norm", system-ui, sans-serif;
+    font-weight: 300;
   }
 }

@@ -39,13 +39,14 @@ export async function updateSession(request) {
 
   if (
     !user &&
+    request.nextUrl.pathname !== '/' &&
     !request.nextUrl.pathname.startsWith('/login') &&
     !request.nextUrl.pathname.startsWith('/auth')
   ) {
-    // no user, potentially respond by redirecting the user to the login page
-    // const url = request.nextUrl.clone()
-    // url.pathname = '/login'
-    // return NextResponse.redirect(url)
+    // no user, redirect to the login page at root
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
   }
 
   return supabaseResponse

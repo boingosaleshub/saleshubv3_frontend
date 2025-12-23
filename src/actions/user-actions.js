@@ -28,11 +28,11 @@ export async function createUser(formData) {
   const name = formData.get('name')
   const role = formData.get('role') || 'User'
 
-  // 1. Create auth user with app_metadata for role (secure)
+  // 1. Create auth user with email_confirm: false to trigger Supabase's invite email
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
-    email_confirm: true,
+    email_confirm: false, // This triggers Supabase to send confirmation email
     user_metadata: {
       name
     },
@@ -58,6 +58,41 @@ export async function createUser(formData) {
   if (updateError) {
     console.error('Error updating user profile:', updateError)
     // Don't fail the whole request as auth user is created
+  }
+
+  // 3. Generate and send invitation email via Supabase
+  // This sends a magic link email to the user
+  const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+    data: {
+      name,
+      role,
+      password_hint: `Your initial password is: ${password}`
+    },
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/login`
+  })
+
+  // If invite fails because user already exists, generate a magic link instead
+  if (inviteError) {
+    console.log('Invite error (user may already exist), generating magic link:', inviteError.message)
+
+    // Generate a magic link for the existing user
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/login`,
+        data: {
+          password_hint: `Your password is: ${password}`
+        }
+      }
+    })
+
+    if (linkError) {
+      console.error('Failed to generate magic link:', linkError)
+      // Don't fail user creation, just log the error
+    } else {
+      console.log('Magic link generated. Supabase will send email automatically.')
+    }
   }
 
   return { success: true, user: authData.user }
