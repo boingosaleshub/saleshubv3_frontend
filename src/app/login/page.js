@@ -3,35 +3,70 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import BoingoGradientButton from "@/components/ui/boingo-gradient-button"
 import LoadingIcon from "@/components/ui/loading-icon"
+import { toast } from "sonner"
+import { createClient } from "@/utils/supabase/client"
+import { useAuthStore } from "@/store/useAuthStore"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
+  const { setUser } = useAuthStore()
+  const supabase = createClient()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    // Placeholder login flow
-    setTimeout(() => {
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      toast.error(error.message)
       setLoading(false)
-    }, 800)
+      return
+    }
+
+    if (data.user) {
+      setUser(data.user)
+      
+      toast.success('Login successful!', {
+        style: {
+          '--normal-bg':
+            'color-mix(in oklab, light-dark(var(--color-green-600), var(--color-green-400)) 10%, var(--background))',
+
+          '--normal-text': 'light-dark(var(--color-green-600), var(--color-green-400))',
+          '--normal-border': 'light-dark(var(--color-green-600), var(--color-green-400))'
+        }
+      })
+      
+      // Redirect to dashboard after a short delay to show the toast
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 1000)
+    } else {
+        setLoading(false)
+    }
   }
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-white text-foreground">
       {/* Left: responsive image panel */}
-      <section className="relative hidden lg:block min-h-screen">
+      <section className="relative hidden lg:block min-h-screen bg-black">
         <Image
-          src="/login.jpg"
+          src="/login.png"
           alt="Login page visual"
           fill
           priority
           sizes="(min-width: 1024px) 50vw, 100vw"
-          className="object-cover"
+          className="object-contain"
         />
       </section>
 
@@ -40,15 +75,13 @@ export default function LoginPage() {
         <div className="w-full max-w-md animate-in fade-in zoom-in duration-300">
           <div className="mb-6 text-center">
             <Image
-              src="/logo boingo B_Round_PS FILE.png"
-              alt="Boingo Logo"
-              width={60}
-              height={60}
-              className="mx-auto mb-3 rounded-lg"
+              src="/SalesHub 2.0 Logo Text.png"
+              alt="SalesHub Logo"
+              width={450}
+              height={450}
+              className="mx-auto mb-6"
               priority
             />
-            <h1 className="text-2xl font-bold">Welcome back</h1>
-            <p className="text-sm text-muted-foreground">Sign in to continue to SalesHub</p>
           </div>
 
           <div className="rounded-xl border bg-card text-card-foreground shadow-lg">
