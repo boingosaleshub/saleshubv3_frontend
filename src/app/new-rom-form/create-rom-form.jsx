@@ -79,6 +79,7 @@ export function CreateRomForm() {
         "4G LTE": false,
         "4G LTE & 5G NR": false
     })
+    const [additionalInfo, setAdditionalInfo] = useState("")
 
     // --- LOGIC ---
     const debounceRef = useRef(null)
@@ -158,8 +159,7 @@ export function CreateRomForm() {
 
     return (
         <Card className="w-full bg-white shadow-lg border-0 rounded-xl flex flex-col">
-            {/* Header */}
-            <div className="bg-[#3D434A] py-4 px-8 border-b-4 border-red-600 shrink-0">
+            <div className="bg-[#3D434A] py-4 px-8 border-b-4 border-red-600 shrink-0 rounded-t-xl -mt-6">
                 <h2 className="text-2xl font-bold text-white text-center">
                     {step === 1 ? "Venue Information" : "System Information"}
                 </h2>
@@ -564,6 +564,17 @@ export function CreateRomForm() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Additional Information - Full Width */}
+                                <div className="col-span-2 space-y-4 pt-4 border-t border-gray-100">
+                                    <Label className="text-gray-600 font-medium">Additional Information</Label>
+                                    <textarea
+                                        value={additionalInfo}
+                                        onChange={(e) => setAdditionalInfo(e.target.value)}
+                                        placeholder="Enter any additional details, notes, or requirements here..."
+                                        className="w-full min-h-[150px] p-4 bg-white border border-gray-200 rounded-xl resize-y focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                                    />
+                                </div>
                             </div>
                         )}
 
@@ -582,7 +593,7 @@ export function CreateRomForm() {
             </div>
 
             {/* Footer Actions */}
-            <div className="p-4 border-t border-gray-100 flex justify-center items-center bg-white shrink-0 relative">
+            <div className="p-4 border-t border-gray-100 flex justify-center items-center bg-white shrink-0 relative rounded-b-xl">
                 {step === 2 && (
                     <Button
                         onClick={handleBack}
@@ -596,7 +607,7 @@ export function CreateRomForm() {
                     onClick={handleNext}
                     className="bg-[#3D434A] text-white hover:bg-gray-700 rounded-full px-8"
                 >
-                    {step === 2 ? "Save" : "Next"}
+                    {step === 2 ? "Create" : "Next"}
                 </Button>
             </div>
             <div className="absolute -z-10 bg-transparent"></div>
