@@ -1,0 +1,33 @@
+"use client"
+
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet"
+import "leaflet/dist/leaflet.css"
+import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css"
+import "leaflet-defaulticon-compatibility"
+
+function MapUpdater({ center, zoom }) {
+    const map = useMap()
+    map.setView(center, zoom)
+    return null
+}
+
+export default function RomMap({ lat, lng, zoom = 13 }) {
+    const position = [lat, lng]
+
+    return (
+        <MapContainer
+            center={position}
+            zoom={zoom}
+            scrollWheelZoom={true}
+            className="h-full w-full rounded-tr-xl rounded-br-xl"
+            style={{ height: "100%", width: "100%", zIndex: 0 }}
+        >
+            <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <Marker position={position} />
+            <MapUpdater center={position} zoom={zoom} />
+        </MapContainer>
+    )
+}
