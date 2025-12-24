@@ -116,8 +116,10 @@ export function AppSidebar({ ...props }) {
       url: "#",
       icon: Layers,
       items: [
-        { title: "Create New", url: "#" },
+        { title: "Create New", url: "/new-rom-form" },
         { title: "Search ROM", url: "#" },
+        { title: "My ROM's", url: "#" },
+        { title: "Approvals", url: "#" },
       ],
     },
     {
@@ -133,6 +135,7 @@ export function AppSidebar({ ...props }) {
       url: "#",
       icon: Settings,
       items: [
+        { title: "System Users", url: "#" },
         { title: "System Settings", url: "#" },
       ],
     },
