@@ -30,6 +30,28 @@ This folder contains all the database migrations for the SalesHub v3 project.
 - Fixes NULL string field issues in `auth.users` table
 - Ensures all token fields are empty strings instead of NULL to prevent auth errors
 
+### 5.add_super_admin_role.sql
+- Adds 'Super Admin' role to the `user_role` enum type
+- Updates all RLS policies to include Super Admin permissions
+- Super Admins have the same privileges as Admins (can be extended later)
+- Updates sync function to handle Super Admin role from `app_metadata`
+- Adds documentation comment to the enum type
+
+### 6.fix_rls_recursion_super_admin_only.sql
+- **CRITICAL FIX**: Resolves infinite recursion in RLS policies
+- Creates `get_user_role()` security definer function to bypass RLS when checking roles
+- **BREAKING CHANGE**: Restricts ALL user management to Super Admins only
+- Regular Admins can no longer view, create, update, or delete users
+- Adds `is_super_admin()` helper function for easy permission checks
+- Applied: 2025-12-24
+
+### 7.allow_admin_user_management.sql
+- **PERMISSION UPDATE**: Allows both Admin and Super Admin to manage users
+- Updates all RLS policies to include both 'Admin' and 'Super Admin' roles
+- Adds `is_admin_or_super_admin()` helper function
+- Both Admin and Super Admin can now create, read, update, and delete users
+- Applied: 2025-12-24
+
 ## How to Apply Migrations
 
 These migrations have already been applied to the Supabase project `nvcterprkjlffbrdtppg`.
@@ -54,15 +76,15 @@ Column | Type      | Description
 id     | uuid      | Primary key, references auth.users(id)
 name   | text      | User's display name
 email  | text      | User's email address
-role   | user_role | User role (Admin or User)
+role   | user_role | User role (User, Admin, or Super Admin)
 ```
 
 ### Row Level Security Policies
 - **Users can view their own profile**: Any authenticated user can SELECT their own record
-- **Admins can view all profiles**: Admins can SELECT all records
-- **Admins can update profiles**: Admins can UPDATE any record
-- **Admins can delete profiles**: Admins can DELETE any record
-- **Admins can insert profiles**: Admins can INSERT new records
+- **Admins and Super Admins can view all profiles**: Both Admins and Super Admins can SELECT all records
+- **Admins and Super Admins can update profiles**: Both Admins and Super Admins can UPDATE any record
+- **Admins and Super Admins can delete profiles**: Both Admins and Super Admins can DELETE any record
+- **Admins and Super Admins can insert profiles**: Both Admins and Super Admins can INSERT new records
 
 ### Triggers
 - **on_auth_user_created**: Automatically creates a record in `public.Users` when a user signs up
@@ -71,5 +93,9 @@ role   | user_role | User role (Admin or User)
 ## Security Notes
 
 - User roles are stored in `app_metadata` which cannot be modified by end users
-- RLS policies check the JWT `app_metadata.role` field to determine admin access
-- All admin operations require the user to have `app_metadata.role = 'Admin'`
+- RLS policies use a security definer function `get_user_role()` to prevent infinite recursion
+- **Both Admins and Super Admins** can manage users and roles (view, create, update, delete)
+- Regular Users have NO permissions to manage other users
+- The `is_admin_or_super_admin()` helper function can be used in application logic for permission checks
+
+

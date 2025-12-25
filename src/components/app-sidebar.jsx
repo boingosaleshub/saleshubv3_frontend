@@ -105,8 +105,8 @@ export function AppSidebar({ ...props }) {
       url: "/dashboard",
       icon: Home,
     },
-    // User section for Admin only (check app_metadata for role)
-    ...(user?.app_metadata?.role === 'Admin' ? [{
+    // User section for Admin and Super Admin only (check app_metadata for role)
+    ...(['Admin', 'Super Admin'].includes(user?.app_metadata?.role) ? [{
       title: "User",
       url: "/dashboard/users",
       icon: User,

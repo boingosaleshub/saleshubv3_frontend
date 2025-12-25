@@ -114,6 +114,7 @@ export function EditUserDialog({ user, open, onOpenChange, onUserUpdated }) {
                             <SelectContent>
                                 <SelectItem value="User">User</SelectItem>
                                 <SelectItem value="Admin">Admin</SelectItem>
+                                <SelectItem value="Super Admin">Super Admin</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
