@@ -40,7 +40,7 @@ export function CreateUserDialog({ onUserCreated }) {
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success('User created successfully')
+      toast.success('User created successfully. Password setup email sent.')
       setOpen(false)
       e.target.reset() // Reset form after successful creation
       onUserCreated()
@@ -68,7 +68,7 @@ export function CreateUserDialog({ onUserCreated }) {
         <DialogHeader>
           <DialogTitle>Add New User</DialogTitle>
           <DialogDescription>
-            Create a new user account. They will receive an email verification.
+            Create a new user account. They will receive an email to set their password.
           </DialogDescription>
         </DialogHeader>
         <form id="create-user-form" onSubmit={handleSubmit} className="grid gap-4 py-4" autoComplete="off">
@@ -84,12 +84,7 @@ export function CreateUserDialog({ onUserCreated }) {
             </Label>
             <Input id="email" name="email" type="email" className="col-span-3" required autoComplete="off" />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="password" className="text-right">
-              Password
-            </Label>
-            <Input id="password" name="password" type="password" className="col-span-3" required minLength={6} autoComplete="new-password" />
-          </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="role" className="text-right">
               Role

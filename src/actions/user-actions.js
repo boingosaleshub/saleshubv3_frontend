@@ -24,15 +24,17 @@ export async function createUser(formData) {
   const supabaseAdmin = createAdminClient()
 
   const email = formData.get('email')
-  const password = formData.get('password')
   const name = formData.get('name')
   const role = formData.get('role') || 'User'
 
-  // 1. Create auth user with email_confirm: false to trigger Supabase's invite email
+  // Generate a temporary random password (required by Supabase, but user will set their own)
+  const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12)
+
+  // 1. Create auth user with temporary password
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
-    password,
-    email_confirm: false, // This triggers Supabase to send confirmation email
+    password: tempPassword,
+    email_confirm: false, // User needs to confirm via password reset link
     user_metadata: {
       name
     },
@@ -45,8 +47,7 @@ export async function createUser(formData) {
     return { error: authError.message }
   }
 
-  // 2. The trigger should handle creation in public.Users automatically
-  // Update the public.Users table to ensure name and role are set correctly
+  // 2. Update the public.Users table to ensure name and role are set correctly
   const { error: updateError } = await supabaseAdmin
     .from('Users')
     .update({
@@ -60,40 +61,28 @@ export async function createUser(formData) {
     // Don't fail the whole request as auth user is created
   }
 
-  // 3. Generate and send invitation email via Supabase
-  // This sends a magic link email to the user
-  const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-    data: {
-      name,
-      role,
-      password_hint: `Your initial password is: ${password}`
-    },
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/login`
+  // 3. Generate password recovery link for user to set their own password
+  const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/set-password`
+    }
   })
 
-  // If invite fails because user already exists, generate a magic link instead
-  if (inviteError) {
-    console.log('Invite error (user may already exist), generating magic link:', inviteError.message)
-
-    // Generate a magic link for the existing user
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email,
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/login`,
-        data: {
-          password_hint: `Your password is: ${password}`
-        }
-      }
-    })
-
-    if (linkError) {
-      console.error('Failed to generate magic link:', linkError)
-      // Don't fail user creation, just log the error
-    } else {
-      console.log('Magic link generated. Supabase will send email automatically.')
+  if (recoveryError) {
+    console.error('Failed to generate password reset link:', recoveryError)
+    return { 
+      error: 'User created but failed to send password setup email. Please use forgot password.',
+      user: authData.user 
     }
   }
+
+  // Note: Supabase automatically sends the recovery email with the link
+  // For development: Print the link to console if email is not configured
+  console.log('Password setup email sent to:', email)
+  console.log('Password setup link (for development):', recoveryData.properties.action_link)
+  console.log('User can visit this link to set their password')
 
   return { success: true, user: authData.user }
 }
@@ -122,11 +111,6 @@ export async function updateUser(userId, data) {
     authUpdate.email = data.email
   }
 
-  // Update password if provided (optional)
-  if (data.password && data.password.trim() !== '') {
-    authUpdate.password = data.password
-  }
-
   // Update user_metadata for name
   if (data.name) {
     authUpdate.user_metadata = { name: data.name }
@@ -137,7 +121,7 @@ export async function updateUser(userId, data) {
     authUpdate.app_metadata = { role: data.role }
   }
 
-  // Update auth.users
+  // Update auth.users (password updates removed - users should use forgot password flow)
   const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
     userId,
     authUpdate
@@ -147,7 +131,7 @@ export async function updateUser(userId, data) {
     return { error: authError.message }
   }
 
-  // Update public.Users table (don't include password)
+  // Update public.Users table
   const { error: dbError } = await supabaseAdmin
     .from('Users')
     .update({

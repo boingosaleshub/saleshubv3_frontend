@@ -27,8 +27,7 @@ export function EditUserDialog({ user, open, onOpenChange, onUserUpdated }) {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
-        role: 'User',
-        password: '' // Optional password field
+        role: 'User'
     })
 
     // Pre-load user data when dialog opens
@@ -37,8 +36,7 @@ export function EditUserDialog({ user, open, onOpenChange, onUserUpdated }) {
             setFormData({
                 name: user.name || '',
                 email: user.email || '',
-                role: user.role || 'User',
-                password: '' // Always empty for security
+                role: user.role || 'User'
             })
         }
     }, [user, open])
@@ -71,7 +69,7 @@ export function EditUserDialog({ user, open, onOpenChange, onUserUpdated }) {
                 <DialogHeader>
                     <DialogTitle>Edit User</DialogTitle>
                     <DialogDescription>
-                        Update user information. Leave password blank to keep current password.
+                        Update user information. Users should use "Forgot Password" to reset their password.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -117,20 +115,6 @@ export function EditUserDialog({ user, open, onOpenChange, onUserUpdated }) {
                                 <SelectItem value="Super Admin">Super Admin</SelectItem>
                             </SelectContent>
                         </Select>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="edit-password" className="text-right">
-                            Password
-                        </Label>
-                        <Input
-                            id="edit-password"
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            type="password"
-                            className="col-span-3"
-                            placeholder="Leave blank to keep current"
-                            autoComplete="new-password"
-                        />
                     </div>
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>
