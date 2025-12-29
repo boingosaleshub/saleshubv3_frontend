@@ -51,66 +51,13 @@ export function AppSidebar({ ...props }) {
   const { user, signOut } = useAuthStore()
   const { state } = useSidebar()
 
-  // Define menu items
-  const items = [
-    {
-      title: "Home",
-      url: "/dashboard",
-      icon: Home,
-    },
-    {
-      title: "ROM Generator",
-      url: "#",
-      icon: Layers, // Using Layers as proxy for "layered squares/grid"
-      items: [
-        { title: "Create New", url: "/dashboard/rom/create" },
-        { title: "Search ROM", url: "/dashboard/rom/search" },
-        { title: "Update ROM", url: "/dashboard/rom/update" },
-        { title: "Update Pricing Model", url: "/dashboard/rom/pricing" },
-      ],
-    },
-    {
-      title: "Coverage Plot",
-      url: "#",
-      icon: BarChart2,
-      items: [
-        { title: "Create New", url: "/dashboard/coverage/create" },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings,
-      items: [
-        // Only show System Users to Admin
-        ...(user?.user_metadata?.role === 'admin' || user?.role === 'admin' ? [{ title: "System Users", url: "/dashboard/users" }] : []),
-        { title: "System Settings", url: "/dashboard/settings" },
-      ],
-    },
-  ]
-
-  // Add "User" menu item directly if requested by user, but user said "User section can only accessible by Admin" and put it in sidebar list.
-  // The user's list: "Home, User, ROM Generator, Coverage Plot, Settings"
-  // The image list: "Home, ROM Generator, Coverage Plot, Settings" (with System Users under Settings)
-  // I will follow the User's text instruction "Sidebar e Home, User, ROM Generator, Coverage Plot, Settings option thakbe".
-  // And "Sidebar er User section can only accessible by Admin".
-
-  // Let's adjust the items array to match User's text instruction, but keeping the submenus from image where applicable.
-  // Actually, the user might mean "User" as a top level item.
-  // Let's add "User" as top level for Admin.
-
+  // Menu items with role-based access control
   const menuItems = [
     {
       title: "Home",
       url: "/dashboard",
       icon: Home,
     },
-    // User section for Admin and Super Admin only (check app_metadata for role)
-    ...(['Admin', 'Super Admin'].includes(user?.app_metadata?.role) ? [{
-      title: "User",
-      url: "/dashboard/users",
-      icon: User,
-    }] : []),
     {
       title: "ROM Generator",
       url: "#",
@@ -127,7 +74,7 @@ export function AppSidebar({ ...props }) {
       url: "#",
       icon: BarChart2,
       items: [
-      { title: "Create New", url: "/coverage-plot/new-form" },
+        { title: "Create New", url: "/coverage-plot/new-form" },
       ],
     },
     {
@@ -135,7 +82,10 @@ export function AppSidebar({ ...props }) {
       url: "#",
       icon: Settings,
       items: [
-        { title: "System Users", url: "#" },
+        // Only Admin and Super Admin can see System User
+        ...(['Admin', 'Super Admin'].includes(user?.app_metadata?.role) ? [
+          { title: "System User", url: "/dashboard/users" }
+        ] : []),
         { title: "System Settings", url: "#" },
       ],
     },
