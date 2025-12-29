@@ -127,7 +127,7 @@ export function AppSidebar({ ...props }) {
       url: "#",
       icon: BarChart2,
       items: [
-        { title: "Create New", url: "#" },
+      { title: "Create New", url: "/coverage-plot/new-form" },
       ],
     },
     {
