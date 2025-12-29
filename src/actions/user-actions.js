@@ -2,6 +2,21 @@
 
 import { createAdminClient } from "@/lib/supabase-admin"
 import { createClient } from "@/utils/supabase/server"
+import { headers } from "next/headers"
+
+async function getSiteUrl() {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL
+  if (configured) return configured.replace(/\/$/, '')
+
+  const h = await headers()
+  const origin = h.get('origin')
+  if (origin) return origin.replace(/\/$/, '')
+
+  const host = h.get('x-forwarded-host') ?? h.get('host')
+  const proto = h.get('x-forwarded-proto') ?? 'https'
+  if (!host) return 'http://localhost:3000'
+  return `${proto}://${host}`.replace(/\/$/, '')
+}
 
 export async function getUsers() {
   const supabase = await createClient()
@@ -27,64 +42,86 @@ export async function createUser(formData) {
   const name = formData.get('name')
   const role = formData.get('role') || 'User'
 
-  // Generate a temporary random password (required by Supabase, but user will set their own)
+  const siteUrl = await getSiteUrl()
+
+  // 1. Create user (confirmed) with a temp password
   const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12)
 
-  // 1. Create auth user with temporary password
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password: tempPassword,
-    email_confirm: false, // User needs to confirm via password reset link
-    user_metadata: {
-      name
-    },
-    app_metadata: {
-      role
-    }
+    email_confirm: true, // Auto-confirm so they can just set password
+    user_metadata: { name },
+    app_metadata: { role }
   })
 
   if (authError) {
     return { error: authError.message }
   }
 
-  // 2. Update the public.Users table to ensure name and role are set correctly
-  const { error: updateError } = await supabaseAdmin
+  // 2. Sync with public.Users table
+  const { error: upsertError } = await supabaseAdmin
     .from('Users')
-    .update({
-      name: name,
-      role: role
-    })
-    .eq('id', authData.user.id)
+    .upsert(
+      {
+        id: authData.user.id,
+        email,
+        name,
+        role,
+      },
+      { onConflict: 'id' }
+    )
 
-  if (updateError) {
-    console.error('Error updating user profile:', updateError)
-    // Don't fail the whole request as auth user is created
+  if (upsertError) {
+    console.error('Error upserting user profile:', upsertError)
   }
 
-  // 3. Generate password recovery link for user to set their own password
-  const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
-    type: 'recovery',
-    email,
-    options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/set-password`
-    }
+  // 3. Try to send email
+  let emailSent = false
+  let recoveryLink = null
+
+  const { error: emailError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+    redirectTo: `${siteUrl}/set-password`,
   })
 
-  if (recoveryError) {
-    console.error('Failed to generate password reset link:', recoveryError)
-    return { 
-      error: 'User created but failed to send password setup email. Please use forgot password.',
-      user: authData.user 
+  if (emailError) {
+    console.warn('SMTP Warning: Failed to send email via Supabase. Falling back to manual link generation.', emailError.message)
+    
+    // 4. Fallback: Generate link manually if SMTP fails
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo: `${siteUrl}/set-password` }
+    })
+
+    if (linkError) {
+      console.error('Link Generation Error:', linkError)
+      return { 
+        success: true, 
+        user: authData.user, 
+        warning: 'User created, but failed to send email AND failed to generate link.' 
+      }
+    }
+
+    recoveryLink = linkData.properties.action_link
+    
+    // Log the link to console for debugging/admin access
+    console.log('----------------------------------------')
+    console.log('MANUAL RECOVERY LINK GENERATED (SMTP FAILED):')
+    console.log(`User: ${email}`)
+    console.log(`Link: ${recoveryLink}`)
+    console.log('----------------------------------------')
+
+    return {
+        success: true,
+        user: authData.user,
+        emailSent: false,
+        warning: 'User created, but email failed to send (SMTP issue). Use the link below.',
+        recoveryLink
     }
   }
 
-  // Note: Supabase automatically sends the recovery email with the link
-  // For development: Print the link to console if email is not configured
-  console.log('Password setup email sent to:', email)
-  console.log('Password setup link (for development):', recoveryData.properties.action_link)
-  console.log('User can visit this link to set their password')
-
-  return { success: true, user: authData.user }
+  return { success: true, user: authData.user, emailSent: true }
 }
 
 export async function deleteUser(userId) {

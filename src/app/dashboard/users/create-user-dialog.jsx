@@ -39,8 +39,26 @@ export function CreateUserDialog({ onUserCreated }) {
 
     if (result.error) {
       toast.error(result.error)
+    } else if (result.warning) {
+        toast.warning(result.warning, {
+            duration: 20000, // Give them 20 seconds to copy the link
+            action: result.recoveryLink ? {
+                label: 'Copy Link',
+                onClick: () => {
+                    navigator.clipboard.writeText(result.recoveryLink)
+                    toast.success('Link copied to clipboard')
+                }
+            } : undefined
+        })
+        setOpen(false)
+        e.target.reset()
+        onUserCreated()
     } else {
-      toast.success('User created successfully. Password setup email sent.')
+      toast.success(
+        result.emailSent
+          ? 'User created successfully. Password setup email sent.'
+          : 'User created successfully.'
+      )
       setOpen(false)
       e.target.reset() // Reset form after successful creation
       onUserCreated()
