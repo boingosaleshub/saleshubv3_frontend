@@ -17,7 +17,6 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 
-// Dynamically import the map to avoid SSR issues
 const CoverageMap = dynamic(() => import("./coverage-map"), {
     ssr: false,
     loading: () => (
@@ -28,16 +27,12 @@ const CoverageMap = dynamic(() => import("./coverage-map"), {
 })
 
 export function CreateCoveragePlotForm() {
-    // Form state - step 1: initial address input, step 2: expanded form
     const [step, setStep] = useState(1)
-
-    // Address & Map State
     const [address, setAddress] = useState("")
     const [suggestions, setSuggestions] = useState([])
     const [coordinates, setCoordinates] = useState({ lat: 40.7128, lng: -74.0060 })
     const [zoom, setZoom] = useState(13)
 
-    // Form fields for step 2
     const [carrierRequirements, setCarrierRequirements] = useState({
         "AT&T": false,
         "Verizon": false,
@@ -49,16 +44,11 @@ export function CreateCoveragePlotForm() {
         "Indoor & Outdoor": false
     })
 
-    // Loading state for Create button
     const [isCreating, setIsCreating] = useState(false)
-
-    // Loader state - shows GIF during automation
     const [isLoading, setIsLoading] = useState(false)
-
-    // Success modal state
     const [showSuccessModal, setShowSuccessModal] = useState(false)
+    const [errorMessage, setErrorMessage] = useState("")
 
-    // --- LOGIC ---
     const debounceRef = useRef(null)
     const [isSearching, setIsSearching] = useState(false)
 
@@ -114,23 +104,22 @@ export function CreateCoveragePlotForm() {
         }, 200)
     }
 
-    // Handle Enter key press on address input
     const handleAddressKeyDown = (e) => {
         if (e.key === 'Enter' && address.trim()) {
             e.preventDefault()
-            // If we have a selected suggestion, use it, otherwise use the typed address
             if (suggestions.length > 0) {
                 handleSelectAddress(suggestions[0])
             }
-            // Move to step 2 (expanded form)
             setStep(2)
             window.scrollTo(0, 0)
         }
     }
 
-    // Handle Create button click
     const handleCreate = async () => {
+        setErrorMessage("")
+
         if (!address.trim()) {
+            setErrorMessage("Please enter an address")
             return
         }
 
@@ -139,6 +128,7 @@ export function CreateCoveragePlotForm() {
             .map(([carrier]) => carrier)
 
         if (selectedCarriers.length === 0) {
+            setErrorMessage("Please select at least one carrier")
             return
         }
 
@@ -147,16 +137,23 @@ export function CreateCoveragePlotForm() {
             .map(([type]) => type)
 
         if (selectedCoverageTypes.length === 0) {
+            setErrorMessage("Please select at least one coverage type")
             return
         }
 
         setIsCreating(true)
-        setIsLoading(true) // Show GIF loader
+        setIsLoading(true)
+
+        // Abort controller for timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 180000) // 3 minutes
 
         try {
-            // Use Render backend in production, local API in development
-            const backendUrl = process.env.NEXT_PUBLIC_PLAYWRIGHT_BACKEND_URL || '';
-            const apiUrl = backendUrl ? `${backendUrl}/api/automate` : '/api/coverage-plot/automate';
+            const backendUrl = process.env.NEXT_PUBLIC_PLAYWRIGHT_BACKEND_URL || ''
+            const apiUrl = backendUrl ? `${backendUrl}/api/automate` : '/api/coverage-plot/automate'
+
+            console.log('Sending request to:', apiUrl)
+            console.log('Payload:', { address: address.trim(), carriers: selectedCarriers, coverageTypes: selectedCoverageTypes })
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -167,8 +164,13 @@ export function CreateCoveragePlotForm() {
                     address: address.trim(),
                     carriers: selectedCarriers,
                     coverageTypes: selectedCoverageTypes
-                })
+                }),
+                signal: controller.signal
             })
+
+            clearTimeout(timeoutId)
+
+            console.log('Response status:', response.status)
 
             if (!response.ok) {
                 const error = await response.json()
@@ -176,29 +178,40 @@ export function CreateCoveragePlotForm() {
             }
 
             const data = await response.json()
+            console.log('Response data:', { success: data.success, screenshotCount: data.screenshots?.length })
 
-            if (data.success && data.screenshots) {
-                // Download both screenshots
+            if (data.success && data.screenshots && data.screenshots.length > 0) {
+                console.log(`Processing ${data.screenshots.length} screenshot(s)...`)
+
+                // Download all screenshots
                 for (const screenshot of data.screenshots) {
                     if (screenshot.buffer && screenshot.filename) {
-                        // Convert base64 to blob
-                        const byteCharacters = atob(screenshot.buffer)
-                        const byteNumbers = new Array(byteCharacters.length)
-                        for (let i = 0; i < byteCharacters.length; i++) {
-                            byteNumbers[i] = byteCharacters.charCodeAt(i)
-                        }
-                        const byteArray = new Uint8Array(byteNumbers)
-                        const blob = new Blob([byteArray], { type: 'image/png' })
+                        try {
+                            console.log(`Downloading: ${screenshot.filename} (${screenshot.size || 'unknown'} KB)`)
 
-                        // Create download link
-                        const url = URL.createObjectURL(blob)
-                        const a = document.createElement('a')
-                        a.href = url
-                        a.download = screenshot.filename
-                        document.body.appendChild(a)
-                        a.click()
-                        document.body.removeChild(a)
-                        URL.revokeObjectURL(url)
+                            // Convert base64 to blob
+                            const byteCharacters = atob(screenshot.buffer)
+                            const byteNumbers = new Array(byteCharacters.length)
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i)
+                            }
+                            const byteArray = new Uint8Array(byteNumbers)
+                            const blob = new Blob([byteArray], { type: 'image/png' })
+
+                            // Create download link
+                            const url = URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = screenshot.filename
+                            document.body.appendChild(a)
+                            a.click()
+                            document.body.removeChild(a)
+                            URL.revokeObjectURL(url)
+
+                            console.log(`✓ Downloaded: ${screenshot.filename}`)
+                        } catch (downloadError) {
+                            console.error(`Error downloading ${screenshot.filename}:`, downloadError)
+                        }
                     }
                 }
 
@@ -206,12 +219,18 @@ export function CreateCoveragePlotForm() {
                 setIsLoading(false)
                 setShowSuccessModal(true)
             } else {
-                throw new Error('No screenshots received')
+                throw new Error('No screenshots received from server')
             }
         } catch (error) {
+            clearTimeout(timeoutId)
             console.error('Error creating coverage plot:', error)
             setIsLoading(false)
-            alert(error.message || "Failed to generate screenshots")
+
+            if (error.name === 'AbortError') {
+                setErrorMessage('Request timeout - The automation is taking longer than expected. Please try again.')
+            } else {
+                setErrorMessage(error.message || "Failed to generate screenshots")
+            }
         } finally {
             setIsCreating(false)
         }
@@ -219,7 +238,7 @@ export function CreateCoveragePlotForm() {
 
     return (
         <div className="w-full relative" style={{ minHeight: 'calc(100vh - 8rem)' }}>
-            {/* GIF Loader Overlay - Shows during automation (centered in content area) */}
+            {/* GIF Loader Overlay */}
             {isLoading && (
                 <div className="absolute inset-0 z-[9999] bg-white flex items-center justify-center">
                     <div className="flex flex-col items-center justify-center">
@@ -231,6 +250,7 @@ export function CreateCoveragePlotForm() {
                             className="object-contain"
                             unoptimized
                         />
+                        <p className="mt-4 text-gray-600 text-sm">Processing automation... This may take 2-3 minutes</p>
                     </div>
                 </div>
             )}
@@ -246,7 +266,22 @@ export function CreateCoveragePlotForm() {
                     </DialogHeader>
                     <div className="flex justify-center pt-4">
                         <Button
-                            onClick={() => setShowSuccessModal(false)}
+                            onClick={() => {
+                                setShowSuccessModal(false)
+                                // Reset form
+                                setStep(1)
+                                setAddress("")
+                                setCarrierRequirements({
+                                    "AT&T": false,
+                                    "Verizon": false,
+                                    "T-Mobile": false
+                                })
+                                setCoverageType({
+                                    "Indoor": false,
+                                    "Outdoor": false,
+                                    "Indoor & Outdoor": false
+                                })
+                            }}
                             className="bg-red-600 hover:bg-red-700 text-white"
                         >
                             Close
@@ -255,11 +290,11 @@ export function CreateCoveragePlotForm() {
                 </DialogContent>
             </Dialog>
 
-            {/* Page Content - Hidden when loading */}
+            {/* Page Content */}
             {!isLoading && (
                 <>
                     {step === 1 ? (
-                        // Step 1: Initial address input (centered)
+                        // Step 1: Initial address input
                         <div className="flex flex-1 items-center justify-center min-h-[60vh]">
                             <div className="w-full max-w-3xl px-4 text-center">
                                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
@@ -306,7 +341,7 @@ export function CreateCoveragePlotForm() {
                             </div>
                         </div>
                     ) : (
-                        // Step 2: Expanded form with map
+                        // Step 2: Expanded form
                         <Card className="w-full bg-white shadow-lg border-0 rounded-xl flex flex-col">
                             <div className="bg-[#3D434A] py-4 px-8 border-b-4 border-red-600 shrink-0 rounded-t-xl">
                                 <h2 className="text-2xl font-bold text-white text-center">
@@ -382,6 +417,13 @@ export function CreateCoveragePlotForm() {
                                                 ))}
                                             </div>
                                         </div>
+
+                                        {/* Error Message */}
+                                        {errorMessage && (
+                                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                                                {errorMessage}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -399,7 +441,7 @@ export function CreateCoveragePlotForm() {
                                 <Button
                                     onClick={handleCreate}
                                     disabled={isCreating}
-                                    className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-8 py-2"
+                                    className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-8 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isCreating ? "Creating..." : "Create"}
                                 </Button>
@@ -411,4 +453,3 @@ export function CreateCoveragePlotForm() {
         </div>
     )
 }
-
