@@ -1,6 +1,6 @@
 'use server'
 
-import * as Brevo from '@getbrevo/brevo'
+import nodemailer from 'nodemailer'
 
 /**
  * Sends a password setup email to a newly created user
@@ -10,29 +10,28 @@ import * as Brevo from '@getbrevo/brevo'
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export async function sendPasswordSetupEmail(email, name, setupLink) {
-    if (!process.env.BREVO_API_KEY) {
-        console.error('BREVO_API_KEY is not configured')
+    // Validate required environment variables
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.error('SMTP configuration is missing. Required: SMTP_HOST, SMTP_USER, SMTP_PASS')
         return { success: false, error: 'Email service not configured' }
     }
 
-    // Initialize API instance inside the function to ensure env vars are loaded
-    const apiInstance = new Brevo.TransactionalEmailsApi()
+    // Create transporter with SMTP configuration
+    const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+        },
+    })
 
-    // Set API key - use the correct method for @getbrevo/brevo
-    apiInstance.setApiKey(
-        Brevo.TransactionalEmailsApiApiKeys.apiKey,
-        process.env.BREVO_API_KEY
-    )
-
-    const sendSmtpEmail = new Brevo.SendSmtpEmail()
-
-    sendSmtpEmail.subject = 'Set Up Your Password - Boingo SalesHub'
-    sendSmtpEmail.sender = {
-        name: 'Boingo SalesHub',
-        email: process.env.BREVO_SENDER_EMAIL || 'noreply@boingosaleshub.com'
-    }
-    sendSmtpEmail.to = [{ email, name }]
-    sendSmtpEmail.htmlContent = `
+    const mailOptions = {
+        from: `"${process.env.SMTP_FROM_NAME || 'Boingo SalesHub'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+        to: email,
+        subject: 'Set Up Your Password - Boingo SalesHub',
+        html: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -102,19 +101,15 @@ export async function sendPasswordSetupEmail(email, name, setupLink) {
     </table>
 </body>
 </html>
-    `
+        `,
+    }
 
     try {
-        const response = await apiInstance.sendTransacEmail(sendSmtpEmail)
-        console.log(`✅ Password setup email sent successfully to ${email}`, response)
+        const info = await transporter.sendMail(mailOptions)
+        console.log(`✅ Password setup email sent successfully to ${email}`, info.messageId)
         return { success: true }
     } catch (error) {
-        console.error('Failed to send email via Brevo:', error)
-        // Log more details for debugging
-        if (error.response) {
-            console.error('Response status:', error.response.status)
-            console.error('Response body:', error.response.body)
-        }
+        console.error('Failed to send email via Nodemailer:', error)
         return { success: false, error: error.message || 'Failed to send email' }
     }
 }
