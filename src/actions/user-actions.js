@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase-admin"
 import { createClient } from "@/utils/supabase/server"
 import { headers } from "next/headers"
+import { sendPasswordSetupEmail } from "@/lib/email"
 
 async function getSiteUrl() {
   const configured = process.env.NEXT_PUBLIC_SITE_URL
@@ -76,48 +77,43 @@ export async function createUser(formData) {
     console.error('Error upserting user profile:', upsertError)
   }
 
-  // 3. Try to send email
-  let emailSent = false
-  let recoveryLink = null
-
-  const { error: emailError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/set-password`,
+  // 3. Generate password setup link
+  const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: { redirectTo: `${siteUrl}/set-password` }
   })
 
-  if (emailError) {
-    console.warn('SMTP Warning: Failed to send email via Supabase. Falling back to manual link generation.', emailError.message)
-    
-    // 4. Fallback: Generate link manually if SMTP fails
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email,
-      options: { redirectTo: `${siteUrl}/set-password` }
-    })
-
-    if (linkError) {
-      console.error('Link Generation Error:', linkError)
-      return { 
-        success: true, 
-        user: authData.user, 
-        warning: 'User created, but failed to send email AND failed to generate link.' 
-      }
+  if (linkError) {
+    console.error('Link Generation Error:', linkError)
+    return {
+      success: true,
+      user: authData.user,
+      warning: 'User created, but failed to generate password setup link.',
+      emailSent: false
     }
+  }
 
-    recoveryLink = linkData.properties.action_link
-    
-    // Log the link to console for debugging/admin access
+  const recoveryLink = linkData.properties.action_link
+
+  // 4. Send email to the NEW USER via Brevo
+  const emailResult = await sendPasswordSetupEmail(email, name, recoveryLink)
+
+  if (!emailResult.success) {
+    console.warn('Email sending failed:', emailResult.error)
+    // Log the link for admin fallback
     console.log('----------------------------------------')
-    console.log('MANUAL RECOVERY LINK GENERATED (SMTP FAILED):')
+    console.log('MANUAL RECOVERY LINK (EMAIL FAILED):')
     console.log(`User: ${email}`)
     console.log(`Link: ${recoveryLink}`)
     console.log('----------------------------------------')
 
     return {
-        success: true,
-        user: authData.user,
-        emailSent: false,
-        warning: 'User created, but email failed to send (SMTP issue). Use the link below.',
-        recoveryLink
+      success: true,
+      user: authData.user,
+      emailSent: false,
+      warning: `User created, but email failed to send. Share this link with them:`,
+      recoveryLink
     }
   }
 
