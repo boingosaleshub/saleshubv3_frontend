@@ -84,7 +84,7 @@ export function AppSidebar({ ...props }) {
       items: [
         // Only Admin and Super Admin can see System User
         ...(['Admin', 'Super Admin'].includes(user?.app_metadata?.role) ? [
-          { title: "System User", url: "/dashboard/users" }
+          { title: "System User", url: "/settings/users" }
         ] : []),
         { title: "System Settings", url: "#" },
       ],
