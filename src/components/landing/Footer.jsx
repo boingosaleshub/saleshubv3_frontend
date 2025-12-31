@@ -1,147 +1,108 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Link from "next/link";
 import Image from "next/image";
-import { Mail, Phone, MapPin, Linkedin, Twitter, Github } from "lucide-react";
-
-const footerLinks = {
-    product: [
-        { name: "Features", href: "#features" },
-        { name: "How It Works", href: "#how-it-works" },
-        { name: "Benefits", href: "#benefits" },
-        { name: "Pricing", href: "#" },
-    ],
-    company: [
-        { name: "About Boingo", href: "https://www.boingo.com" },
-        { name: "Careers", href: "#" },
-        { name: "Blog", href: "#" },
-        { name: "Press", href: "#" },
-    ],
-    support: [
-        { name: "Help Center", href: "#" },
-        { name: "Documentation", href: "#" },
-        { name: "API Reference", href: "#" },
-        { name: "Contact Us", href: "#contact" },
-    ],
-    legal: [
-        { name: "Privacy Policy", href: "#" },
-        { name: "Terms of Service", href: "#" },
-        { name: "Cookie Policy", href: "#" },
-        { name: "GDPR", href: "#" },
-    ],
-};
+import { Mail, MapPin, Linkedin, Twitter } from "lucide-react";
 
 const socialLinks = [
     { icon: Linkedin, href: "#", label: "LinkedIn" },
     { icon: Twitter, href: "#", label: "Twitter" },
-    { icon: Github, href: "#", label: "GitHub" },
 ];
 
 export default function Footer() {
     return (
-        <footer id="contact" className="relative bg-gray-900 pt-20 pb-8 overflow-hidden">
-            {/* Background Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-b from-gray-900 via-gray-900 to-black" />
+        <footer id="contact" className="relative bg-gray-900 pt-24 pb-12 overflow-hidden">
+            {/* Background Gradient & Effects */}
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-900 via-[#0a0a0a] to-black" />
+
+            {/* Subtle animated background mesh */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none">
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-red-500/20 rounded-full blur-[100px] -translate-y-1/2" />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] translate-y-1/2" />
+            </div>
+
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
 
-            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Main Footer Content */}
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 pb-12 border-b border-gray-800">
-                    {/* Brand Column */}
-                    <div className="col-span-2">
-                        <motion.div whileHover={{ scale: 1.02 }} className="inline-block mb-6">
-                            <Image
-                                src="/SalesHub 2.0 Logo Text.png"
-                                alt="SalesHub Logo"
-                                width={160}
-                                height={50}
-                                className="h-12 w-auto brightness-0 invert"
-                            />
-                        </motion.div>
-                        <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-xs">
-                            Streamline your ROM proposal generation with automated pricing, coverage analysis, and approval workflows.
-                        </p>
-                        {/* Contact Info */}
-                        <div className="space-y-3">
-                            <a href="mailto:support@saleshub.com" className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors">
-                                <Mail className="w-4 h-4" />
-                                <span className="text-sm">support@saleshub.com</span>
-                            </a>
-                            <div className="flex items-center gap-3 text-gray-400">
-                                <MapPin className="w-4 h-4" />
-                                <span className="text-sm">Los Angeles, CA</span>
-                            </div>
+            <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+
+                {/* Brand Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="flex flex-col items-center mb-12"
+                >
+                    <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        className="relative mb-8"
+                    >
+                        <div className="absolute -inset-4 bg-white/5 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Image
+                            src="/SocialShare_400x225-removebg-preview.png"
+                            alt="Boingo Wireless"
+                            width={280}
+                            height={158}
+                            className="relative h-auto w-64 brightness-0 invert drop-shadow-lg"
+                        />
+                    </motion.div>
+                </motion.div>
+
+                {/* Contact Information Cards */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.1 }}
+                    className="grid md:grid-cols-2 gap-4 mb-16 max-w-2xl mx-auto"
+                >
+                    {/* Email Card */}
+                    <a
+                        href="mailto:saleshub@boingo.com"
+                        className="group flex flex-col items-center p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                    >
+                        <div className="p-3 rounded-full bg-red-500/10 text-red-400 group-hover:bg-red-500 group-hover:text-white transition-colors mb-3">
+                            <Mail className="w-6 h-6" />
                         </div>
-                    </div>
+                        <span className="text-gray-300 group-hover:text-white font-medium">saleshub@boingo.com</span>
+                        <span className="text-xs text-gray-500 mt-1">Get in touch for support</span>
+                    </a>
 
-                    {/* Links Columns */}
-                    <div>
-                        <h4 className="text-white font-semibold mb-4">Product</h4>
-                        <ul className="space-y-3">
-                            {footerLinks.product.map((link) => (
-                                <li key={link.name}>
-                                    <a href={link.href} className="text-gray-400 hover:text-white text-sm transition-colors">{link.name}</a>
-                                </li>
-                            ))}
-                        </ul>
+                    {/* Address Card */}
+                    <div className="group flex flex-col items-center p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+                        <div className="p-3 rounded-full bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors mb-3">
+                            <MapPin className="w-6 h-6" />
+                        </div>
+                        <span className="text-gray-300 group-hover:text-white font-medium text-center">7 Cowboys Way, Frisco<br />TX 75034, USA</span>
                     </div>
+                </motion.div>
 
-                    <div>
-                        <h4 className="text-white font-semibold mb-4">Company</h4>
-                        <ul className="space-y-3">
-                            {footerLinks.company.map((link) => (
-                                <li key={link.name}>
-                                    <a href={link.href} target={link.href.startsWith("http") ? "_blank" : undefined} className="text-gray-400 hover:text-white text-sm transition-colors">{link.name}</a>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
+                {/* Social Links */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2 }}
+                    className="flex justify-center gap-6 mb-12"
+                >
+                    {socialLinks.map((social) => (
+                        <motion.a
+                            key={social.label}
+                            href={social.href}
+                            whileHover={{ scale: 1.1, y: -2 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="p-3 rounded-full bg-gray-800/50 border border-gray-700 hover:border-gray-500 hover:bg-gray-700 text-gray-400 hover:text-white transition-all duration-300 shadow-lg"
+                            aria-label={social.label}
+                        >
+                            <social.icon className="w-5 h-5" />
+                        </motion.a>
+                    ))}
+                </motion.div>
 
-                    <div>
-                        <h4 className="text-white font-semibold mb-4">Support</h4>
-                        <ul className="space-y-3">
-                            {footerLinks.support.map((link) => (
-                                <li key={link.name}>
-                                    <a href={link.href} className="text-gray-400 hover:text-white text-sm transition-colors">{link.name}</a>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h4 className="text-white font-semibold mb-4">Legal</h4>
-                        <ul className="space-y-3">
-                            {footerLinks.legal.map((link) => (
-                                <li key={link.name}>
-                                    <a href={link.href} className="text-gray-400 hover:text-white text-sm transition-colors">{link.name}</a>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-
-                {/* Bottom Bar */}
-                <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Copyright */}
+                <div className="pt-8 border-t border-gray-800/50">
                     <p className="text-gray-500 text-sm">
                         © {new Date().getFullYear()} SalesHub by Boingo Wireless. All rights reserved.
                     </p>
-
-                    {/* Social Links */}
-                    <div className="flex items-center gap-4">
-                        {socialLinks.map((social) => (
-                            <motion.a
-                                key={social.label}
-                                href={social.href}
-                                whileHover={{ scale: 1.1, y: -2 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
-                                aria-label={social.label}
-                            >
-                                <social.icon className="w-5 h-5" />
-                            </motion.a>
-                        ))}
-                    </div>
                 </div>
             </div>
         </footer>
