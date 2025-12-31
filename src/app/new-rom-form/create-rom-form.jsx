@@ -61,7 +61,7 @@ export function CreateRomForm() {
     const [zoom, setZoom] = useState(13)
 
     // System Info (Step 2)
-    const [systemType, setSystemType] = useState("") // DAS, ERRCS, DAS & ERRCS
+    const [systemType, setSystemType] = useState("") // DAS, ERCES, DAS & ERCES
     const [dasArchitecture, setDasArchitecture] = useState("")
     const [oemCriteria, setOemCriteria] = useState("")
     const [dasVendor, setDasVendor] = useState("")
@@ -154,8 +154,8 @@ export function CreateRomForm() {
     }
 
     // Conditional Visibility Helpers
-    const showDasFields = systemType === "DAS" || systemType === "DAS & ERRCS"
-    const showErrcsFields = systemType === "ERRCS" || systemType === "DAS & ERRCS"
+    const showDasFields = systemType === "DAS" || systemType === "DAS & ERCES"
+    const showErrcsFields = systemType === "ERCES" || systemType === "DAS & ERCES"
 
     return (
         <Card className="w-full bg-white shadow-lg border-0 rounded-xl flex flex-col">
@@ -397,13 +397,13 @@ export function CreateRomForm() {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="DAS">DAS</SelectItem>
-                                                <SelectItem value="ERRCS">ERRCS</SelectItem>
-                                                <SelectItem value="DAS & ERRCS">DAS & ERRCS</SelectItem>
+                                                <SelectItem value="ERCES">ERCES</SelectItem>
+                                                <SelectItem value="DAS & ERCES">DAS & ERCES</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
 
-                                    {/* DAS Architecture (Hidden if ERRCS Only) */}
+                                    {/* DAS Architecture (Hidden if ERCES Only) */}
                                     {showDasFields && (
                                         <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
                                             <Label className="text-gray-600 font-medium whitespace-nowrap">DAS Architecture</Label>
@@ -435,7 +435,7 @@ export function CreateRomForm() {
                                         </Select>
                                     </div>
 
-                                    {/* DAS Vendor (Hidden if ERRCS Only) */}
+                                    {/* DAS Vendor (Hidden if ERCES Only) */}
                                     {showDasFields && (
                                         <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
                                             <Label className="text-gray-600 font-medium whitespace-nowrap">DAS Vendor</Label>

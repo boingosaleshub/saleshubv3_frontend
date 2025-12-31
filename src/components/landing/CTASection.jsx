@@ -76,7 +76,7 @@ export default function CTASection() {
                         animate={isInView ? { opacity: 1, y: 0 } : {}}
                         transition={{ duration: 0.6, delay: 0.4 }}
                     >
-                        Join teams already saving hours every week with automated proposal generation. Get started today.
+                        Get started today.
                     </motion.p>
 
                     <motion.div
@@ -92,21 +92,13 @@ export default function CTASection() {
                                 className="group px-8 py-4 rounded-full text-[#E41F26] font-semibold tracking-wide bg-white shadow-xl hover:shadow-2xl transition-all duration-300"
                             >
                                 <span className="flex items-center gap-2">
-                                    Start Now — It&apos;s Free
+                                    Start Now
                                     <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
                                 </span>
                             </motion.button>
                         </Link>
 
-                        <a href="#contact">
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="px-8 py-4 rounded-full font-semibold tracking-wide text-white border-2 border-white/30 hover:border-white/60 hover:bg-white/10 transition-all duration-300"
-                            >
-                                Contact Sales
-                            </motion.button>
-                        </a>
+
                     </motion.div>
                 </motion.div>
             </div>
