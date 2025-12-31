@@ -178,25 +178,34 @@ export function CreateCoveragePlotForm() {
             }
 
             const data = await response.json()
-            console.log('Response data:', { success: data.success, screenshotCount: data.screenshots?.length })
+            console.log('Response data:', {
+                success: data.success,
+                screenshotCount: data.screenshots?.length,
+                duration: data.duration,
+                count: data.count
+            })
 
             if (data.success && data.screenshots && data.screenshots.length > 0) {
                 console.log(`Processing ${data.screenshots.length} screenshot(s)...`)
 
-                // Download all screenshots
-                for (const screenshot of data.screenshots) {
+                // Small delay between downloads
+                for (let i = 0; i < data.screenshots.length; i++) {
+                    const screenshot = data.screenshots[i]
+
                     if (screenshot.buffer && screenshot.filename) {
                         try {
-                            console.log(`Downloading: ${screenshot.filename} (${screenshot.size || 'unknown'} KB)`)
+                            console.log(`[${i + 1}/${data.screenshots.length}] Downloading: ${screenshot.filename} (${screenshot.size || 'unknown'} KB)`)
 
                             // Convert base64 to blob
                             const byteCharacters = atob(screenshot.buffer)
                             const byteNumbers = new Array(byteCharacters.length)
-                            for (let i = 0; i < byteCharacters.length; i++) {
-                                byteNumbers[i] = byteCharacters.charCodeAt(i)
+                            for (let j = 0; j < byteCharacters.length; j++) {
+                                byteNumbers[j] = byteCharacters.charCodeAt(j)
                             }
                             const byteArray = new Uint8Array(byteNumbers)
                             const blob = new Blob([byteArray], { type: 'image/png' })
+
+                            console.log(`  Blob created: ${(blob.size / 1024).toFixed(2)} KB`)
 
                             // Create download link
                             const url = URL.createObjectURL(blob)
@@ -205,13 +214,24 @@ export function CreateCoveragePlotForm() {
                             a.download = screenshot.filename
                             document.body.appendChild(a)
                             a.click()
+
+                            // Wait a bit before cleaning up
+                            await new Promise(resolve => setTimeout(resolve, 100))
+
                             document.body.removeChild(a)
                             URL.revokeObjectURL(url)
 
-                            console.log(`✓ Downloaded: ${screenshot.filename}`)
+                            console.log(`  ✓ Downloaded: ${screenshot.filename}`)
+
+                            // Small delay between downloads
+                            if (i < data.screenshots.length - 1) {
+                                await new Promise(resolve => setTimeout(resolve, 300))
+                            }
                         } catch (downloadError) {
                             console.error(`Error downloading ${screenshot.filename}:`, downloadError)
                         }
+                    } else {
+                        console.error(`Screenshot ${i + 1} missing buffer or filename:`, screenshot)
                     }
                 }
 
