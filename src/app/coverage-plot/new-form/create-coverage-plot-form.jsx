@@ -260,7 +260,7 @@ export function CreateCoveragePlotForm() {
         <div className="w-full relative" style={{ minHeight: 'calc(100vh - 8rem)' }}>
             {/* GIF Loader Overlay */}
             {isLoading && (
-                <div className="absolute inset-0 z-[9999] bg-white flex items-center justify-center">
+                <div className="absolute inset-0 z-40 bg-white flex items-center justify-center">
                     <div className="flex flex-col items-center justify-center">
                         <Image
                             src="/success.gif"
@@ -450,7 +450,7 @@ export function CreateCoveragePlotForm() {
                                 {/* Right Column: Map */}
                                 <div className="w-full lg:w-1/2 bg-gray-50 h-[300px] lg:h-auto relative shrink-0">
                                     <CoverageMap lat={coordinates.lat} lng={coordinates.lng} zoom={zoom} />
-                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded text-xs font-semibold shadow-sm z-[1000] text-gray-500 pointer-events-none">
+                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded text-xs font-semibold shadow-sm z-40 text-gray-500 pointer-events-none">
                                         OpenStreetMap View
                                     </div>
                                 </div>

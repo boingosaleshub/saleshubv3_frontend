@@ -96,9 +96,9 @@ export default function HowItWorksSection() {
                 {/* Animated Grid Pattern */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:60px_60px]" />
 
-                {/* Gradient Orbs with enhanced animation */}
+                {/* Gradient Orbs with enhanced animation - Hidden on mobile */}
                 <motion.div
-                    className="absolute top-1/4 left-0 w-96 h-96 bg-[#E41F26]/10 rounded-full blur-3xl"
+                    className="absolute top-1/4 left-0 w-96 h-96 bg-[#E41F26]/10 rounded-full blur-3xl hidden md:block"
                     animate={{
                         x: [0, 50, 0],
                         y: [0, -30, 0],
@@ -107,7 +107,7 @@ export default function HowItWorksSection() {
                     transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
                 />
                 <motion.div
-                    className="absolute bottom-1/4 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"
+                    className="absolute bottom-1/4 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl hidden md:block" // Hidden on mobile
                     animate={{
                         x: [0, -50, 0],
                         y: [0, 30, 0],
@@ -116,28 +116,30 @@ export default function HowItWorksSection() {
                     transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
                 />
 
-                {/* Floating particles */}
-                {[...Array(15)].map((_, i) => (
-                    <motion.div
-                        key={i}
-                        className="absolute w-1 h-1 bg-white/20 rounded-full"
-                        style={{
-                            left: `${Math.random() * 100}%`,
-                            top: `${Math.random() * 100}%`,
-                        }}
-                        animate={{
-                            y: [0, -40, 0],
-                            opacity: [0, 0.8, 0],
-                            scale: [0, 1, 0],
-                        }}
-                        transition={{
-                            duration: 4 + Math.random() * 3,
-                            repeat: Infinity,
-                            delay: Math.random() * 3,
-                            ease: "easeInOut",
-                        }}
-                    />
-                ))}
+                {/* Floating particles - Hidden on mobile */}
+                <div className="hidden md:block">
+                    {[...Array(15)].map((_, i) => (
+                        <motion.div
+                            key={i}
+                            className="absolute w-1 h-1 bg-white/20 rounded-full"
+                            style={{
+                                left: `${Math.random() * 100}%`,
+                                top: `${Math.random() * 100}%`,
+                            }}
+                            animate={{
+                                y: [0, -40, 0],
+                                opacity: [0, 0.8, 0],
+                                scale: [0, 1, 0],
+                            }}
+                            transition={{
+                                duration: 4 + Math.random() * 3,
+                                repeat: Infinity,
+                                delay: Math.random() * 3,
+                                ease: "easeInOut",
+                            }}
+                        />
+                    ))}
+                </div>
             </div>
 
             <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

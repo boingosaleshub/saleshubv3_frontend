@@ -15,10 +15,12 @@ export default function HeroSection() {
         <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
             {/* Beautiful Animated Background */}
             <div className="absolute inset-0 overflow-hidden">
+                {/* Mobile Static Background - Lightweight */}
+                <div className="absolute inset-0 block md:hidden bg-[radial-gradient(circle_at_center,rgba(228,31,38,0.08)_0%,transparent_70%)]" />
 
-                {/* Animated Gradient Mesh */}
+                {/* Animated Gradient Mesh - Desktop Only */}
                 <motion.div
-                    className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full"
+                    className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full hidden md:block" // Hidden on mobile
                     style={{
                         background: "radial-gradient(circle, rgba(228, 31, 38, 0.12) 0%, rgba(228, 31, 38, 0.04) 40%, transparent 70%)",
                         filter: "blur(60px)",
@@ -36,10 +38,10 @@ export default function HeroSection() {
                 />
 
                 <motion.div
-                    className="absolute top-[10%] right-[-15%] w-[45%] h-[45%] rounded-full"
+                    className="absolute top-[10%] right-[-15%] w-[45%] h-[45%] rounded-full hidden md:block" // Hidden on mobile
                     style={{
                         background: "radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.03) 40%, transparent 70%)",
-                        filter: "blur(60px)",
+                        filter: "blur(60px)", // Expensive blur
                     }}
                     animate={{
                         x: [0, -60, -30, 0],
@@ -54,7 +56,7 @@ export default function HeroSection() {
                 />
 
                 <motion.div
-                    className="absolute bottom-[-15%] left-[15%] w-[40%] h-[40%] rounded-full"
+                    className="absolute bottom-[-15%] left-[15%] w-[40%] h-[40%] rounded-full hidden md:block" // Hidden on mobile
                     style={{
                         background: "radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.02) 40%, transparent 70%)",
                         filter: "blur(60px)",
@@ -72,7 +74,7 @@ export default function HeroSection() {
                 />
 
                 <motion.div
-                    className="absolute bottom-[20%] right-[10%] w-[35%] h-[35%] rounded-full"
+                    className="absolute bottom-[20%] right-[10%] w-[35%] h-[35%] rounded-full hidden md:block" // Hidden on mobile
                     style={{
                         background: "radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 60%)",
                         filter: "blur(50px)",
@@ -92,31 +94,33 @@ export default function HeroSection() {
                 {/* Subtle Grid Pattern */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000005_1px,transparent_1px),linear-gradient(to_bottom,#00000005_1px,transparent_1px)] bg-[size:60px_60px]" />
 
-                {/* Floating Particles */}
-                {[...Array(20)].map((_, i) => (
-                    <motion.div
-                        key={i}
-                        className="absolute rounded-full"
-                        style={{
-                            width: Math.random() * 4 + 2,
-                            height: Math.random() * 4 + 2,
-                            left: `${Math.random() * 100}%`,
-                            top: `${Math.random() * 100}%`,
-                            backgroundColor: i % 3 === 0 ? "rgba(228, 31, 38, 0.3)" : i % 3 === 1 ? "rgba(59, 130, 246, 0.3)" : "rgba(139, 92, 246, 0.3)",
-                        }}
-                        animate={{
-                            y: [0, -40, 0],
-                            opacity: [0, 0.8, 0],
-                            scale: [0, 1.2, 0],
-                        }}
-                        transition={{
-                            duration: 5 + Math.random() * 4,
-                            repeat: Infinity,
-                            delay: Math.random() * 4,
-                            ease: "easeInOut",
-                        }}
-                    />
-                ))}
+                {/* Floating Particles - Hide on mobile */}
+                <div className="hidden md:block">
+                    {[...Array(20)].map((_, i) => (
+                        <motion.div
+                            key={i}
+                            className="absolute rounded-full"
+                            style={{
+                                width: Math.random() * 4 + 2,
+                                height: Math.random() * 4 + 2,
+                                left: `${Math.random() * 100}%`,
+                                top: `${Math.random() * 100}%`,
+                                backgroundColor: i % 3 === 0 ? "rgba(228, 31, 38, 0.3)" : i % 3 === 1 ? "rgba(59, 130, 246, 0.3)" : "rgba(139, 92, 246, 0.3)",
+                            }}
+                            animate={{
+                                y: [0, -40, 0],
+                                opacity: [0, 0.8, 0],
+                                scale: [0, 1.2, 0],
+                            }}
+                            transition={{
+                                duration: 5 + Math.random() * 4,
+                                repeat: Infinity,
+                                delay: Math.random() * 4,
+                                ease: "easeInOut",
+                            }}
+                        />
+                    ))}
+                </div>
 
                 {/* Radial gradient overlay for center focus */}
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(255,255,255,0.6)_70%)] dark:bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(17,24,39,0.7)_70%)]" />
