@@ -6,7 +6,7 @@ import Image from "next/image";
 import { ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
 
 const highlights = [
-    "Automated DAS & ERRCS Proposals",
+    "Automated DAS & ERCES Proposals",
     "Multi-language Support",
     "Real-time Approval Workflows",
 ];
@@ -146,7 +146,7 @@ export default function HeroSection() {
                         className="max-w-2xl mx-auto text-lg sm:text-xl text-gray-200 mb-8 leading-relaxed tracking-normal font-normal drop-shadow-md"
                     >
                         Generate professional <strong className="text-white font-semibold">DAS</strong> and{" "}
-                        <strong className="text-white font-semibold">ERRCS</strong> proposals with automated
+                        <strong className="text-white font-semibold">ERCES</strong> proposals with automated
                         pricing, coverage analysis, and approval workflows.
                     </motion.p>
 

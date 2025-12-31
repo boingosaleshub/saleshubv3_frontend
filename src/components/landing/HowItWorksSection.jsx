@@ -85,20 +85,68 @@ export default function HowItWorksSection() {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-100px" });
 
+    // Unified Red/White Theme
+    const steps = [
+        {
+            number: "01",
+            icon: ListChecks,
+            title: "Input Venue Details",
+            description:
+                "Enter venue information including address, property type, square footage, and system requirements. Our smart form guides you through every step.",
+            color: "from-[#E2211C] to-[#E2211C]",
+            bgGlow: "bg-[#E2211C]/20",
+            iconBg: "bg-[#E2211C]",
+            dotColor: "bg-[#E2211C]",
+        },
+        {
+            number: "02",
+            icon: FileSignature,
+            title: "Submit for Approval",
+            description:
+                "Once complete, submit your ROM for review. Admins receive instant notifications via email and Microsoft Teams for quick turnaround.",
+            color: "from-[#E2211C] to-[#E2211C]",
+            bgGlow: "bg-[#E2211C]/20",
+            iconBg: "bg-[#E2211C]",
+            dotColor: "bg-[#E2211C]",
+        },
+        {
+            number: "03",
+            icon: Cog,
+            title: "Automated Processing",
+            description:
+                "Our system automatically calculates pricing, generates coverage plots, and creates professional documentation using advanced algorithms.",
+            color: "from-[#E2211C] to-[#E2211C]",
+            bgGlow: "bg-[#E2211C]/20",
+            iconBg: "bg-[#E2211C]",
+            dotColor: "bg-[#E2211C]",
+        },
+        {
+            number: "04",
+            icon: CheckCircle2,
+            title: "Download & Share",
+            description:
+                "Receive your finalized ROM with pricing sheets, PowerPoint presentations, and PDF documents — ready to share with clients.",
+            color: "from-[#E2211C] to-[#E2211C]",
+            bgGlow: "bg-[#E2211C]/20",
+            iconBg: "bg-[#E2211C]",
+            dotColor: "bg-[#E2211C]",
+        },
+    ];
+
     return (
         <section
             id="how-it-works"
             ref={ref}
-            className="relative py-24 lg:py-32 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 overflow-hidden"
+            className="relative py-24 lg:py-32 bg-[#3D434A] overflow-hidden"
         >
             {/* Background Elements */}
             <div className="absolute inset-0 pointer-events-none">
                 {/* Animated Grid Pattern */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:60px_60px]" />
 
-                {/* Gradient Orbs with enhanced animation - Hidden on mobile */}
+                {/* Gradient Orbs - Only Red/White */}
                 <motion.div
-                    className="absolute top-1/4 left-0 w-96 h-96 bg-[#E41F26]/10 rounded-full blur-3xl hidden md:block"
+                    className="absolute top-1/4 left-0 w-96 h-96 bg-[#E2211C]/10 rounded-full blur-3xl hidden md:block"
                     animate={{
                         x: [0, 50, 0],
                         y: [0, -30, 0],
@@ -107,7 +155,7 @@ export default function HowItWorksSection() {
                     transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
                 />
                 <motion.div
-                    className="absolute bottom-1/4 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl hidden md:block" // Hidden on mobile
+                    className="absolute bottom-1/4 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl hidden md:block"
                     animate={{
                         x: [0, -50, 0],
                         y: [0, 30, 0],
@@ -116,7 +164,7 @@ export default function HowItWorksSection() {
                     transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
                 />
 
-                {/* Floating particles - Hidden on mobile */}
+                {/* Floating particles - White */}
                 <div className="hidden md:block">
                     {[...Array(15)].map((_, i) => (
                         <motion.div
@@ -160,12 +208,12 @@ export default function HowItWorksSection() {
                     </motion.span>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-4">
                         How{" "}
-                        <span className="bg-gradient-to-r from-[#E41F26] to-[#FF6B6B] bg-clip-text text-transparent">
+                        <span className="text-[#E2211C]">
                             SalesHub
                         </span>{" "}
                         Works
                     </h2>
-                    <p className="max-w-2xl mx-auto text-lg text-gray-400 leading-relaxed">
+                    <p className="max-w-2xl mx-auto text-lg text-white/80 leading-relaxed">
                         From venue input to final proposal — a streamlined workflow that saves hours of manual work.
                     </p>
                 </motion.div>
@@ -177,22 +225,22 @@ export default function HowItWorksSection() {
                     animate={isInView ? "visible" : "hidden"}
                     className="relative"
                 >
-                    {/* Beautiful Vertical Timeline Line - Desktop */}
+                    {/* Vertical Timeline Line - Desktop */}
                     <div className="absolute left-1/2 top-0 bottom-0 hidden lg:flex flex-col items-center transform -translate-x-1/2 z-20">
                         {/* Top fade gradient */}
-                        <div className="w-1 h-16 bg-gradient-to-b from-transparent to-gray-600" />
+                        <div className="w-1 h-16 bg-gradient-to-b from-transparent to-white/20" />
 
-                        {/* Main animated line with glow */}
+                        {/* Main animated line */}
                         <div className="flex-1 relative">
-                            {/* Glow effect behind line */}
+                            {/* Glow effect */}
                             <motion.div
-                                className="absolute left-1/2 -translate-x-1/2 w-4 h-full bg-gradient-to-b from-blue-500/20 via-purple-500/20 to-green-500/20 blur-md"
+                                className="absolute left-1/2 -translate-x-1/2 w-4 h-full bg-[#E2211C]/20 blur-md"
                                 animate={{ opacity: [0.3, 0.6, 0.3] }}
                                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                             />
 
-                            {/* Main line */}
-                            <div className="relative w-1 h-full bg-gradient-to-b from-blue-500 via-purple-500 via-orange-500 to-green-500 rounded-full">
+                            {/* Main line - White to Red gradient */}
+                            <div className="relative w-1 h-full bg-gradient-to-b from-white/20 via-[#E2211C] to-white/20 rounded-full">
                                 {/* Animated traveling light */}
                                 <motion.div
                                     className="absolute left-1/2 -translate-x-1/2 w-3 h-20 bg-gradient-to-b from-transparent via-white to-transparent rounded-full"
@@ -207,7 +255,7 @@ export default function HowItWorksSection() {
                         </div>
 
                         {/* Bottom fade gradient */}
-                        <div className="w-1 h-16 bg-gradient-to-t from-transparent to-gray-600" />
+                        <div className="w-1 h-16 bg-gradient-to-t from-transparent to-white/20" />
                     </div>
 
                     <div className="space-y-16 lg:space-y-24">
@@ -232,7 +280,7 @@ export default function HowItWorksSection() {
                                     />
 
                                     <motion.div
-                                        className="relative bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-8 hover:border-gray-600/50 transition-all duration-500"
+                                        className="relative bg-[#1a1a1a] border border-white/10 rounded-2xl p-8 hover:border-[#E2211C]/30 transition-all duration-500"
                                         whileHover={{ y: -5 }}
                                     >
                                         {/* Animated corner accent */}
@@ -243,17 +291,17 @@ export default function HowItWorksSection() {
                                             transition={{ duration: 0.4 }}
                                         />
 
-                                        {/* Step Number with pulse animation */}
+                                        {/* Step Number */}
                                         <div className="flex items-center gap-3 mb-4">
                                             <motion.span
-                                                className={`inline-block text-sm font-bold tracking-wide bg-gradient-to-r ${step.color} bg-clip-text text-transparent`}
+                                                className="inline-block text-sm font-bold tracking-wide text-[#E2211C]"
                                                 animate={{ opacity: [0.7, 1, 0.7] }}
                                                 transition={{ duration: 2, repeat: Infinity }}
                                             >
                                                 Step {step.number}
                                             </motion.span>
                                             <motion.div
-                                                className={`h-px flex-1 bg-gradient-to-r ${step.color}`}
+                                                className="h-px flex-1 bg-[#E2211C]"
                                                 initial={{ scaleX: 0 }}
                                                 whileInView={{ scaleX: 1 }}
                                                 transition={{ duration: 0.8, delay: index * 0.2 }}
@@ -264,7 +312,7 @@ export default function HowItWorksSection() {
                                         {/* Title with animated icon */}
                                         <h3 className="text-2xl font-bold tracking-tight text-white mb-4 flex items-center gap-3">
                                             <motion.span
-                                                className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${step.color} shadow-lg`}
+                                                className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#E2211C] shadow-lg"
                                                 whileHover={{ rotate: 360, scale: 1.1 }}
                                                 transition={{ duration: 0.6, type: "spring" }}
                                             >
@@ -274,28 +322,13 @@ export default function HowItWorksSection() {
                                         </h3>
 
                                         {/* Description */}
-                                        <p className="text-gray-400 leading-relaxed font-normal">
+                                        <p className="text-white/80 leading-relaxed font-normal">
                                             {step.description}
                                         </p>
-
-                                        {/* Animated arrow indicator */}
-                                        <motion.div
-                                            className="mt-6 flex items-center gap-2 text-gray-500 group-hover:text-white transition-colors"
-                                            initial={{ x: 0 }}
-                                            whileHover={{ x: 5 }}
-                                        >
-                                            <span className="text-sm font-medium">Learn more</span>
-                                            <motion.div
-                                                animate={{ x: [0, 5, 0] }}
-                                                transition={{ duration: 1, repeat: Infinity }}
-                                            >
-                                                <ChevronRight className="w-4 h-4" />
-                                            </motion.div>
-                                        </motion.div>
                                     </motion.div>
                                 </motion.div>
 
-                                {/* Center Circle with enhanced animations and connecting elements */}
+                                {/* Center Circle */}
                                 <motion.div
                                     initial={{ scale: 0, rotate: -180 }}
                                     animate={isInView ? { scale: 1, rotate: 0 } : {}}
@@ -304,8 +337,7 @@ export default function HowItWorksSection() {
                                 >
                                     {/* Outer ring pulse */}
                                     <motion.div
-                                        className={`absolute -inset-4 rounded-full border-2 border-dashed`}
-                                        style={{ borderColor: `var(--step-${index}-color, rgba(255,255,255,0.2))` }}
+                                        className="absolute -inset-4 rounded-full border-2 border-dashed border-white/20"
                                         animate={{
                                             rotate: [0, 360],
                                             scale: [1, 1.1, 1],
@@ -318,7 +350,7 @@ export default function HowItWorksSection() {
 
                                     {/* Pulsing colored ring */}
                                     <motion.div
-                                        className={`absolute -inset-2 rounded-full bg-gradient-to-br ${step.color}`}
+                                        className={`absolute -inset-2 rounded-full bg-[#E2211C]`}
                                         animate={{
                                             scale: [1, 1.5, 1],
                                             opacity: [0.6, 0, 0.6],
@@ -332,11 +364,11 @@ export default function HowItWorksSection() {
 
                                     {/* Main circle */}
                                     <motion.div
-                                        className={`w-20 h-20 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center shadow-2xl relative overflow-hidden border-4 border-gray-800`}
+                                        className="w-20 h-20 rounded-full bg-[#E2211C] flex items-center justify-center shadow-2xl relative overflow-hidden border-4 border-[#3D434A]"
                                         whileHover={{ scale: 1.15 }}
                                     >
                                         {/* Inner glow */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
 
                                         {/* Animated shine effect */}
                                         <motion.div
@@ -351,13 +383,13 @@ export default function HowItWorksSection() {
                                         </span>
                                     </motion.div>
 
-                                    {/* Connecting dots - to next step */}
+                                    {/* Connecting dots */}
                                     {index < steps.length - 1 && (
                                         <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2">
                                             {[...Array(3)].map((_, dotIndex) => (
                                                 <motion.div
                                                     key={dotIndex}
-                                                    className={`w-2 h-2 ${step.dotColor} rounded-full mx-auto mb-3`}
+                                                    className={`w-2 h-2 bg-[#E2211C] rounded-full mx-auto mb-3`}
                                                     initial={{ opacity: 0.3, scale: 0.8 }}
                                                     animate={{
                                                         opacity: [0.3, 1, 0.3],
@@ -381,7 +413,7 @@ export default function HowItWorksSection() {
                     </div>
                 </motion.div>
 
-                {/* Bottom CTA with enhanced animation */}
+                {/* Bottom CTA */}
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -389,7 +421,7 @@ export default function HowItWorksSection() {
                     className="text-center mt-20"
                 >
                     <motion.div
-                        className="inline-flex items-center gap-2 text-gray-400 cursor-pointer hover:text-white transition-colors"
+                        className="inline-flex items-center gap-2 text-white/60 cursor-pointer hover:text-white transition-colors"
                         whileHover={{ y: 5 }}
                     >
                         <motion.div
