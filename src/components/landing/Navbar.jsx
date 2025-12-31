@@ -64,7 +64,7 @@ export default function Navbar() {
                                     alt="SalesHub Logo"
                                     width={300}
                                     height={300}
-                                    className="h-12 w-auto"
+                                    className="h-16 w-auto"
                                     priority
                                 />
                             </Link>
