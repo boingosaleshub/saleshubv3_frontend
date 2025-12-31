@@ -146,7 +146,7 @@ export function CreateCoveragePlotForm() {
 
         // Abort controller for timeout
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 180000) // 3 minutes
+        const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes
 
         try {
             const backendUrl = process.env.NEXT_PUBLIC_PLAYWRIGHT_BACKEND_URL || ''
@@ -270,7 +270,7 @@ export function CreateCoveragePlotForm() {
                             className="object-contain"
                             unoptimized
                         />
-                        <p className="mt-4 text-gray-600 text-sm">Processing automation... This may take 2-3 minutes</p>
+                        <p className="mt-4 text-gray-600 text-sm">Processing automation... This may take 3-5 minutes</p>
                     </div>
                 </div>
             )}
