@@ -10,6 +10,9 @@ import nodemailer from 'nodemailer'
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export async function sendPasswordSetupEmail(email, name, setupLink) {
+    // Base URL for images
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
     // Validate required environment variables
     if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
         console.error('SMTP configuration is missing. Required: SMTP_HOST, SMTP_USER, SMTP_PASS')
@@ -45,39 +48,39 @@ export async function sendPasswordSetupEmail(email, name, setupLink) {
                 <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
                     <!-- Header -->
                     <tr>
-                        <td style="background-color: #E41F26; padding: 30px; text-align: center;">
-                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
-                                Welcome to Boingo SalesHub
-                            </h1>
+                        <td style="background-color: #3D434A; padding: 30px; text-align: center;">
                         </td>
                     </tr>
                     
                     <!-- Body -->
                     <tr>
                         <td style="padding: 40px 30px;">
-                            <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 20px;">
+                            <h1 style="margin: 0 0 20px 0; color: #E2211C; font-size: 24px; font-weight: 600; text-align: center;">
+                                Welcome to Boingo SalesHub
+                            </h1>
+                            <h2 style="margin: 0 0 20px 0; color: #3D434A; font-size: 20px;">
                                 Hello ${name || 'there'}! 👋
                             </h2>
-                            <p style="margin: 0 0 20px 0; color: #555555; font-size: 16px; line-height: 1.6;">
+                            <p style="margin: 0 0 20px 0; color: #3D434A; font-size: 16px; line-height: 1.6;">
                                 An account has been created for you on Boingo SalesHub. To get started, please set up your password by clicking the button below.
                             </p>
                             
                             <!-- CTA Button -->
-                            <table role="presentation" style="margin: 30px 0;">
+                            <table role="presentation" style="margin: 30px 0; width: 100%;">
                                 <tr>
-                                    <td style="background-color: #E41F26; border-radius: 6px;">
-                                        <a href="${setupLink}" style="display: inline-block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">
+                                    <td style="text-align: center;">
+                                        <a href="${setupLink}" style="display: inline-block; padding: 14px 30px; background-color: #E2211C; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 6px;">
                                             Set Up Your Password
                                         </a>
                                     </td>
                                 </tr>
                             </table>
                             
-                            <p style="margin: 0 0 20px 0; color: #777777; font-size: 14px; line-height: 1.6;">
+                            <p style="margin: 0 0 10px 0; color: #3D434A; font-size: 14px; line-height: 1.6;">
                                 If the button doesn't work, copy and paste this link into your browser:
                             </p>
-                            <p style="margin: 0 0 20px 0; color: #E41F26; font-size: 14px; word-break: break-all;">
-                                <a href="${setupLink}" style="color: #E41F26;">${setupLink}</a>
+                            <p style="margin: 0 0 20px 0; color: #E2211C; font-size: 14px; word-break: break-all;">
+                                <a href="${setupLink}" style="color: #E2211C;">${setupLink}</a>
                             </p>
                             
                             <p style="margin: 20px 0 0 0; color: #999999; font-size: 13px;">
@@ -89,7 +92,7 @@ export async function sendPasswordSetupEmail(email, name, setupLink) {
                     <!-- Footer -->
                     <tr>
                         <td style="background-color: #f8f8f8; padding: 20px 30px; text-align: center; border-top: 1px solid #eeeeee;">
-                            <p style="margin: 0; color: #999999; font-size: 12px;">
+                            <p style="margin: 0; color: #3D434A; font-size: 12px;">
                                 This email was sent by Boingo SalesHub.<br>
                                 If you didn't expect this email, please ignore it.
                             </p>

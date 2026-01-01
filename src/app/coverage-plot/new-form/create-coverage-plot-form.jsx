@@ -270,7 +270,6 @@ export function CreateCoveragePlotForm() {
                             className="object-contain"
                             unoptimized
                         />
-                        <p className="mt-4 text-gray-600 text-sm">Processing automation... This may take 3-5 minutes</p>
                     </div>
                 </div>
             )}
