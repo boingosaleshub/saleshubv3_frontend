@@ -89,8 +89,15 @@ export default function HeroSection() {
                             <Sparkles className="w-4 h-4 text-white" />
                         </motion.div>
                         <span className="text-sm font-semibold tracking-wide text-white">
-                            Powered by Boingo Wireless
+                            Powered by
                         </span>
+                        <Image
+                            src="/SocialShare_400x225-removebg-preview.png"
+                            alt="Boingo Wireless"
+                            width={100}
+                            height={56}
+                            className="h-14 w-auto object-contain"
+                        />
                     </motion.div>
 
                     {/* Heading */}

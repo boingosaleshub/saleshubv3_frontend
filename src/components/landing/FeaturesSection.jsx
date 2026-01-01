@@ -19,72 +19,36 @@ const features = [
         title: "Automated ROM Generation",
         description:
             "Generate professional ROM proposals with automated pricing models, eliminating manual calculations and human error.",
-        color: "from-red-500 to-rose-600",
-        bgColor: "bg-red-50 dark:bg-red-900/20",
-        borderColor: "border-red-200/50 dark:border-red-500/20",
     },
     {
         icon: MapPin,
         title: "Interactive Coverage Maps",
         description:
             "Visualize venue coverage with interactive maps, address autocomplete, and real-time geolocation integration.",
-        color: "from-blue-500 to-cyan-600",
-        bgColor: "bg-blue-50 dark:bg-blue-900/20",
-        borderColor: "border-blue-200/50 dark:border-blue-500/20",
-    },
-    {
-        icon: BarChart3,
-        title: "Smart Pricing Analytics",
-        description:
-            "Leverage intelligent pricing models that automatically calculate costs based on venue specifications and requirements.",
-        color: "from-purple-500 to-violet-600",
-        bgColor: "bg-purple-50 dark:bg-purple-900/20",
-        borderColor: "border-purple-200/50 dark:border-purple-500/20",
-    },
-    {
-        icon: Users,
-        title: "Role-Based Access Control",
-        description:
-            "Secure multi-tier access with Super Admin, Admin, and User roles — each with appropriate permissions and visibility.",
-        color: "from-emerald-500 to-green-600",
-        bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
-        borderColor: "border-emerald-200/50 dark:border-emerald-500/20",
     },
     {
         icon: Bell,
         title: "Smart Notifications",
         description:
             "Stay informed with real-time alerts via Email and Microsoft Teams for approvals, status changes, and important updates.",
-        color: "from-amber-500 to-orange-600",
-        bgColor: "bg-amber-50 dark:bg-amber-900/20",
-        borderColor: "border-amber-200/50 dark:border-amber-500/20",
     },
     {
         icon: Languages,
         title: "Multilingual Support",
         description:
             "Reach global teams with support for English, Spanish, Portuguese, and French across the entire platform.",
-        color: "from-pink-500 to-rose-600",
-        bgColor: "bg-pink-50 dark:bg-pink-900/20",
-        borderColor: "border-pink-200/50 dark:border-pink-500/20",
     },
     {
         icon: Shield,
         title: "Enterprise Security",
         description:
-            "Built with Supabase Auth, Row Level Security, and session-based authentication for maximum data protection.",
-        color: "from-slate-500 to-gray-600",
-        bgColor: "bg-slate-50 dark:bg-slate-900/20",
-        borderColor: "border-slate-200/50 dark:border-slate-500/20",
+            "Designed with secure authentication, fine-grained access control, and session-based security to ensure maximum data protection",
     },
     {
         icon: Zap,
         title: "Lightning Fast Performance",
         description:
             "Built on Next.js with React Compiler optimizations, ensuring blazing-fast page loads and smooth interactions.",
-        color: "from-yellow-500 to-amber-600",
-        bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
-        borderColor: "border-yellow-200/50 dark:border-yellow-500/20",
     },
 ];
 
@@ -159,7 +123,7 @@ export default function FeaturesSection() {
                     variants={containerVariants}
                     initial="hidden"
                     animate={isInView ? "visible" : "hidden"}
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
                     {features.map((feature, index) => (
                         <motion.div
@@ -170,13 +134,13 @@ export default function FeaturesSection() {
                                 scale: 1.02,
                                 transition: { type: "spring", stiffness: 300 }
                             }}
-                            className={`group relative p-6 rounded-2xl ${feature.bgColor} border ${feature.borderColor} backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-black/5`}
+                            className={`group relative p-6 rounded-2xl bg-white border border-gray-200/50 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-black/5`}
                         >
                             {/* Icon */}
                             <motion.div
                                 whileHover={{ scale: 1.1, rotate: 5 }}
                                 transition={{ type: "spring", stiffness: 400 }}
-                                className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${feature.color} shadow-lg mb-4`}
+                                className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#E2211C] shadow-lg mb-4`}
                             >
                                 <feature.icon className="w-6 h-6 text-white" />
                             </motion.div>
@@ -185,20 +149,20 @@ export default function FeaturesSection() {
                             <h3 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white mb-2 group-hover:text-gray-800 dark:group-hover:text-white transition-colors">
                                 {feature.title}
                             </h3>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed font-normal">
+                            <p className="text-[#3D434A] dark:text-gray-400 text-sm leading-relaxed font-normal">
                                 {feature.description}
                             </p>
 
                             {/* Hover Gradient */}
                             <motion.div
-                                className={`absolute inset-0 opacity-0 group-hover:opacity-100 rounded-2xl bg-gradient-to-br ${feature.color} transition-opacity duration-300`}
+                                className={`absolute inset-0 opacity-0 group-hover:opacity-100 rounded-2xl bg-[#E2211C] transition-opacity duration-300`}
                                 style={{ opacity: 0, zIndex: -1 }}
                                 whileHover={{ opacity: 0.05 }}
                             />
 
                             {/* Corner Decoration */}
                             <div className="absolute top-0 right-0 w-20 h-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <div className={`absolute top-3 right-3 w-2 h-2 rounded-full bg-gradient-to-br ${feature.color}`} />
+                                <div className={`absolute top-3 right-3 w-2 h-2 rounded-full bg-[#E2211C]`} />
                             </div>
                         </motion.div>
                     ))}
