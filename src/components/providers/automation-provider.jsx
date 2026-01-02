@@ -1,16 +1,14 @@
-/**
- * useSSEProgress Hook
- * Custom hook for handling SSE connection and progress updates
- * Implements Observer Pattern
- */
+"use client"
 
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { startAutomationStream } from '../services/automationService'
-import { createSSEConnection } from '../services/sseClient'
-import { ANIMATION_DURATIONS } from '../utils/constants'
-import { useQueue } from './useQueue'
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react"
+import { startAutomationStream } from "@/app/coverage-plot/new-form/services/automationService"
+import { createSSEConnection } from "@/app/coverage-plot/new-form/services/sseClient"
+import { ANIMATION_DURATIONS } from "@/app/coverage-plot/new-form/utils/constants"
+import { useQueue } from "@/app/coverage-plot/new-form/hooks/useQueue"
 
-export function useSSEProgress() {
+const AutomationContext = createContext(null)
+
+export function AutomationProvider({ children }) {
     const [progress, setProgress] = useState(0)
     const [currentStep, setCurrentStep] = useState('')
     const [stepVisible, setStepVisible] = useState(true)
@@ -118,7 +116,7 @@ export function useSSEProgress() {
         }
     }, [])
 
-    return {
+    const value = {
         progress,
         currentStep,
         stepVisible,
@@ -127,4 +125,18 @@ export function useSSEProgress() {
         startAutomation,
         queueInfo
     }
+
+    return (
+        <AutomationContext.Provider value={value}>
+            {children}
+        </AutomationContext.Provider>
+    )
+}
+
+export function useAutomation() {
+    const context = useContext(AutomationContext)
+    if (!context) {
+        throw new Error("useAutomation must be used within an AutomationProvider")
+    }
+    return context
 }

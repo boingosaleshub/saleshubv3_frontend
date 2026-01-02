@@ -96,20 +96,7 @@ export default function Navbar() {
                             ))}
                         </div>
 
-                        {/* Theme Toggle */}
-                        <div className="hidden md:flex items-center gap-4 mr-4">
-                            <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={toggleTheme}
-                                className={`p-2 rounded-full transition-colors ${isScrolled
-                                    ? "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                    : "text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10"
-                                    }`}
-                            >
-                                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                            </motion.button>
-                        </div>
+
 
                         {/* CTA Button */}
                         <div className="hidden md:flex items-center gap-4">
