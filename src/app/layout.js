@@ -1,6 +1,7 @@
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { LanguageProvider } from "@/components/providers/language-provider";
+import { AutomationProvider } from "@/components/providers/automation-provider";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -34,7 +35,9 @@ export default function RootLayout({ children }) {
       <body className="antialiased">
         <AuthProvider>
           <LanguageProvider>
-            {children}
+            <AutomationProvider>
+              {children}
+            </AutomationProvider>
           </LanguageProvider>
         </AuthProvider>
         <Toaster position="bottom-right" />

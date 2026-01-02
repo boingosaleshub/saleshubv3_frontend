@@ -21,11 +21,14 @@ import {
 import { LoadingOverlay } from "./components/LoadingOverlay"
 
 // Hooks
-import { useSSEProgress } from "./hooks/useSSEProgress"
+import { useAutomation } from "@/components/providers/automation-provider"
 import { useScreenshotDownloader } from "./hooks/useScreenshotDownloader"
 
 // Constants
 import { CARRIERS, COVERAGE_TYPES, VALIDATION_MESSAGES, DEFAULT_COORDINATES, DEFAULT_ZOOM } from "./utils/constants"
+
+// Store
+import { useAuthStore } from '@/store/useAuthStore'
 
 const CoverageMap = dynamic(() => import("./coverage-map"), {
     ssr: false,
@@ -59,11 +62,22 @@ export function CreateCoveragePlotForm() {
     const [errorMessage, setErrorMessage] = useState("")
 
     // Custom hooks
-    const { progress, currentStep, stepVisible, isLoading, error, startAutomation } = useSSEProgress()
+    const { progress, currentStep, stepVisible, isLoading, error, startAutomation, results, resetAutomation } = useAutomation()
     const { download } = useScreenshotDownloader()
 
     const debounceRef = useRef(null)
     const [isSearching, setIsSearching] = useState(false)
+
+    // Watch for results from global context (in case we navigated away and back)
+    useEffect(() => {
+        if (results && !showSuccessModal) {
+            setShowSuccessModal(true)
+            // Optional: trigger download again if needed, or assume it happened? 
+            // Browser might block auto-download on mount without user interaction.
+            // Better to rely on "Download" button in modal if we add one, or just re-trigger:
+            download(results).catch(console.error)
+        }
+    }, [results, download, showSuccessModal])
 
     // Address search
     const searchAddress = useCallback(async (query) => {
@@ -157,6 +171,9 @@ export function CreateCoveragePlotForm() {
         return { selectedCarriers, selectedCoverageTypes }
     }, [address, carrierRequirements, coverageType])
 
+    // Authenticated User
+    const { user } = useAuthStore()
+
     // Handle create
     const handleCreate = useCallback(async () => {
         setErrorMessage("")
@@ -169,11 +186,28 @@ export function CreateCoveragePlotForm() {
         setIsCreating(true)
 
         try {
+            const userName = user?.user_metadata?.full_name || user?.email || 'Guest'
+            // We only trigger startAutomation here.
+            // Screen download and modal show will be handled by the useEffect watching 'results'
+            // OR by looking at the promise result if we stay on page.
+            // But to be consistent, let's rely on the state update?
+            // Actually, waiting for promise here is fine for "stay on page" UX.
+
             const screenshots = await startAutomation({
                 address: address.trim(),
                 carriers: selectedCarriers,
                 coverageTypes: selectedCoverageTypes
-            })
+            }, userName)
+
+            // If we are still here, these will run.
+            // If we navigated away, the component unmounted, and these won't run.
+            // But the 'results' in context will update.
+            // When we come back, the useEffect will run.
+
+            // Valid redundancy?
+            // If we do it here, we might double download if useEffect also fires.
+            // useEffect checks if (!showSuccessModal).
+            // So if we set it here to true, useEffect won't run.
 
             await download(screenshots)
             setShowSuccessModal(true)
@@ -182,10 +216,11 @@ export function CreateCoveragePlotForm() {
         } finally {
             setIsCreating(false)
         }
-    }, [address, validateForm, startAutomation, download])
+    }, [address, validateForm, startAutomation, download, user, showSuccessModal])
 
     // Reset form
     const resetForm = useCallback(() => {
+        resetAutomation() // Reset global state
         setStep(1)
         setAddress("")
         setCarrierRequirements({
@@ -198,7 +233,7 @@ export function CreateCoveragePlotForm() {
             [COVERAGE_TYPES.OUTDOOR]: false,
             [COVERAGE_TYPES.INDOOR_OUTDOOR]: false
         })
-    }, [])
+    }, [resetAutomation])
 
     // Memoized carrier list
     const carrierList = useMemo(() => [CARRIERS.AT_T, CARRIERS.VERIZON, CARRIERS.T_MOBILE], [])
@@ -222,7 +257,10 @@ export function CreateCoveragePlotForm() {
             />
 
             {/* Success Modal */}
-            <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+            <Dialog open={showSuccessModal} onOpenChange={(open) => {
+                setShowSuccessModal(open)
+                if (!open) resetForm()
+            }}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="text-center">Success!</DialogTitle>

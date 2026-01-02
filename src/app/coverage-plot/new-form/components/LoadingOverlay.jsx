@@ -34,6 +34,21 @@ export function LoadingOverlay({
 
                 {/* Current Step */}
                 <StepDisplay step={currentStep} visible={stepVisible} />
+
+                {/* Queue Link */}
+                <div className="text-center mt-4">
+                    <p className="text-gray-500 text-sm">
+                        Wanna check out your coverage plot progress?{' '}
+                        <a
+                            href="/coverage-plot/progress-queue"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-red-600 hover:text-red-700 font-medium hover:underline"
+                        >
+                            Click here
+                        </a>
+                    </p>
+                </div>
             </div>
         </div>
     )
