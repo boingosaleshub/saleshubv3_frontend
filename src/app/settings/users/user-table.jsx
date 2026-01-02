@@ -17,8 +17,10 @@ import { DeleteUserDialog } from './delete-user-dialog'
 import { EditUserDialog } from './edit-user-dialog'
 import { deleteUser } from '@/actions/user-actions'
 import { toast } from 'sonner'
+import { useLanguage } from '@/components/providers/language-provider'
 
 export function UserTable({ users, onRefresh }) {
+    const { t } = useLanguage()
     const id = useId()
     const [selectedUsers, setSelectedUsers] = useState([])
     const [userToDelete, setUserToDelete] = useState(null)
@@ -50,18 +52,18 @@ export function UserTable({ users, onRefresh }) {
                             <TableHead className="w-[50px]">
                                 <Checkbox id={id} aria-label='select-all' />
                             </TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Joined</TableHead>
-                            <TableHead className='text-right'>Actions</TableHead>
+                            <TableHead>{t("name")}</TableHead>
+                            <TableHead>{t("email")}</TableHead>
+                            <TableHead>{t("role")}</TableHead>
+                            <TableHead>{t("joined")}</TableHead>
+                            <TableHead className='text-right'>{t("actions")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {users.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                                    No users found.
+                                    {t("noUsersFound")}
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -100,7 +102,7 @@ export function UserTable({ users, onRefresh }) {
                     </TableBody>
                     <TableFooter className='bg-transparent'>
                         <TableRow className='hover:bg-transparent'>
-                            <TableCell colSpan={5}>Total Users</TableCell>
+                            <TableCell colSpan={5}>{t("totalUsers")}</TableCell>
                             <TableCell className='text-right'>{users.length}</TableCell>
                         </TableRow>
                     </TableFooter>

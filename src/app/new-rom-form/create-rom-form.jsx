@@ -15,18 +15,16 @@ import {
 } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
 import dynamic from "next/dynamic"
+import { useLanguage } from "@/components/providers/language-provider"
 
 // Dynamically import the map to avoid SSR issues
 const RomMap = dynamic(() => import("./rom-map"), {
     ssr: false,
-    loading: () => (
-        <div className="h-full w-full bg-gray-100 flex items-center justify-center text-gray-400">
-            Loading Map...
-        </div>
-    )
+    loading: () => null
 })
 
 export function CreateRomForm() {
+    const { t } = useLanguage()
     // Navigation State
     const [step, setStep] = useState(1) // 1: Venue Info, 2: System Info
 
@@ -158,10 +156,10 @@ export function CreateRomForm() {
     const showErrcsFields = systemType === "ERCES" || systemType === "DAS & ERCES"
 
     return (
-        <Card className="w-full bg-white shadow-lg border-0 rounded-xl flex flex-col">
-            <div className="bg-[#3D434A] py-4 px-8 border-b-4 border-red-600 shrink-0 rounded-t-xl -mt-6">
+        <Card className="w-full bg-white dark:bg-zinc-900 shadow-lg border-0 dark:border dark:border-zinc-800 rounded-xl flex flex-col">
+            <div className="bg-[#3D434A] dark:bg-zinc-950 py-4 px-8 border-b-4 border-red-600 shrink-0 rounded-t-xl -mt-6">
                 <h2 className="text-2xl font-bold text-white text-center">
-                    {step === 1 ? "Venue Information" : "System Information"}
+                    {step === 1 ? t("venueInfo") : t("systemInfo")}
                 </h2>
             </div>
 
@@ -171,7 +169,7 @@ export function CreateRomForm() {
                     Step 1: Width 100% on mobile, 50% on large
                     Step 2: Width 100%
                 */}
-                <div className={`${step === 1 ? "w-full lg:w-1/2 lg:border-r border-gray-100" : "w-full"} p-4 lg:p-8`}>
+                <div className={`${step === 1 ? "w-full lg:w-1/2 lg:border-r border-gray-100 dark:border-zinc-800" : "w-full"} p-4 lg:p-8`}>
                     <div className="space-y-6 pb-8">
 
                         {/* 
@@ -181,29 +179,29 @@ export function CreateRomForm() {
                             <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
                                 {/* Venue Name */}
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">Venue Name</Label>
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("venueName")}</Label>
                                     <Input
                                         value={venueName} onChange={(e) => setVenueName(e.target.value)}
-                                        placeholder="Type the venue name"
-                                        className="bg-gray-50/50 border-gray-200 rounded-full px-4 w-full"
+                                        placeholder={t("venueNamePlaceholder")}
+                                        className="bg-gray-50/50 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white"
                                     />
                                 </div>
 
                                 {/* Venue Address */}
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium sm:pt-2 whitespace-nowrap">Venue Address</Label>
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium sm:pt-2 whitespace-nowrap">{t("venueAddress")}</Label>
                                     <div className="w-full">
                                         <Input
                                             value={address} onChange={handleAddressChange} onBlur={handleBlur}
-                                            placeholder="Type the venue full address"
-                                            className="bg-gray-100 border-none rounded-full px-4 w-full"
+                                            placeholder={t("venueAddressPlaceholder")}
+                                            className="bg-gray-100 dark:bg-zinc-800 border-none rounded-full px-4 w-full text-gray-900 dark:text-white"
                                         />
                                         {suggestions.length > 0 && (
-                                            <div className="w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden z-10 relative">
+                                            <div className="w-full mt-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-sm overflow-hidden z-10 relative">
                                                 {suggestions.map((item) => (
                                                     <div
                                                         key={item.place_id}
-                                                        className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-xs text-gray-700 border-b border-gray-100 last:border-0 truncate"
+                                                        className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 cursor-pointer text-xs text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-zinc-800 last:border-0 truncate"
                                                         onClick={() => handleSelectAddress(item)}
                                                     >
                                                         {item.display_name}
@@ -216,50 +214,50 @@ export function CreateRomForm() {
 
                                 {/* Venue Type */}
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">Venue Type</Label>
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("venueType")}</Label>
                                     <Select value={venueType} onValueChange={setVenueType}>
-                                        <SelectTrigger className="bg-white border-gray-200 rounded-full px-4 w-full">
-                                            <SelectValue placeholder="Select the venue type" />
+                                        <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white">
+                                            <SelectValue placeholder={t("venueTypePlaceholder")} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="stadium">Stadium</SelectItem>
-                                            <SelectItem value="arena">Arena</SelectItem>
-                                            <SelectItem value="convention">Convention Center</SelectItem>
-                                            <SelectItem value="office">Office Building</SelectItem>
+                                            <SelectItem value="stadium">{t("stadium")}</SelectItem>
+                                            <SelectItem value="arena">{t("arena")}</SelectItem>
+                                            <SelectItem value="convention">{t("conventionCenter")}</SelectItem>
+                                            <SelectItem value="office">{t("officeBuilding")}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 {/* Number of Floors */}
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">Number of Floors</Label>
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("numFloors")}</Label>
                                     <Input
                                         type="number" value={numFloors} onChange={(e) => setNumFloors(e.target.value)}
-                                        placeholder="Type the total number of floors"
-                                        className="bg-white border-gray-200 rounded-full px-4 w-full"
+                                        placeholder={t("numFloorsPlaceholder")}
+                                        className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white"
                                     />
                                 </div>
 
                                 {/* Gross sq. ft. */}
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">Gross sq. ft. (Total)</Label>
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("grossSqFt")}</Label>
                                     <Input
                                         type="number" value={grossSqFt} onChange={(e) => setGrossSqFt(e.target.value)}
-                                        placeholder="Type the total gross sq. ft."
-                                        className="bg-white border-gray-200 rounded-full px-4 w-full"
+                                        placeholder={t("grossSqFtPlaceholder")}
+                                        className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white"
                                     />
                                 </div>
 
                                 {/* Parking Garage Toggle */}
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">Parking Garage</Label>
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("parkingGarage")}</Label>
                                     <div className="flex items-center gap-3">
                                         <Switch
                                             checked={hasParkingGarage} onCheckedChange={setHasParkingGarage}
                                             className="data-[state=checked]:bg-[#10B981] data-[state=unchecked]:bg-gray-200"
                                         />
                                         <span className="bg-[#3D434A] text-white text-xs font-bold px-3 py-1 rounded">
-                                            {hasParkingGarage ? "YES" : "NO"}
+                                            {hasParkingGarage ? t("yes") : t("no")}
                                         </span>
                                     </div>
                                 </div>
@@ -267,37 +265,37 @@ export function CreateRomForm() {
                                 {/* Parking Garage sq. ft. */}
                                 {hasParkingGarage && (
                                     <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <Label className="text-gray-600 font-medium whitespace-nowrap">Parking Garage sq. ft.</Label>
+                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("parkingSqFt")}</Label>
                                         <Input
                                             type="number" value={parkingSqFt} onChange={(e) => setParkingSqFt(e.target.value)}
-                                            placeholder="Type the total number parking sq. ft."
-                                            className="bg-white border-gray-200 rounded-full px-4 w-full"
+                                            placeholder={t("parkingSqFtPlaceholder")}
+                                            className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white"
                                         />
                                     </div>
                                 )}
 
                                 {/* Pops */}
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">Populations Covered (PoPs)</Label>
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("pops")}</Label>
                                     <Input
                                         type="number" value={pops} onChange={(e) => setPops(e.target.value)}
-                                        placeholder="Type the total number of pops"
-                                        className="bg-white border-gray-200 rounded-full px-4 w-full"
+                                        placeholder={t("popsPlaceholder")}
+                                        className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white"
                                     />
                                 </div>
 
-                                <div className="border-t border-gray-100 my-4"></div>
+                                <div className="border-t border-gray-100 dark:border-zinc-800 my-4"></div>
 
                                 {/* 3rd Party */}
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">3rd Party</Label>
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("thirdParty")}</Label>
                                     <div className="flex items-center gap-3">
                                         <Switch
                                             checked={isThirdParty} onCheckedChange={setIsThirdParty}
                                             className="data-[state=checked]:bg-[#10B981] data-[state=unchecked]:bg-gray-200"
                                         />
                                         <span className="bg-[#3D434A] text-white text-xs font-bold px-3 py-1 rounded">
-                                            {isThirdParty ? "YES" : "NO"}
+                                            {isThirdParty ? t("yes") : t("no")}
                                         </span>
                                     </div>
                                 </div>
@@ -305,17 +303,17 @@ export function CreateRomForm() {
                                 {isThirdParty && (
                                     <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
                                         <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                            <Label className="text-gray-600 font-medium whitespace-nowrap">3rd Party Name</Label>
+                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("thirdPartyName")}</Label>
                                             <Input
                                                 value={thirdPartyName} onChange={(e) => setThirdPartyName(e.target.value)}
-                                                placeholder="Type the 3rd party name" className="bg-white border-gray-200 rounded-full px-4 w-full"
+                                                placeholder={t("thirdPartyNamePlaceholder")} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white"
                                             />
                                         </div>
                                         <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                            <Label className="text-gray-600 font-medium whitespace-nowrap">3rd Partner Fee (%)</Label>
+                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("thirdPartyFee")}</Label>
                                             <Input
                                                 type="number" value={thirdPartyFee} onChange={(e) => setThirdPartyFee(e.target.value)}
-                                                placeholder="Enter the 3rd partner fee" className="bg-white border-gray-200 rounded-full px-4 w-full"
+                                                placeholder={t("thirdPartyFeePlaceholder")} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white"
                                             />
                                         </div>
                                     </div>
@@ -323,7 +321,7 @@ export function CreateRomForm() {
 
                                 {/* AHJ Checklist */}
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">AHJ Requirements</Label>
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("ahjRequirements")}</Label>
                                     <div className="flex flex-wrap gap-4 sm:gap-6">
                                         {["700MHz", "850MHz", "450MHz"].map((mhz) => (
                                             <div key={mhz} className="flex items-center space-x-2">
@@ -342,40 +340,40 @@ export function CreateRomForm() {
 
                                 {/* Building Density */}
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">Building Density</Label>
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("buildingDensity")}</Label>
                                     <Select value={density} onValueChange={setDensity}>
-                                        <SelectTrigger className="bg-white border-gray-200 rounded-full px-4 w-full">
-                                            <SelectValue placeholder="Select the density" />
+                                        <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white">
+                                            <SelectValue placeholder={t("densityPlaceholder")} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="low">Low</SelectItem>
-                                            <SelectItem value="medium">Medium</SelectItem>
-                                            <SelectItem value="high">High</SelectItem>
+                                            <SelectItem value="low">{t("low")}</SelectItem>
+                                            <SelectItem value="medium">{t("medium")}</SelectItem>
+                                            <SelectItem value="high">{t("high")}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 {/* Sales Manager */}
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">Sales Manager</Label>
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("salesManager")}</Label>
                                     <Input
                                         value={salesManager} onChange={(e) => setSalesManager(e.target.value)}
-                                        placeholder="Type the sales manager/account owner" className="bg-white border-gray-200 rounded-full px-4 w-full"
+                                        placeholder={t("salesManagerPlaceholder")} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white"
                                     />
                                 </div>
 
                                 {/* Dates */}
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">Expected Close Date</Label>
-                                    <Input type="date" value={closeDate} onChange={(e) => setCloseDate(e.target.value)} className="bg-white border-gray-200 rounded-full px-4 w-full" />
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("expectedCloseDate")}</Label>
+                                    <Input type="date" value={closeDate} onChange={(e) => setCloseDate(e.target.value)} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white" />
                                 </div>
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">Expected Construction Start Date</Label>
-                                    <Input type="date" value={constructionDate} onChange={(e) => setConstructionDate(e.target.value)} className="bg-white border-gray-200 rounded-full px-4 w-full" />
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("expectedConstructionStart")}</Label>
+                                    <Input type="date" value={constructionDate} onChange={(e) => setConstructionDate(e.target.value)} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white" />
                                 </div>
                                 <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                    <Label className="text-gray-600 font-medium whitespace-nowrap">Expected On Air Date</Label>
-                                    <Input type="date" value={onAirDate} onChange={(e) => setOnAirDate(e.target.value)} className="bg-white border-gray-200 rounded-full px-4 w-full" />
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("expectedOnAirDate")}</Label>
+                                    <Input type="date" value={onAirDate} onChange={(e) => setOnAirDate(e.target.value)} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white" />
                                 </div>
                             </div>
                         )}
@@ -390,10 +388,10 @@ export function CreateRomForm() {
                                 <div className="space-y-6">
                                     {/* System Type */}
                                     <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                        <Label className="text-gray-600 font-medium whitespace-nowrap">System Type</Label>
+                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("systemType")}</Label>
                                         <Select value={systemType} onValueChange={setSystemType}>
-                                            <SelectTrigger className="bg-white border-gray-200 rounded-full px-4 w-full">
-                                                <SelectValue placeholder="Select the type of the system" />
+                                            <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white">
+                                                <SelectValue placeholder={t("systemTypePlaceholder")} />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="DAS">DAS</SelectItem>
@@ -406,15 +404,15 @@ export function CreateRomForm() {
                                     {/* DAS Architecture (Hidden if ERCES Only) */}
                                     {showDasFields && (
                                         <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                            <Label className="text-gray-600 font-medium whitespace-nowrap">DAS Architecture</Label>
+                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("dasArchitecture")}</Label>
                                             <Select value={dasArchitecture} onValueChange={setDasArchitecture}>
-                                                <SelectTrigger className="bg-white border-gray-200 rounded-full px-4 w-full">
-                                                    <SelectValue placeholder="Select architecture" />
+                                                <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white">
+                                                    <SelectValue placeholder={t("architecturePlaceholder")} />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="Active">Active</SelectItem>
-                                                    <SelectItem value="Passive">Passive</SelectItem>
-                                                    <SelectItem value="Hybrid">Hybrid</SelectItem>
+                                                    <SelectItem value="Active">{t("active")}</SelectItem>
+                                                    <SelectItem value="Passive">{t("passive")}</SelectItem>
+                                                    <SelectItem value="Hybrid">{t("hybrid")}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -422,15 +420,15 @@ export function CreateRomForm() {
 
                                     {/* OEM Selection Criteria */}
                                     <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                        <Label className="text-gray-600 font-medium whitespace-nowrap">OEM Selection Criteria</Label>
+                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("oemCriteria")}</Label>
                                         <Select value={oemCriteria} onValueChange={setOemCriteria}>
-                                            <SelectTrigger className="bg-white border-gray-200 rounded-full px-4 w-full">
-                                                <SelectValue placeholder="OEM Selection Criteria" />
+                                            <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white">
+                                                <SelectValue placeholder={t("oemCriteriaPlaceholder")} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="performance">Performance</SelectItem>
-                                                <SelectItem value="cost">Cost</SelectItem>
-                                                <SelectItem value="legacy">Legacy Support</SelectItem>
+                                                <SelectItem value="performance">{t("performance")}</SelectItem>
+                                                <SelectItem value="cost">{t("cost")}</SelectItem>
+                                                <SelectItem value="legacy">{t("legacySupport")}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -438,10 +436,10 @@ export function CreateRomForm() {
                                     {/* DAS Vendor (Hidden if ERCES Only) */}
                                     {showDasFields && (
                                         <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                            <Label className="text-gray-600 font-medium whitespace-nowrap">DAS Vendor</Label>
+                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("dasVendor")}</Label>
                                             <Select value={dasVendor} onValueChange={setDasVendor}>
-                                                <SelectTrigger className="bg-white border-gray-200 rounded-full px-4 w-full">
-                                                    <SelectValue placeholder="Select DAS Vendor" />
+                                                <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white">
+                                                    <SelectValue placeholder={t("dasVendorPlaceholder")} />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="commscope">CommScope</SelectItem>
@@ -455,10 +453,10 @@ export function CreateRomForm() {
                                     {/* BDA/Booster Vendor (Hidden if DAS Only) */}
                                     {showErrcsFields && (
                                         <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                            <Label className="text-gray-600 font-medium whitespace-nowrap">BDA/Booster Vendor</Label>
+                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("bdaVendor")}</Label>
                                             <Select value={bdaVendor} onValueChange={setBdaVendor}>
-                                                <SelectTrigger className="bg-white border-gray-200 rounded-full px-4 w-full">
-                                                    <SelectValue placeholder="Select BDA Vendor" />
+                                                <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white">
+                                                    <SelectValue placeholder={t("bdaVendorPlaceholder")} />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="honeywell">Honeywell</SelectItem>
@@ -471,14 +469,14 @@ export function CreateRomForm() {
                                     {/* ERCES Coverage Area (Hidden if DAS Only) */}
                                     {showErrcsFields && (
                                         <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                            <Label className="text-gray-600 font-medium whitespace-nowrap">ERCES Coverage Area</Label>
+                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("coverageArea")}</Label>
                                             <Select value={errcsCoverage} onValueChange={setErrcsCoverage}>
-                                                <SelectTrigger className="bg-white border-gray-200 rounded-full px-4 w-full">
-                                                    <SelectValue placeholder="Select Coverage Area" />
+                                                <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white">
+                                                    <SelectValue placeholder={t("coverageAreaPlaceholder")} />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="full">Full Building</SelectItem>
-                                                    <SelectItem value="critical">Critical Areas Only</SelectItem>
+                                                    <SelectItem value="full">{t("fullBuilding")}</SelectItem>
+                                                    <SelectItem value="critical">{t("criticalAreas")}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -486,25 +484,25 @@ export function CreateRomForm() {
 
                                     {/* # of Sectors Criteria */}
                                     <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                        <Label className="text-gray-600 font-medium whitespace-nowrap"># of Sectors Criteria</Label>
+                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("sectorCriteria")}</Label>
                                         <Select value={sectorCriteria} onValueChange={setSectorCriteria}>
-                                            <SelectTrigger className="bg-white border-gray-200 rounded-full px-4 w-full">
-                                                <SelectValue placeholder="Select the criteria" />
+                                            <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white">
+                                                <SelectValue placeholder={t("sectorCriteriaPlaceholder")} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="capacity">Capacity</SelectItem>
-                                                <SelectItem value="coverage">Coverage</SelectItem>
+                                                <SelectItem value="capacity">{t("capacity")}</SelectItem>
+                                                <SelectItem value="coverage">{t("coverage")}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
 
                                     {/* Number of Sectors */}
                                     <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                        <Label className="text-gray-600 font-medium whitespace-nowrap">Number of Sectors</Label>
+                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("numSectors")}</Label>
                                         <Input
                                             value={numSectors}
                                             readOnly
-                                            className="bg-gray-200/50 border-gray-200 rounded-full px-4 text-gray-700 w-full"
+                                            className="bg-gray-200/50 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 text-gray-700 dark:text-gray-400 w-full"
                                         />
                                     </div>
                                 </div>
@@ -513,22 +511,22 @@ export function CreateRomForm() {
                                 <div className="space-y-6">
                                     {/* Signal Source per Carrier */}
                                     <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                        <Label className="text-gray-600 font-medium whitespace-nowrap">Signal Source per Carrier</Label>
+                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("signalSource")}</Label>
                                         <Select value={signalSource} onValueChange={setSignalSource}>
-                                            <SelectTrigger className="bg-white border-gray-200 rounded-full px-4 w-full">
-                                                <SelectValue placeholder="Select signal source" />
+                                            <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-full px-4 w-full text-gray-900 dark:text-white">
+                                                <SelectValue placeholder={t("signalSourcePlaceholder")} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="off-air">Off-Air</SelectItem>
-                                                <SelectItem value="bts">Base Transceiver Station</SelectItem>
-                                                <SelectItem value="smallcell">Small Cell</SelectItem>
+                                                <SelectItem value="off-air">{t("offAir")}</SelectItem>
+                                                <SelectItem value="bts">{t("bts")}</SelectItem>
+                                                <SelectItem value="smallcell">{t("smallCell")}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
 
                                     {/* Carrier Requirements */}
                                     <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start gap-2 sm:gap-4">
-                                        <Label className="text-gray-600 font-medium sm:pt-1 whitespace-nowrap">Carrier Requirements</Label>
+                                        <Label className="text-gray-600 dark:text-gray-300 font-medium sm:pt-1 whitespace-nowrap">{t("carrierRequirements")}</Label>
                                         <div className="flex flex-wrap gap-4 sm:gap-6">
                                             {["AT&T", "Verizon", "T-Mobile"].map((carrier) => (
                                                 <div key={carrier} className="flex items-center space-x-2">
@@ -537,7 +535,7 @@ export function CreateRomForm() {
                                                         checked={carrierRequirements[carrier]}
                                                         onCheckedChange={(checked) => setCarrierRequirements(p => ({ ...p, [carrier]: checked }))}
                                                     />
-                                                    <label htmlFor={carrier} className="text-sm font-medium leading-none text-gray-500">
+                                                    <label htmlFor={carrier} className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
                                                         {carrier}
                                                     </label>
                                                 </div>
@@ -547,7 +545,7 @@ export function CreateRomForm() {
 
                                     {/* Technology Supported */}
                                     <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start gap-2 sm:gap-4">
-                                        <Label className="text-gray-600 font-medium sm:pt-1 whitespace-nowrap">Technology Supported</Label>
+                                        <Label className="text-gray-600 dark:text-gray-300 font-medium sm:pt-1 whitespace-nowrap">{t("techSupported")}</Label>
                                         <div className="flex flex-wrap gap-4 sm:gap-6">
                                             {["4G LTE", "4G LTE & 5G NR"].map((tech) => (
                                                 <div key={tech} className="flex items-center space-x-2">
@@ -556,7 +554,7 @@ export function CreateRomForm() {
                                                         checked={techSupported[tech]}
                                                         onCheckedChange={(checked) => setTechSupported(p => ({ ...p, [tech]: checked }))}
                                                     />
-                                                    <label htmlFor={tech} className="text-sm font-medium leading-none text-gray-500">
+                                                    <label htmlFor={tech} className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
                                                         {tech}
                                                     </label>
                                                 </div>
@@ -566,40 +564,39 @@ export function CreateRomForm() {
                                 </div>
 
                                 {/* Additional Information - Full Width */}
-                                <div className="col-span-1 lg:col-span-2 space-y-4 pt-4 border-t border-gray-100">
-                                    <Label className="text-gray-600 font-medium">Additional Information</Label>
+                                <div className="col-span-1 lg:col-span-2 space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
+                                    <Label className="text-gray-600 dark:text-gray-300 font-medium">{t("additionalInfo")}</Label>
                                     <textarea
                                         value={additionalInfo}
                                         onChange={(e) => setAdditionalInfo(e.target.value)}
-                                        placeholder="Enter any additional details, notes, or requirements here..."
-                                        className="w-full min-h-[150px] p-4 bg-white border border-gray-200 rounded-xl resize-y focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                                        placeholder={t("additionalInfoPlaceholder")}
+                                        className="w-full min-h-[150px] p-4 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl resize-y focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-zinc-600 text-sm text-gray-900 dark:text-white"
                                     />
                                 </div>
                             </div>
                         )}
-
                     </div>
                 </div>
 
                 {/* Right Column: Map (Only visible in Step 1) */}
                 {step === 1 && (
-                    <div className="w-full lg:w-1/2 bg-gray-50 h-[300px] lg:h-auto relative shrink-0">
+                    <div className="w-full lg:w-1/2 bg-gray-50 dark:bg-zinc-800 h-[300px] lg:h-auto relative shrink-0">
                         <RomMap lat={coordinates.lat} lng={coordinates.lng} zoom={zoom} />
                         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded text-xs font-semibold shadow-sm z-[1000] text-gray-500 pointer-events-none">
-                            OpenStreetMap View
+                            {t("osmView")}
                         </div>
                     </div>
                 )}
             </div>
 
             {/* Footer Actions */}
-            <div className="p-4 border-t border-gray-100 flex justify-center items-center bg-white shrink-0 relative rounded-b-xl">
+            <div className="p-4 border-t border-gray-100 dark:border-zinc-800 flex justify-center items-center bg-white dark:bg-zinc-900 shrink-0 relative rounded-b-xl">
                 {step === 2 && (
                     <Button
                         onClick={handleBack}
                         className="absolute left-4 bg-[#3D434A] text-white hover:bg-gray-700 rounded-full px-8 animate-in fade-in slide-in-from-left-2"
                     >
-                        Back
+                        {t("back")}
                     </Button>
                 )}
 
@@ -607,7 +604,7 @@ export function CreateRomForm() {
                     onClick={handleNext}
                     className="bg-[#3D434A] text-white hover:bg-gray-700 rounded-full px-8"
                 >
-                    {step === 2 ? "Create" : "Next"}
+                    {step === 2 ? t("create") : t("next")}
                 </Button>
             </div>
             <div className="absolute -z-10 bg-transparent"></div>

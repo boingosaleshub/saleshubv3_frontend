@@ -5,8 +5,10 @@ import { getUsers } from '@/actions/user-actions'
 import { UserTable } from './user-table'
 import { CreateUserDialog } from './create-user-dialog'
 import { toast } from 'sonner'
+import { useLanguage } from '@/components/providers/language-provider'
 
 export default function UsersPage() {
+    const { t } = useLanguage()
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
 
@@ -28,7 +30,7 @@ export default function UsersPage() {
     return (
         <div className="flex flex-col gap-4 p-4">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight">System Users</h1>
+                <h1 className="text-2xl font-bold tracking-tight">{t("systemUsers")}</h1>
                 <CreateUserDialog onUserCreated={fetchUsers} />
             </div>
 
