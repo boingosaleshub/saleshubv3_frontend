@@ -47,6 +47,11 @@ export function CreateCoveragePlotForm() {
     const [showSuccessModal, setShowSuccessModal] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
 
+    // Progress tracking states
+    const [progress, setProgress] = useState(0)
+    const [currentStep, setCurrentStep] = useState("")
+    const [stepVisible, setStepVisible] = useState(true)
+
     const debounceRef = useRef(null)
     const [isSearching, setIsSearching] = useState(false)
 
@@ -141,18 +146,30 @@ export function CreateCoveragePlotForm() {
 
         setIsCreating(true)
         setIsLoading(true)
-
-        // Abort controller for timeout
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes
+        setProgress(0)
+        setCurrentStep("Starting...")
+        setStepVisible(true)
 
         try {
             const backendUrl = process.env.NEXT_PUBLIC_PLAYWRIGHT_BACKEND_URL || ''
-            const apiUrl = backendUrl ? `${backendUrl}/api/automate` : '/api/coverage-plot/automate'
+            const apiUrl = backendUrl ? `${backendUrl}/api/automate/stream` : '/api/coverage-plot/automate/stream'
 
-            console.log('Sending request to:', apiUrl)
-            console.log('Payload:', { address: address.trim(), carriers: selectedCarriers, coverageTypes: selectedCoverageTypes })
+            console.log('Connecting to SSE endpoint:', apiUrl)
 
+            // Use EventSource for SSE
+            const eventSource = new EventSource(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    address: address.trim(),
+                    carriers: selectedCarriers,
+                    coverageTypes: selectedCoverageTypes
+                })
+            })
+
+            // Since EventSource doesn't support POST, we'll use fetch with streaming
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
@@ -162,39 +179,67 @@ export function CreateCoveragePlotForm() {
                     address: address.trim(),
                     carriers: selectedCarriers,
                     coverageTypes: selectedCoverageTypes
-                }),
-                signal: controller.signal
+                })
             })
-
-            clearTimeout(timeoutId)
-
-            console.log('Response status:', response.status)
 
             if (!response.ok) {
-                const error = await response.json()
-                throw new Error(error.error || 'Failed to generate screenshots')
+                throw new Error('Failed to start automation')
             }
 
-            const data = await response.json()
-            console.log('Response data:', {
-                success: data.success,
-                screenshotCount: data.screenshots?.length,
-                duration: data.duration,
-                count: data.count
-            })
+            const reader = response.body.getReader()
+            const decoder = new TextDecoder()
+            let buffer = ''
+            let finalData = null
 
-            if (data.success && data.screenshots && data.screenshots.length > 0) {
-                console.log(`Processing ${data.screenshots.length} screenshot(s)...`)
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
 
-                // Small delay between downloads
-                for (let i = 0; i < data.screenshots.length; i++) {
-                    const screenshot = data.screenshots[i]
+                buffer += decoder.decode(value, { stream: true })
+                const lines = buffer.split('\n')
+                buffer = lines.pop() || ''
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6))
+
+                            if (data.final) {
+                                // Final response with screenshots
+                                finalData = data
+                            } else if (data.status === 'error') {
+                                throw new Error(data.step)
+                            } else {
+                                // Progress update
+                                setProgress(data.progress)
+
+                                // Fade out, change text, fade in
+                                if (data.step !== currentStep) {
+                                    setStepVisible(false)
+                                    setTimeout(() => {
+                                        setCurrentStep(data.step)
+                                        setStepVisible(true)
+                                    }, 150) // Half of transition duration
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Error parsing SSE data:', e)
+                        }
+                    }
+                }
+            }
+
+            if (finalData && finalData.success && finalData.screenshots && finalData.screenshots.length > 0) {
+                console.log(`Processing ${finalData.screenshots.length} screenshot(s)...`)
+
+                // Download screenshots
+                for (let i = 0; i < finalData.screenshots.length; i++) {
+                    const screenshot = finalData.screenshots[i]
 
                     if (screenshot.buffer && screenshot.filename) {
                         try {
-                            console.log(`[${i + 1}/${data.screenshots.length}] Downloading: ${screenshot.filename} (${screenshot.size || 'unknown'} KB)`)
+                            console.log(`[${i + 1}/${finalData.screenshots.length}] Downloading: ${screenshot.filename} (${screenshot.size || 'unknown'} KB)`)
 
-                            // Convert base64 to blob
                             const byteCharacters = atob(screenshot.buffer)
                             const byteNumbers = new Array(byteCharacters.length)
                             for (let j = 0; j < byteCharacters.length; j++) {
@@ -205,7 +250,6 @@ export function CreateCoveragePlotForm() {
 
                             console.log(`  Blob created: ${(blob.size / 1024).toFixed(2)} KB`)
 
-                            // Create download link
                             const url = URL.createObjectURL(blob)
                             const a = document.createElement('a')
                             a.href = url
@@ -213,7 +257,6 @@ export function CreateCoveragePlotForm() {
                             document.body.appendChild(a)
                             a.click()
 
-                            // Wait a bit before cleaning up
                             await new Promise(resolve => setTimeout(resolve, 100))
 
                             document.body.removeChild(a)
@@ -221,8 +264,7 @@ export function CreateCoveragePlotForm() {
 
                             console.log(`  ✓ Downloaded: ${screenshot.filename}`)
 
-                            // Small delay between downloads
-                            if (i < data.screenshots.length - 1) {
+                            if (i < finalData.screenshots.length - 1) {
                                 await new Promise(resolve => setTimeout(resolve, 300))
                             }
                         } catch (downloadError) {
@@ -240,15 +282,9 @@ export function CreateCoveragePlotForm() {
                 throw new Error('No screenshots received from server')
             }
         } catch (error) {
-            clearTimeout(timeoutId)
             console.error('Error creating coverage plot:', error)
             setIsLoading(false)
-
-            if (error.name === 'AbortError') {
-                setErrorMessage('Request timeout - The automation is taking longer than expected. Please try again.')
-            } else {
-                setErrorMessage(error.message || "Failed to generate screenshots")
-            }
+            setErrorMessage(error.message || "Failed to generate screenshots")
         } finally {
             setIsCreating(false)
         }
@@ -264,10 +300,10 @@ export function CreateCoveragePlotForm() {
 
     return (
         <div className="w-full relative bg-gray-50 dark:bg-zinc-950 transition-colors duration-300" style={{ minHeight: 'calc(100vh - 8rem)' }}>
-            {/* GIF Loader Overlay */}
+            {/* GIF Loader Overlay with Progress Bar */}
             {isLoading && (
                 <div className="absolute inset-0 z-40 bg-white flex items-center justify-center">
-                    <div className="flex flex-col items-center justify-center">
+                    <div className="flex flex-col items-center justify-center gap-6 w-full max-w-md px-4">
                         <Image
                             src="/success.gif"
                             alt="Loading..."
@@ -276,6 +312,32 @@ export function CreateCoveragePlotForm() {
                             className="object-contain"
                             unoptimized
                         />
+
+                        {/* Progress Bar */}
+                        <div className="w-full space-y-3">
+                            {/* Progress Bar Track */}
+                            <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-500 ease-out"
+                                    style={{ width: `${progress}%` }}
+                                />
+                            </div>
+
+                            {/* Progress Percentage */}
+                            <div className="text-center">
+                                <span className="text-2xl font-bold text-gray-700">{Math.round(progress)}%</span>
+                            </div>
+
+                            {/* Current Step with Fade Animation */}
+                            <div className="text-center min-h-[24px]">
+                                <p
+                                    className={`text-sm text-gray-600 transition-opacity duration-300 ${stepVisible ? 'opacity-100' : 'opacity-0'
+                                        }`}
+                                >
+                                    {currentStep}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
