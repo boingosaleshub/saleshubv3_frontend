@@ -33,7 +33,7 @@ export function LoadingOverlay({
     )
 
     return (
-        <div className="absolute inset-0 z-40 bg-white flex items-center justify-center">
+        <div className="absolute inset-0 z-40 bg-white dark:bg-[#1a1d21] flex items-center justify-center">
             <div className="flex flex-col items-center justify-center gap-8 w-full max-w-5xl px-4">
                 {/* Step-Based Progress Bar */}
                 <StepProgressBar
@@ -48,13 +48,13 @@ export function LoadingOverlay({
 
                 {/* Queue Link */}
                 <div className="text-center mt-4">
-                    <p className="text-gray-500 text-sm">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
                         Wanna check out your coverage plot progress?{' '}
                         <a
                             href="/coverage-plot/progress-queue"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-red-600 hover:text-red-700 font-medium hover:underline"
+                            className="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400 font-medium hover:underline"
                         >
                             Click here
                         </a>
