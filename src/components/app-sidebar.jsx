@@ -7,12 +7,12 @@ import {
   Settings,
   BarChart2,
   Layers,
-  LogOut,
   ChevronRight,
   Search,
   Plus,
   RefreshCcw,
-  DollarSign
+  DollarSign,
+  LogOut
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
@@ -21,10 +21,11 @@ import Image from "next/image"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
+  SidebarFooter,
   SidebarMenu,
   SidebarMenuButton,
+
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
@@ -37,62 +38,57 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuthStore } from "@/store/useAuthStore"
+import { useLanguage } from "@/components/providers/language-provider"
 
 export function AppSidebar({ ...props }) {
   const pathname = usePathname()
   const { user, signOut } = useAuthStore()
   const { state } = useSidebar()
+  const { t } = useLanguage()
 
   // Menu items with role-based access control
   const menuItems = [
     {
-      title: "Home",
+      title: t("home"),
       url: "/dashboard",
       icon: Home,
     },
     {
-      title: "ROM Generator",
+      title: t("romGenerator"),
       url: "#",
       icon: Layers,
       items: [
-        { title: "Create New", url: "/new-rom-form" },
-        { title: "Search ROM", url: "#" },
-        { title: "My ROM's", url: "#" },
-        { title: "Approvals", url: "#" },
+        { title: t("createNew"), url: "/new-rom-form" },
+        { title: t("searchRom"), url: "#" },
+        { title: t("myRoms"), url: "#" },
+        { title: t("approvals"), url: "#" },
       ],
     },
     {
-      title: "Coverage Plot",
+      title: t("coveragePlot"),
       url: "#",
       icon: BarChart2,
       items: [
-        { title: "Create New", url: "/coverage-plot/new-form" },
+        { title: t("createNew"), url: "/coverage-plot/new-form" },
       ],
     },
     {
-      title: "Settings",
+      title: t("settings"),
       url: "#",
       icon: Settings,
       items: [
         // Only Admin and Super Admin can see System User
         ...(['Admin', 'Super Admin'].includes(user?.app_metadata?.role) ? [
-          { title: "System User", url: "/settings/users" }
+          { title: t("systemUser"), url: "/settings/users" }
         ] : []),
-        { title: "System Settings", url: "#" },
+        { title: t("systemSettings"), url: "#" },
       ],
     },
   ]
 
   return (
-    <Sidebar collapsible="icon" className="border-r-4 border-[var(--boingo-red)] bg-[#3D434A] text-white" {...props}>
+    <Sidebar collapsible="icon" className="border-r-4 border-[var(--boingo-red)] bg-[var(--sidebar)] text-[var(--sidebar-foreground)]" {...props}>
       <SidebarHeader className="px-2 py-4">
         <div className={`flex items-center ${state === 'collapsed' ? 'justify-center' : 'justify-start'}`}>
           {state === 'collapsed' ? (
@@ -101,12 +97,12 @@ export function AppSidebar({ ...props }) {
               alt="Boingo Logo"
               width={32}
               height={32}
-              className="object-contain rounded-full border-2 border-white"
+              className="object-contain rounded-full border-2 border-[var(--sidebar-border)]"
               priority
             />
           ) : (
             <Image
-              src="/SocialShare_400x225.png"
+              src="/SocialShare_400x225-removebg-preview.png"
               alt="Boingo Logo"
               width={100}
               height={56}
@@ -116,7 +112,7 @@ export function AppSidebar({ ...props }) {
           )}
         </div>
       </SidebarHeader>
-      <SidebarContent className="text-white px-2">
+      <SidebarContent className="text-[var(--sidebar-foreground)] px-2">
         <SidebarMenu>
           {menuItems.map((item) => (
             <Collapsible
@@ -129,19 +125,19 @@ export function AppSidebar({ ...props }) {
                 {item.items ? (
                   <>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip={item.title} className="text-white hover:bg-white/10 hover:text-white font-medium text-sm px-2">
-                        {item.icon && <item.icon className="size-4 text-white" />}
-                        <span className="font-sans text-white">{item.title}</span>
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-white" />
+                      <SidebarMenuButton tooltip={item.title} className="text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-foreground)] font-medium text-sm px-2">
+                        {item.icon && <item.icon className="size-4 text-[var(--sidebar-foreground)]" />}
+                        <span className="font-sans text-[var(--sidebar-foreground)]">{item.title}</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--sidebar-foreground)]" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <SidebarMenuSub className="border-l-white/20 ml-4">
+                      <SidebarMenuSub className="border-l-[var(--sidebar-border)] ml-4">
                         {item.items.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild className="text-white hover:bg-white/10 hover:text-white font-normal text-sm">
+                            <SidebarMenuSubButton asChild className="text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-foreground)] font-normal text-sm">
                               <Link href={subItem.url}>
-                                <span className="font-sans text-white">{subItem.title}</span>
+                                <span className="font-sans text-[var(--sidebar-foreground)]">{subItem.title}</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
@@ -150,10 +146,10 @@ export function AppSidebar({ ...props }) {
                     </CollapsibleContent>
                   </>
                 ) : (
-                  <SidebarMenuButton asChild tooltip={item.title} className={`text-white hover:bg-white/10 hover:text-white font-medium text-sm px-2 ${pathname === item.url ? 'bg-white/10 font-bold' : ''}`}>
+                  <SidebarMenuButton asChild tooltip={item.title} className={`text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-foreground)] font-medium text-sm px-2 ${pathname === item.url ? 'bg-[var(--sidebar-accent)] font-bold' : ''}`}>
                     <Link href={item.url}>
-                      {item.icon && <item.icon className="size-4 text-white" />}
-                      <span className="font-sans text-white">{item.title}</span>
+                      {item.icon && <item.icon className="size-4 text-[var(--sidebar-foreground)]" />}
+                      <span className="font-sans text-[var(--sidebar-foreground)]">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 )}
@@ -164,37 +160,21 @@ export function AppSidebar({ ...props }) {
       </SidebarContent>
       <SidebarFooter className="px-2">
         <SidebarMenu>
-          {/* User Info - Only show when expanded */}
-          {state === 'expanded' && (
-            <SidebarMenuItem>
-              <div className="flex items-center gap-3 px-2 py-2">
-                <Avatar className="h-8 w-8 rounded-lg flex-shrink-0">
-                  <AvatarFallback className="rounded-lg bg-red-600 text-white">
-                    {user?.email?.charAt(0).toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
-                  <span className="truncate font-semibold text-white">{user?.email?.split('@')[0] || 'User'}</span>
-                  <span className="truncate text-xs text-white/70">{user?.email || ''}</span>
-                </div>
-              </div>
-            </SidebarMenuItem>
-          )}
-
-          {/* Logout Button */}
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={signOut}
-              className="text-white hover:bg-red-600 hover:text-white transition-colors font-medium text-sm px-2"
-              tooltip="Logout"
+              className="text-[var(--sidebar-foreground)] hover:bg-red-600 hover:text-[var(--sidebar-foreground)] transition-colors font-medium text-sm px-2"
+              tooltip={t("logout")}
             >
-              <LogOut className="size-4 text-white" />
-              <span className="font-sans text-white">Logout</span>
+              <LogOut className="size-4 text-[var(--sidebar-foreground)]" />
+              <span className="font-sans text-[var(--sidebar-foreground)]">{t("logout")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
       <SidebarRail />
     </Sidebar >
   )
 }
+

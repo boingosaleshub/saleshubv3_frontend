@@ -1,7 +1,9 @@
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { LanguageProvider } from "@/components/providers/language-provider";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+
 
 // Modern, clean font for better readability
 const inter = Inter({
@@ -31,10 +33,13 @@ export default function RootLayout({ children }) {
     <html lang="en" className={inter.variable}>
       <body className="antialiased">
         <AuthProvider>
-          {children}
+          <LanguageProvider>
+            {children}
+          </LanguageProvider>
         </AuthProvider>
         <Toaster position="bottom-right" />
       </body>
     </html>
   );
 }
+

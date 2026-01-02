@@ -23,8 +23,10 @@ import {
 import { toast } from "sonner"
 import { createUser } from "@/actions/user-actions"
 import { Plus } from 'lucide-react'
+import { useLanguage } from '@/components/providers/language-provider'
 
 export function CreateUserDialog({ onUserCreated }) {
+    const { t } = useLanguage()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
 
@@ -79,48 +81,48 @@ export function CreateUserDialog({ onUserCreated }) {
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 <Button className="bg-[#E41F26] hover:bg-[#B5121B] text-white">
-                    <Plus className="mr-2 h-4 w-4" /> Add User
+                    <Plus className="mr-2 h-4 w-4" /> {t("addUser")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Add New User</DialogTitle>
+                    <DialogTitle>{t("addNewUser")}</DialogTitle>
                     <DialogDescription>
-                        Create a new user account. They will receive an email to set their password.
+                        {t("createUserDesc")}
                     </DialogDescription>
                 </DialogHeader>
                 <form id="create-user-form" onSubmit={handleSubmit} className="grid gap-4 py-4" autoComplete="off">
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="name" className="text-right">
-                            Name
+                            {t("name")}
                         </Label>
                         <Input id="name" name="name" className="col-span-3" required autoComplete="off" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="email" className="text-right">
-                            Email
+                            {t("email")}
                         </Label>
                         <Input id="email" name="email" type="email" className="col-span-3" required autoComplete="off" />
                     </div>
 
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="role" className="text-right">
-                            Role
+                            {t("role")}
                         </Label>
                         <Select name="role" defaultValue="User">
                             <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select a role" />
+                                <SelectValue placeholder={t("selectRole")} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="User">User</SelectItem>
-                                <SelectItem value="Admin">Admin</SelectItem>
-                                <SelectItem value="Super Admin">Super Admin</SelectItem>
+                                <SelectItem value="User">{t("userRole")}</SelectItem>
+                                <SelectItem value="Admin">{t("adminRole")}</SelectItem>
+                                <SelectItem value="Super Admin">{t("superAdminRole")}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>
-                            {loading ? 'Creating...' : 'Create User'}
+                            {loading ? t("creating") : t("createUser")}
                         </Button>
                     </DialogFooter>
                 </form>

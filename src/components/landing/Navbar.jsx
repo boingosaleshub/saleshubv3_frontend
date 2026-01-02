@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown, Moon, Sun } from "lucide-react";
+import { useTheme } from "@/components/providers/theme-provider";
 
 const navLinks = [
     { name: "Features", href: "#features" },
@@ -16,6 +17,7 @@ const navLinks = [
 export default function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { theme, toggleTheme } = useTheme();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -84,7 +86,7 @@ export default function Navbar() {
                                         onClick={(e) => handleSmoothScroll(e, link.href)}
                                         className={`relative px-4 py-2 text-sm font-medium tracking-wide transition-colors duration-300 rounded-full group ${isScrolled
                                             ? "text-gray-700 dark:text-gray-300 hover:text-[#E41F26]"
-                                            : "text-gray-700 hover:text-[#E41F26]"
+                                            : "text-gray-700 dark:text-gray-300 hover:text-[#E41F26]"
                                             }`}
                                     >
                                         {link.name}
@@ -92,6 +94,21 @@ export default function Navbar() {
                                     </a>
                                 </motion.div>
                             ))}
+                        </div>
+
+                        {/* Theme Toggle */}
+                        <div className="hidden md:flex items-center gap-4 mr-4">
+                            <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={toggleTheme}
+                                className={`p-2 rounded-full transition-colors ${isScrolled
+                                    ? "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    : "text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10"
+                                    }`}
+                            >
+                                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                            </motion.button>
                         </div>
 
                         {/* CTA Button */}
@@ -141,6 +158,15 @@ export default function Navbar() {
                             className="md:hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-700/50"
                         >
                             <div className="px-4 py-6 space-y-4">
+                                <div className="flex items-center justify-between px-4 py-2">
+                                    <span className="text-gray-700 dark:text-gray-300 font-medium">Appearance</span>
+                                    <button
+                                        onClick={toggleTheme}
+                                        className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    >
+                                        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                                    </button>
+                                </div>
                                 {navLinks.map((link, index) => (
                                     <motion.div
                                         key={link.name}
