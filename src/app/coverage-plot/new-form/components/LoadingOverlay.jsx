@@ -1,12 +1,22 @@
 /**
  * LoadingOverlay Component
- * Composable loading overlay with GIF, progress bar, and step display
+ * Composable loading overlay with GIF, step-based progress bar, and step display
  * Implements Composition Pattern
  */
 
-import Image from "next/image"
-import { ProgressBar } from "./ProgressBar"
+import { StepProgressBar } from "./StepProgressBar"
 import { StepDisplay } from "./StepDisplay"
+
+// Define the automation steps based on render logs
+const AUTOMATION_STEPS = [
+    { label: "Initializing" },
+    { label: "Configuring" },
+    { label: "Connecting" },
+    { label: "Processing" },
+    { label: "Rendering" },
+    { label: "Capturing" },
+    { label: "Finishing" }
+]
 
 export function LoadingOverlay({
     isLoading = false,
@@ -16,23 +26,24 @@ export function LoadingOverlay({
 }) {
     if (!isLoading) return null
 
+    // Calculate current step index based on progress
+    const currentStepIndex = Math.min(
+        Math.floor((progress / 100) * AUTOMATION_STEPS.length),
+        AUTOMATION_STEPS.length - 1
+    )
+
     return (
         <div className="absolute inset-0 z-40 bg-white flex items-center justify-center">
-            <div className="flex flex-col items-center justify-center gap-6 w-full max-w-md px-4">
-                {/* Loading GIF */}
-                <Image
-                    src="/success.gif"
-                    alt="Loading..."
-                    width={400}
-                    height={400}
-                    className="object-contain"
-                    unoptimized
+            <div className="flex flex-col items-center justify-center gap-8 w-full max-w-5xl px-4">
+                {/* Step-Based Progress Bar */}
+                <StepProgressBar
+                    currentStepIndex={currentStepIndex}
+                    steps={AUTOMATION_STEPS}
+                    progress={progress}
+                    className="w-full"
                 />
 
-                {/* Progress Bar */}
-                <ProgressBar progress={progress} />
-
-                {/* Current Step */}
+                {/* Current Step Text */}
                 <StepDisplay step={currentStep} visible={stepVisible} />
             </div>
         </div>
