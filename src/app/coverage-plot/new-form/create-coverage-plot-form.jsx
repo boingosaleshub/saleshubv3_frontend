@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card } from "@/components/ui/card"
 import { Search } from "lucide-react"
+import { toast } from "sonner"
 import dynamic from "next/dynamic"
 import Image from "next/image"
 import { useLanguage } from "@/components/providers/language-provider"
@@ -27,7 +28,6 @@ export function CreateCoveragePlotForm() {
     const { t } = useLanguage()
     const [step, setStep] = useState(1)
     const [address, setAddress] = useState("")
-    const [suggestions, setSuggestions] = useState([])
     const [coordinates, setCoordinates] = useState({ lat: 40.7128, lng: -74.0060 })
     const [zoom, setZoom] = useState(13)
 
@@ -45,84 +45,23 @@ export function CreateCoveragePlotForm() {
     const [isCreating, setIsCreating] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [showSuccessModal, setShowSuccessModal] = useState(false)
-    const [errorMessage, setErrorMessage] = useState("")
 
     // Progress tracking states
     const [progress, setProgress] = useState(0)
     const [currentStep, setCurrentStep] = useState("")
     const [stepVisible, setStepVisible] = useState(true)
 
-    const debounceRef = useRef(null)
-    const [isSearching, setIsSearching] = useState(false)
-
-    const searchAddress = async (query) => {
-        if (!query || query.length < 3) return
-        setIsSearching(true)
-        try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5`)
-            const data = await res.json()
-            setSuggestions(data || [])
-        } catch (error) {
-            console.error("Error fetching address suggestions:", error)
-        } finally {
-            setIsSearching(false)
-        }
-    }
-
-    const handleAddressChange = (e) => {
-        const value = e.target.value
-        setAddress(value)
-        if (debounceRef.current) clearTimeout(debounceRef.current)
-        if (value.length > 2) {
-            debounceRef.current = setTimeout(() => {
-                searchAddress(value)
-            }, 300)
-        } else {
-            setSuggestions([])
-        }
-    }
-
-    const handleSelectAddress = (item) => {
-        setAddress(item.display_name)
-        setSuggestions([])
-        const lat = parseFloat(item.lat)
-        const lon = parseFloat(item.lon)
-        setCoordinates({ lat, lng: lon })
-        setZoom(16)
-    }
-
-    useEffect(() => {
-        if (suggestions.length > 0) {
-            const item = suggestions[0]
-            const lat = parseFloat(item.lat)
-            const lon = parseFloat(item.lon)
-            setCoordinates({ lat, lng: lon })
-            setZoom(15)
-        }
-    }, [suggestions])
-
-    const handleBlur = () => {
-        setTimeout(() => {
-            setSuggestions([])
-        }, 200)
-    }
-
     const handleAddressKeyDown = (e) => {
         if (e.key === 'Enter' && address.trim()) {
             e.preventDefault()
-            if (suggestions.length > 0) {
-                handleSelectAddress(suggestions[0])
-            }
             setStep(2)
             window.scrollTo(0, 0)
         }
     }
 
     const handleCreate = async () => {
-        setErrorMessage("")
-
         if (!address.trim()) {
-            setErrorMessage("Please enter an address")
+            toast.error(t("enterAddress"))
             return
         }
 
@@ -131,7 +70,7 @@ export function CreateCoveragePlotForm() {
             .map(([carrier]) => carrier)
 
         if (selectedCarriers.length === 0) {
-            setErrorMessage("Please select at least one carrier")
+            toast.error(t("selectOneCarrier"))
             return
         }
 
@@ -140,7 +79,7 @@ export function CreateCoveragePlotForm() {
             .map(([type]) => type)
 
         if (selectedCoverageTypes.length === 0) {
-            setErrorMessage("Please select at least one coverage type")
+            toast.error(t("selectOneCoverageType"))
             return
         }
 
@@ -284,7 +223,7 @@ export function CreateCoveragePlotForm() {
         } catch (error) {
             console.error('Error creating coverage plot:', error)
             setIsLoading(false)
-            setErrorMessage(error.message || "Failed to generate screenshots")
+            toast.error(error.message || "Failed to generate screenshots")
         } finally {
             setIsCreating(false)
         }
@@ -302,7 +241,7 @@ export function CreateCoveragePlotForm() {
         <div className="w-full relative bg-gray-50 dark:bg-zinc-950 transition-colors duration-300" style={{ minHeight: 'calc(100vh - 8rem)' }}>
             {/* GIF Loader Overlay with Progress Bar */}
             {isLoading && (
-                <div className="absolute inset-0 z-40 bg-white flex items-center justify-center">
+                <div className="absolute inset-0 z-40 bg-white dark:bg-zinc-950 flex items-center justify-center">
                     <div className="flex flex-col items-center justify-center gap-6 w-full max-w-md px-4">
                         <Image
                             src="/success.gif"
@@ -325,13 +264,13 @@ export function CreateCoveragePlotForm() {
 
                             {/* Progress Percentage */}
                             <div className="text-center">
-                                <span className="text-2xl font-bold text-gray-700">{Math.round(progress)}%</span>
+                                <span className="text-2xl font-bold text-gray-700 dark:text-white">{Math.round(progress)}%</span>
                             </div>
 
                             {/* Current Step with Fade Animation */}
                             <div className="text-center min-h-[24px]">
                                 <p
-                                    className={`text-sm text-gray-600 transition-opacity duration-300 ${stepVisible ? 'opacity-100' : 'opacity-0'
+                                    className={`text-sm text-gray-600 dark:text-gray-400 transition-opacity duration-300 ${stepVisible ? 'opacity-100' : 'opacity-0'
                                         }`}
                                 >
                                     {currentStep}
@@ -398,31 +337,28 @@ export function CreateCoveragePlotForm() {
                                     <div className="relative w-full">
                                         <Input
                                             value={address}
-                                            onChange={handleAddressChange}
+                                            onChange={(e) => setAddress(e.target.value)}
                                             onKeyDown={handleAddressKeyDown}
-                                            onBlur={handleBlur}
                                             placeholder={t("venueAddressPlaceholder")}
                                             className="w-full rounded-full bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 pl-4 pr-11 h-11 text-sm md:text-base text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                                         />
                                         <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
                                             <Search className="h-4 w-4 text-gray-500" />
                                         </div>
-                                        {suggestions.length > 0 && (
-                                            <div className="w-full mt-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-sm overflow-hidden z-10 relative">
-                                                {suggestions.map((item) => (
-                                                    <div
-                                                        key={item.place_id}
-                                                        className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 cursor-pointer text-xs text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-zinc-800 last:border-0 truncate"
-                                                        onClick={() => {
-                                                            handleSelectAddress(item)
-                                                            setStep(2)
-                                                        }}
-                                                    >
-                                                        {item.display_name}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+                                    </div>
+                                    <div className="w-full flex justify-center mt-6">
+                                        <Button
+                                            onClick={() => {
+                                                if (!address.trim()) {
+                                                    toast.error(t("enterAddress"))
+                                                    return
+                                                }
+                                                setStep(2)
+                                            }}
+                                            className="bg-red-600 hover:bg-red-700 text-white rounded-full px-8"
+                                        >
+                                            {t("next")}
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
@@ -446,24 +382,10 @@ export function CreateCoveragePlotForm() {
                                             <div className="w-full">
                                                 <Input
                                                     value={address}
-                                                    onChange={handleAddressChange}
-                                                    onBlur={handleBlur}
+                                                    onChange={(e) => setAddress(e.target.value)}
                                                     placeholder={t("venueAddressPlaceholder")}
                                                     className="bg-gray-100 dark:bg-zinc-800 border-none rounded-full px-4 w-full text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                                                 />
-                                                {suggestions.length > 0 && (
-                                                    <div className="w-full mt-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-sm overflow-hidden z-10 relative">
-                                                        {suggestions.map((item) => (
-                                                            <div
-                                                                key={item.place_id}
-                                                                className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 cursor-pointer text-xs text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-zinc-800 last:border-0 truncate"
-                                                                onClick={() => handleSelectAddress(item)}
-                                                            >
-                                                                {item.display_name}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
 
@@ -506,11 +428,6 @@ export function CreateCoveragePlotForm() {
                                         </div>
 
                                         {/* Error Message */}
-                                        {errorMessage && (
-                                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                                                {errorMessage}
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
 
