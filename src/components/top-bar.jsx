@@ -107,12 +107,12 @@ export function TopBar() {
                         <Button variant="ghost" className="relative h-9 flex items-center gap-2 rounded-full px-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
                             <Avatar className="h-8 w-8">
                                 <AvatarFallback className="bg-red-600 text-white">
-                                    {user?.email?.charAt(0).toUpperCase() || "U"}
+                                    {user?.user_metadata?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}
                                 </AvatarFallback>
                             </Avatar>
                             <div className="hidden md:flex flex-col items-start gap-0.5">
                                 <span className="text-sm font-medium leading-none">
-                                    {user?.email?.split("@")[0] || "User"}
+                                    {user?.user_metadata?.name || user?.email?.split("@")[0] || "User"}
                                 </span>
                                 <span className="text-xs text-muted-foreground leading-none">
                                     {user?.email || ""}
@@ -124,7 +124,7 @@ export function TopBar() {
                     <DropdownMenuContent align="end" className="w-56" forceMount>
                         <DropdownMenuLabel className="font-normal">
                             <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-medium leading-none">{user?.email?.split("@")[0]}</p>
+                                <p className="text-sm font-medium leading-none">{user?.user_metadata?.name || user?.email?.split("@")[0]}</p>
                                 <p className="text-xs leading-none text-muted-foreground">
                                     {user?.email}
                                 </p>
