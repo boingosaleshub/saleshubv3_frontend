@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useMemo } from "react"
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet"
 import { useTheme } from "@/components/providers/theme-provider"
 import "leaflet/dist/leaflet.css"
@@ -8,13 +9,19 @@ import "leaflet-defaulticon-compatibility"
 
 function MapUpdater({ center, zoom }) {
     const map = useMap()
-    map.setView(center, zoom)
+
+    useEffect(() => {
+        map.setView(center, zoom)
+    }, [map, center, zoom])
+
     return null
 }
 
 export default function CoverageMap({ lat, lng, zoom = 13 }) {
     const { theme } = useTheme()
-    const position = [lat, lng]
+    const position = useMemo(() => [lat, lng], [lat, lng])
+
+    if (!lat || !lng) return null
 
     return (
         <MapContainer

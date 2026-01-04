@@ -334,7 +334,7 @@ export function CreateCoveragePlotForm() {
                         </div>
                     ) : (
                         // Step 2: Expanded form
-                        <Card className="w-full bg-white shadow-lg border-0 rounded-xl flex flex-col">
+                        <Card className="w-full bg-white dark:bg-[#1a1d21] shadow-lg border-0 dark:border dark:border-gray-800 rounded-xl flex flex-col">
                             <div className="bg-[#3D434A] py-4 px-8 border-b-4 border-red-600 shrink-0 rounded-t-xl">
                                 <h2 className="text-2xl font-bold text-white text-center">
                                     Coverage Plot
@@ -343,25 +343,25 @@ export function CreateCoveragePlotForm() {
 
                             <div className="flex flex-col lg:flex-row flex-1">
                                 {/* Left Column: Form */}
-                                <div className="w-full lg:w-1/2 lg:border-r border-gray-100 p-4 lg:p-8">
+                                <div className="w-full lg:w-1/2 lg:border-r border-gray-100 dark:border-gray-800 p-4 lg:p-8">
                                     <div className="space-y-6 pb-8">
                                         {/* Venue Address */}
                                         <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start gap-2 sm:gap-4">
-                                            <Label className="text-gray-600 font-medium sm:pt-2 whitespace-nowrap">Venue Address</Label>
+                                            <Label className="text-gray-600 dark:text-gray-400 font-medium sm:pt-2 whitespace-nowrap">Venue Address</Label>
                                             <div className="w-full">
                                                 <Input
                                                     value={address}
                                                     onChange={handleAddressChange}
                                                     onBlur={handleBlur}
                                                     placeholder="Type the venue full address"
-                                                    className="bg-gray-100 border-none rounded-full px-4 w-full"
+                                                    className="bg-gray-100 dark:bg-gray-800 dark:text-gray-200 border-none rounded-full px-4 w-full"
                                                 />
                                                 {suggestions.length > 0 && (
-                                                    <div className="w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden z-10 relative">
+                                                    <div className="w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden z-10 relative">
                                                         {suggestions.map((item) => (
                                                             <div
                                                                 key={item.place_id}
-                                                                className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-xs text-gray-700 border-b border-gray-100 last:border-0 truncate"
+                                                                className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer text-xs text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-gray-700 last:border-0 truncate"
                                                                 onClick={() => handleSelectAddress(item)}
                                                             >
                                                                 {item.display_name}
@@ -374,7 +374,7 @@ export function CreateCoveragePlotForm() {
 
                                         {/* Carrier Requirements */}
                                         <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start gap-2 sm:gap-4">
-                                            <Label className="text-gray-600 font-medium sm:pt-1 whitespace-nowrap">Carrier Requirements</Label>
+                                            <Label className="text-gray-600 dark:text-gray-400 font-medium sm:pt-1 whitespace-nowrap">Carrier Requirements</Label>
                                             <div className="flex flex-wrap gap-4 sm:gap-6">
                                                 {carrierList.map((carrier) => (
                                                     <div key={carrier} className="flex items-center space-x-2">
@@ -383,7 +383,7 @@ export function CreateCoveragePlotForm() {
                                                             checked={carrierRequirements[carrier]}
                                                             onCheckedChange={(checked) => setCarrierRequirements(p => ({ ...p, [carrier]: checked }))}
                                                         />
-                                                        <label htmlFor={`carrier-${carrier}`} className="text-sm font-medium leading-none text-gray-500 cursor-pointer">
+                                                        <label htmlFor={`carrier-${carrier}`} className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400 cursor-pointer">
                                                             {carrier}
                                                         </label>
                                                     </div>
@@ -393,7 +393,7 @@ export function CreateCoveragePlotForm() {
 
                                         {/* Coverage Type */}
                                         <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start gap-2 sm:gap-4">
-                                            <Label className="text-gray-600 font-medium sm:pt-1 whitespace-nowrap">Coverage type</Label>
+                                            <Label className="text-gray-600 dark:text-gray-400 font-medium sm:pt-1 whitespace-nowrap">Coverage type</Label>
                                             <div className="flex flex-wrap gap-4 sm:gap-6">
                                                 {coverageTypeList.map((type) => (
                                                     <div key={type} className="flex items-center space-x-2">
@@ -402,7 +402,7 @@ export function CreateCoveragePlotForm() {
                                                             checked={coverageType[type]}
                                                             onCheckedChange={(checked) => setCoverageType(p => ({ ...p, [type]: checked }))}
                                                         />
-                                                        <label htmlFor={`coverage-${type}`} className="text-sm font-medium leading-none text-gray-500 cursor-pointer">
+                                                        <label htmlFor={`coverage-${type}`} className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400 cursor-pointer">
                                                             {type}
                                                         </label>
                                                     </div>
@@ -420,7 +420,7 @@ export function CreateCoveragePlotForm() {
                                 </div>
 
                                 {/* Right Column: Map */}
-                                <div className="w-full lg:w-1/2 bg-gray-50 h-[300px] lg:h-auto relative shrink-0">
+                                <div className="w-full lg:w-1/2 bg-gray-50 dark:bg-gray-900 h-[300px] lg:h-auto relative shrink-0">
                                     <CoverageMap lat={coordinates.lat} lng={coordinates.lng} zoom={zoom} />
                                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded text-xs font-semibold shadow-sm z-40 text-gray-500 pointer-events-none">
                                         OpenStreetMap View
@@ -429,7 +429,7 @@ export function CreateCoveragePlotForm() {
                             </div>
 
                             {/* Footer: Create Button */}
-                            <div className="p-4 border-t border-gray-100 flex justify-center items-center bg-white shrink-0 relative rounded-b-xl">
+                            <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center items-center bg-white dark:bg-[#1a1d21] shrink-0 relative rounded-b-xl">
                                 <Button
                                     onClick={handleCreate}
                                     disabled={isCreating}
