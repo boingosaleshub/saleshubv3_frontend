@@ -5,6 +5,7 @@
  */
 
 import Image from "next/image"
+import Link from "next/link"
 import { ProgressBar } from "./ProgressBar"
 import { StepDisplay } from "./StepDisplay"
 
@@ -39,14 +40,12 @@ export function LoadingOverlay({
                 <div className="text-center mt-4">
                     <p className="text-gray-500 text-sm">
                         Wanna check out your coverage plot progress?{' '}
-                        <a
+                        <Link
                             href="/coverage-plot/progress-queue"
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="text-red-600 hover:text-red-700 font-medium hover:underline"
                         >
                             Click here
-                        </a>
+                        </Link>
                     </p>
                 </div>
             </div>
