@@ -3,7 +3,10 @@
  * Composable loading overlay with GIF, step-based progress bar, and step display
  * Implements Composition Pattern
  */
+"use client"
+
 import Image from "next/image"
+import Link from "next/link"
 import { StepProgressBar } from "./StepProgressBar"
 import { StepDisplay } from "./StepDisplay"
 
@@ -60,14 +63,12 @@ export function LoadingOverlay({
                 <div className="text-center mt-4">
                     <p className="text-gray-500 dark:text-gray-400 text-sm">
                         Wanna check out your coverage plot progress?{' '}
-                        <a
+                        <Link
                             href="/coverage-plot/progress-queue"
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400 font-medium hover:underline"
                         >
                             Click here
-                        </a>
+                        </Link>
                     </p>
                 </div>
             </div>
