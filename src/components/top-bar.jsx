@@ -24,6 +24,9 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useLanguage } from "@/components/providers/language-provider";
+import { useTheme } from "@/components/providers/theme-provider";
+import { useAutomation } from "@/components/providers/automation-provider";
+import { useRouter } from "next/navigation";
 
 const FlagIcon = ({ code }) => {
     switch (code) {
@@ -35,12 +38,20 @@ const FlagIcon = ({ code }) => {
     }
 }
 
-import { useTheme } from "@/components/providers/theme-provider";
-
 export function TopBar() {
     const { user, signOut } = useAuthStore();
     const { language, changeLanguage, t } = useLanguage();
     const { theme, toggleTheme } = useTheme();
+    const { isLoading } = useAutomation();
+    const router = useRouter();
+
+    const hasActiveCoverageAutomation = !!isLoading;
+
+    const handleNotificationsClick = () => {
+        if (hasActiveCoverageAutomation) {
+            router.push("/coverage-plot/new-form");
+        }
+    };
 
     const languageLabels = {
         en: "English",
@@ -93,10 +104,25 @@ export function TopBar() {
                     <span className="sr-only">Toggle theme</span>
                 </Button>
 
-                {/* Notifications (Visual Only) */}
-                <Button variant="ghost" size="icon" className="h-9 w-9">
+                {/* Notifications / Coverage Automation Reminder */}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative h-9 w-9"
+                    onClick={handleNotificationsClick}
+                >
                     <Bell className="h-4 w-4" />
-                    <span className="sr-only">Notifications</span>
+                    {hasActiveCoverageAutomation && (
+                        <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                            <span className="relative inline-flex h-3 w-3 rounded-full bg-red-600" />
+                        </span>
+                    )}
+                    <span className="sr-only">
+                        {hasActiveCoverageAutomation
+                            ? "Coverage plot automation is running"
+                            : "Notifications"}
+                    </span>
                 </Button>
 
                 <Separator orientation="vertical" className="h-6" />
