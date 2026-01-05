@@ -23,6 +23,7 @@ import { LoadingOverlay } from "./components/LoadingOverlay"
 // Hooks
 import { useAutomation } from "@/components/providers/automation-provider"
 import { useScreenshotDownloader } from "./hooks/useScreenshotDownloader"
+import { useScreenshotUploader } from "./hooks/useScreenshotUploader"
 
 // Constants
 import { CARRIERS, COVERAGE_TYPES, VALIDATION_MESSAGES, DEFAULT_COORDINATES, DEFAULT_ZOOM } from "./utils/constants"
@@ -64,6 +65,7 @@ export function CreateCoveragePlotForm() {
     // Custom hooks
     const { progress, currentStep, stepVisible, isLoading, error, startAutomation, results, resetAutomation } = useAutomation()
     const { download } = useScreenshotDownloader()
+    const { uploadScreenshots, saveCoveragePlot } = useScreenshotUploader()
 
     const debounceRef = useRef(null)
     const [isSearching, setIsSearching] = useState(false)
@@ -209,6 +211,28 @@ export function CreateCoveragePlotForm() {
             // useEffect checks if (!showSuccessModal).
             // So if we set it here to true, useEffect won't run.
 
+            // Upload screenshots to Supabase Storage
+            let uploadedUrls = []
+            try {
+                uploadedUrls = await uploadScreenshots(screenshots)
+                console.log('Uploaded screenshots to Supabase:', uploadedUrls)
+
+                // Save coverage plot data to database
+                const screenshotUrls = uploadedUrls.map(item => item.url)
+                await saveCoveragePlot({
+                    venueAddress: address.trim(),
+                    carriers: selectedCarriers,
+                    coverageTypes: selectedCoverageTypes,
+                    screenshotUrls: screenshotUrls,
+                    userId: user?.id
+                })
+            } catch (uploadError) {
+                console.error('Failed to upload screenshots to Supabase:', uploadError)
+                setErrorMessage(`Upload failed: ${uploadError.message}`)
+                // Don't continue if upload fails - throw error to stop execution
+                throw uploadError
+            }
+
             await download(screenshots)
             setShowSuccessModal(true)
         } catch (err) {
@@ -216,7 +240,7 @@ export function CreateCoveragePlotForm() {
         } finally {
             setIsCreating(false)
         }
-    }, [address, validateForm, startAutomation, download, user, showSuccessModal])
+    }, [address, validateForm, startAutomation, download, uploadScreenshots, saveCoveragePlot, user])
 
     // Reset form
     const resetForm = useCallback(() => {
