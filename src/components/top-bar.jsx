@@ -45,7 +45,37 @@ export function TopBar() {
     const { isLoading } = useAutomation();
     const router = useRouter();
 
-    const hasActiveCoverageAutomation = !!isLoading;
+    // Check both context state and localStorage for active automation
+    const [hasActiveCoverageAutomation, setHasActiveCoverageAutomation] = React.useState(false);
+
+    React.useEffect(() => {
+        // Check localStorage for active job
+        const checkActiveJob = () => {
+            try {
+                const stored = localStorage.getItem('coverage_plot_automation_state');
+                if (stored) {
+                    const state = JSON.parse(stored);
+                    const age = Date.now() - (state.timestamp || 0);
+                    const oneHour = 60 * 60 * 1000;
+                    // Consider active if state exists and is less than 1 hour old
+                    return state.isLoading && age < oneHour;
+                }
+            } catch (e) {
+                // Ignore errors
+            }
+            return false;
+        };
+
+        // Set initial state
+        setHasActiveCoverageAutomation(isLoading || checkActiveJob());
+
+        // Poll localStorage periodically to catch updates from other tabs/components
+        const interval = setInterval(() => {
+            setHasActiveCoverageAutomation(isLoading || checkActiveJob());
+        }, 2000); // Check every 2 seconds
+
+        return () => clearInterval(interval);
+    }, [isLoading]);
 
     const handleNotificationsClick = () => {
         if (hasActiveCoverageAutomation) {

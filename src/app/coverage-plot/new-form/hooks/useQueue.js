@@ -15,7 +15,7 @@ export function useQueue() {
         setUserId(id)
     }, [])
 
-    const joinQueue = useCallback(async (userName = 'Guest') => {
+    const joinQueue = useCallback(async (userName = 'Guest', processType = 'Coverage Plot') => {
         if (!userId) return
 
         try {
@@ -23,7 +23,7 @@ export function useQueue() {
             const res = await fetch('/api/queue', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, userName })
+                body: JSON.stringify({ userId, userName, processType })
             })
 
             if (!res.ok) throw new Error('Failed to join queue')
@@ -61,7 +61,7 @@ export function useQueue() {
             const res = await fetch('/api/queue', {
                 method: 'POST', // Using POST as "upsert/check"
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, userName: 'Guest' }) // Name update ignored if exists
+                body: JSON.stringify({ userId, userName: 'Guest', processType: 'Coverage Plot' }) // Name update ignored if exists
             })
 
             if (res.ok) {

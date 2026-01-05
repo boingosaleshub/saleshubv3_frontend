@@ -11,7 +11,6 @@ const navLinks = [
     { name: "Features", href: "#features" },
     { name: "How It Works", href: "#how-it-works" },
     { name: "Benefits", href: "#benefits" },
-    { name: "Contact", href: "#contact" },
 ];
 
 export default function Navbar() {
