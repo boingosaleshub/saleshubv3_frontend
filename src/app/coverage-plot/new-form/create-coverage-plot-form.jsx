@@ -24,6 +24,7 @@ import { LoadingOverlay } from "./components/LoadingOverlay"
 // Hooks
 import { useAutomation } from "@/components/providers/automation-provider"
 import { useScreenshotDownloader } from "./hooks/useScreenshotDownloader"
+import { useScreenshotUploader } from "./hooks/useScreenshotUploader"
 
 // Constants
 import { CARRIERS, COVERAGE_TYPES, VALIDATION_MESSAGES, DEFAULT_COORDINATES, DEFAULT_ZOOM } from "./utils/constants"
@@ -74,6 +75,7 @@ export function CreateCoveragePlotForm() {
     // Custom hooks
     const { progress, currentStep, stepVisible, isLoading, error, startAutomation, results, resetAutomation } = useAutomation()
     const { download } = useScreenshotDownloader()
+    const { uploadScreenshots, saveCoveragePlot } = useScreenshotUploader()
 
     const debounceRef = useRef(null)
     const [isSearching, setIsSearching] = useState(false)
@@ -222,6 +224,28 @@ export function CreateCoveragePlotForm() {
                 coverageTypes: selectedCoverageTypes
             }, userName)
 
+            // Upload screenshots to Supabase Storage
+            let uploadedUrls = []
+            try {
+                uploadedUrls = await uploadScreenshots(screenshots)
+                console.log('Uploaded screenshots to Supabase:', uploadedUrls)
+
+                // Save coverage plot data to database
+                const screenshotUrls = uploadedUrls.map(item => item.url)
+                await saveCoveragePlot({
+                    venueAddress: address.trim(),
+                    carriers: selectedCarriers,
+                    coverageTypes: selectedCoverageTypes,
+                    screenshotUrls: screenshotUrls,
+                    userId: user?.id
+                })
+            } catch (uploadError) {
+                console.error('Failed to upload screenshots to Supabase:', uploadError)
+                toast.error(`Upload failed: ${uploadError.message}`)
+                // Don't continue if upload fails - throw error to stop execution
+                throw uploadError
+            }
+
             await download(screenshots)
             setShowSuccessModal(true)
         } catch (err) {
@@ -229,7 +253,7 @@ export function CreateCoveragePlotForm() {
         } finally {
             setIsCreating(false)
         }
-    }, [address, validateForm, startAutomation, download, user, showSuccessModal])
+    }, [address, validateForm, startAutomation, download, uploadScreenshots, saveCoveragePlot, user])
 
     // Reset form
     const resetForm = useCallback(() => {
@@ -437,10 +461,10 @@ export function CreateCoveragePlotForm() {
                                                     <div
                                                         key={carrier}
                                                         className={`flex items-center space-x-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${carrierRequirements[carrier]
-                                                                ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                                                                : formErrors.carrierRequirements
-                                                                    ? 'border-red-200 dark:border-red-800/50 hover:border-red-300'
-                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                                            : formErrors.carrierRequirements
+                                                                ? 'border-red-200 dark:border-red-800/50 hover:border-red-300'
+                                                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                                                             }`}
                                                         onClick={() => {
                                                             setCarrierRequirements(p => ({ ...p, [carrier]: !p[carrier] }))
@@ -477,10 +501,10 @@ export function CreateCoveragePlotForm() {
                                                     <div
                                                         key={type}
                                                         className={`flex items-center space-x-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${coverageType[type]
-                                                                ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                                                                : formErrors.coverageType
-                                                                    ? 'border-red-200 dark:border-red-800/50 hover:border-red-300'
-                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                                            : formErrors.coverageType
+                                                                ? 'border-red-200 dark:border-red-800/50 hover:border-red-300'
+                                                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                                                             }`}
                                                         onClick={() => {
                                                             setCoverageType(p => ({ ...p, [type]: !p[type] }))
