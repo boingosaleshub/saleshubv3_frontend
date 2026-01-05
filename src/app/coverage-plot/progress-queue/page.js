@@ -72,8 +72,13 @@ export default function ProgressQueuePage() {
                                             {index + 1}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-900 flex items-center gap-2">
-                                                {item.userName}
+                                            <p className="font-medium text-gray-900 flex flex-wrap items-center gap-2">
+                                                <span>{item.userName}</span>
+                                                {item.processType && (
+                                                    <span className="text-xs text-gray-500">
+                                                        • {item.processType}
+                                                    </span>
+                                                )}
                                                 {index === 0 && (
                                                     <Badge variant="secondary" className="bg-red-100 text-red-700 text-[10px] px-1.5 py-0 h-5">
                                                         Processing

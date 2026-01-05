@@ -15,7 +15,7 @@ export async function GET() {
 export async function POST(request) {
     try {
         const body = await request.json();
-        const { userId, userName } = body;
+        const { userId, userName, processType } = body;
 
         if (!userId) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
@@ -29,6 +29,7 @@ export async function POST(request) {
             globalThis.automationQueue.push({
                 userId,
                 userName: userName || 'Guest',
+                processType: processType || 'Coverage Plot',
                 joinedAt: new Date().toISOString(),
                 status: 'Waiting'
             });
