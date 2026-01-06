@@ -51,6 +51,34 @@ export function AppSidebar({ ...props }) {
   const [hoveredMenu, setHoveredMenu] = React.useState(null)
   const [menuPosition, setMenuPosition] = React.useState({ top: 0, left: 0 })
   const menuRefs = React.useRef({})
+  const [ripples, setRipples] = React.useState({})
+
+  const createRipple = (event, itemKey) => {
+    const button = event.currentTarget
+    const rect = button.getBoundingClientRect()
+    const size = Math.max(rect.width, rect.height)
+    const x = event.clientX - rect.left - size / 2
+    const y = event.clientY - rect.top - size / 2
+
+    const newRipple = {
+      x,
+      y,
+      size,
+      id: Date.now()
+    }
+
+    setRipples(prev => ({
+      ...prev,
+      [itemKey]: [...(prev[itemKey] || []), newRipple]
+    }))
+
+    setTimeout(() => {
+      setRipples(prev => ({
+        ...prev,
+        [itemKey]: (prev[itemKey] || []).filter(r => r.id !== newRipple.id)
+      }))
+    }, 600)
+  }
 
   // Menu items with role-based access control
   const menuItems = [
@@ -214,7 +242,7 @@ export function AppSidebar({ ...props }) {
       {/* Collapsed state - hover popup using Portal */}
       {state === 'collapsed' && hoveredMenu && typeof window !== 'undefined' && ReactDOM.createPortal(
         <div
-          className="fixed min-w-[200px] bg-[var(--sidebar)] border-2 border-[var(--boingo-red)] rounded-md shadow-2xl py-2"
+          className="fixed min-w-[200px] bg-[var(--sidebar)] border-2 border-[var(--boingo-red)] rounded-md shadow-2xl py-2 animate-in fade-in slide-in-from-left-2 duration-200"
           style={{
             top: `${menuPosition.top}px`,
             left: `${menuPosition.left}px`,
@@ -226,15 +254,31 @@ export function AppSidebar({ ...props }) {
           <div className="px-3 py-2 font-semibold text-sm text-[var(--sidebar-foreground)] border-b border-[var(--sidebar-border)] mb-1">
             {hoveredMenu}
           </div>
-          {menuItems.find(item => item.title === hoveredMenu)?.items?.map((subItem) => (
-            <Link
-              key={subItem.title}
-              href={subItem.url}
-              className="block px-4 py-2 text-sm text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] transition-colors cursor-pointer"
-            >
-              {subItem.title}
-            </Link>
-          ))}
+          {menuItems.find(item => item.title === hoveredMenu)?.items?.map((subItem) => {
+            const itemKey = `${hoveredMenu}-${subItem.title}`
+            return (
+              <Link
+                key={subItem.title}
+                href={subItem.url}
+                onClick={(e) => createRipple(e, itemKey)}
+                className="block px-4 py-2 text-sm text-[var(--sidebar-foreground)] hover:bg-[var(--boingo-red)] hover:text-white transition-all duration-200 cursor-pointer rounded-sm mx-1 relative overflow-hidden"
+              >
+                {subItem.title}
+                {(ripples[itemKey] || []).map((ripple) => (
+                  <span
+                    key={ripple.id}
+                    className="absolute bg-white/30 rounded-full pointer-events-none animate-ripple"
+                    style={{
+                      left: ripple.x,
+                      top: ripple.y,
+                      width: ripple.size,
+                      height: ripple.size,
+                    }}
+                  />
+                ))}
+              </Link>
+            )
+          })}
         </div>,
         document.body
       )}
