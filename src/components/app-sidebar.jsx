@@ -12,7 +12,8 @@ import {
   Plus,
   RefreshCcw,
   DollarSign,
-  LogOut
+  LogOut,
+  ListOrdered
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
@@ -72,6 +73,11 @@ export function AppSidebar({ ...props }) {
       items: [
         { title: t("createNew"), url: "/coverage-plot/new-form" },
       ],
+    },
+    {
+      title: "Process Queue",
+      url: "/coverage-plot/progress-queue",
+      icon: ListOrdered,
     },
     {
       title: t("settings"),

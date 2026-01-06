@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card } from "@/components/ui/card"
-import { Search } from "lucide-react"
+import { Search, MapPin, Radio, Layers, ArrowRight } from "lucide-react"
 import dynamic from "next/dynamic"
 import { useLanguage } from "@/components/providers/language-provider"
 import {
@@ -60,6 +60,9 @@ export function CreateCoveragePlotForm() {
     const [isCreating, setIsCreating] = useState(false)
     const [showSuccessModal, setShowSuccessModal] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
+
+    // Animation state
+    const [isTransitioning, setIsTransitioning] = useState(false)
 
     // Custom hooks
     const { progress, currentStep, stepVisible, isLoading, error, startAutomation, results, resetAutomation } = useAutomation()
@@ -132,16 +135,27 @@ export function CreateCoveragePlotForm() {
         }, 200)
     }, [])
 
+    // Animated step transition
+    const transitionToStep = useCallback((nextStep) => {
+        setIsTransitioning(true)
+        setTimeout(() => {
+            setStep(nextStep)
+            window.scrollTo(0, 0)
+            setTimeout(() => {
+                setIsTransitioning(false)
+            }, 50)
+        }, 300)
+    }, [])
+
     const handleAddressKeyDown = useCallback((e) => {
         if (e.key === 'Enter' && address.trim()) {
             e.preventDefault()
             if (suggestions.length > 0) {
                 handleSelectAddress(suggestions[0])
             }
-            setStep(2)
-            window.scrollTo(0, 0)
+            transitionToStep(2)
         }
-    }, [address, suggestions, handleSelectAddress])
+    }, [address, suggestions, handleSelectAddress, transitionToStep])
 
     // Validation
     const validateForm = useCallback(() => {
@@ -221,7 +235,7 @@ export function CreateCoveragePlotForm() {
     // Reset form
     const resetForm = useCallback(() => {
         resetAutomation() // Reset global state
-        setStep(1)
+        transitionToStep(1)
         setAddress("")
         setCarrierRequirements({
             [CARRIERS.AT_T]: false,
@@ -233,7 +247,7 @@ export function CreateCoveragePlotForm() {
             [COVERAGE_TYPES.OUTDOOR]: false,
             [COVERAGE_TYPES.INDOOR_OUTDOOR]: false
         })
-    }, [resetAutomation])
+    }, [resetAutomation, transitionToStep])
 
     // Memoized carrier list
     const carrierList = useMemo(() => [CARRIERS.AT_T, CARRIERS.VERIZON, CARRIERS.T_MOBILE], [])
@@ -287,9 +301,17 @@ export function CreateCoveragePlotForm() {
                 <>
                     {step === 1 ? (
                         // Step 1: Initial address input
-                        <div className="flex flex-1 items-center justify-center min-h-[60vh]">
+                        <div
+                            className={`flex flex-1 items-center justify-center min-h-[60vh] transition-all duration-300 ease-out ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                                }`}
+                        >
                             <div className="w-full max-w-3xl px-4 text-center">
-                                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                                <div className="mb-6 flex justify-center">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform duration-200">
+                                        <MapPin className="h-8 w-8 text-white" />
+                                    </div>
+                                </div>
+                                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
                                     Create New Coverage Plot
                                 </h1>
                                 <p className="text-sm md:text-base text-gray-400 mb-10">
@@ -297,33 +319,42 @@ export function CreateCoveragePlotForm() {
                                 </p>
 
                                 <div className="flex flex-col items-start gap-3 max-w-2xl mx-auto">
-                                    <Label className="text-gray-700 font-medium">
-                                        Venue Address
-                                    </Label>
-                                    <div className="relative w-full">
+                                    <div className="relative w-full group">
+                                        <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center">
+                                            <Search className="h-5 w-5 text-gray-400 group-focus-within:text-red-500 transition-colors duration-200" />
+                                        </div>
                                         <Input
                                             value={address}
                                             onChange={handleAddressChange}
                                             onKeyDown={handleAddressKeyDown}
                                             onBlur={handleBlur}
                                             placeholder="Type the venue full address"
-                                            className="w-full rounded-full bg-gray-50 border border-gray-200 pl-4 pr-11 h-11 text-sm md:text-base"
+                                            className="w-full rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-12 pr-12 h-14 text-base focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
                                         />
-                                        <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
-                                            <Search className="h-4 w-4 text-gray-500" />
-                                        </div>
+                                        {address.trim() && (
+                                            <button
+                                                onClick={() => transitionToStep(2)}
+                                                className="absolute inset-y-0 right-2 flex items-center px-3"
+                                            >
+                                                <div className="w-10 h-10 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-colors duration-200">
+                                                    <ArrowRight className="h-5 w-5 text-white" />
+                                                </div>
+                                            </button>
+                                        )}
                                         {suggestions.length > 0 && (
-                                            <div className="w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden z-10 relative">
-                                                {suggestions.map((item) => (
+                                            <div className="absolute w-full mt-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg overflow-hidden z-10 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                {suggestions.map((item, index) => (
                                                     <div
                                                         key={item.place_id}
-                                                        className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-xs text-gray-700 border-b border-gray-100 last:border-0 truncate"
+                                                        className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer text-sm text-gray-700 dark:text-white border-b border-gray-100 dark:border-gray-800 last:border-0 truncate flex items-center gap-3 transition-colors duration-150 ${index === 0 ? 'bg-gray-50 dark:bg-gray-900' : ''
+                                                            }`}
                                                         onClick={() => {
                                                             handleSelectAddress(item)
-                                                            setStep(2)
+                                                            transitionToStep(2)
                                                         }}
                                                     >
-                                                        {item.display_name}
+                                                        <MapPin className="h-4 w-4 text-red-500 shrink-0" />
+                                                        <span className="truncate">{item.display_name}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -334,37 +365,45 @@ export function CreateCoveragePlotForm() {
                         </div>
                     ) : (
                         // Step 2: Expanded form
-                        <Card className="w-full bg-white dark:bg-[#1a1d21] shadow-lg border-0 dark:border dark:border-gray-800 rounded-xl flex flex-col">
-                            <div className="bg-[#3D434A] py-4 px-8 border-b-4 border-red-600 shrink-0 rounded-t-xl">
-                                <h2 className="text-2xl font-bold text-white text-center">
+                        <Card
+                            className={`w-full bg-white dark:bg-[#1a1d21] shadow-xl border-0 dark:border dark:border-gray-800 rounded-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                                }`}
+                        >
+                            <div className="bg-gradient-to-r from-[#3D434A] to-[#4a5058] py-6 px-8 border-b-4 border-red-600 shrink-0">
+                                <h2 className="text-2xl md:text-3xl font-bold text-white text-center flex items-center justify-center gap-3">
+                                    <Layers className="h-7 w-7" />
                                     Coverage Plot
                                 </h2>
                             </div>
 
-                            <div className="flex flex-col lg:flex-row flex-1">
+                            <div className="flex flex-col lg:flex-row flex-1 min-h-[500px]">
                                 {/* Left Column: Form */}
-                                <div className="w-full lg:w-1/2 lg:border-r border-gray-100 dark:border-gray-800 p-4 lg:p-8">
-                                    <div className="space-y-6 pb-8">
+                                <div className="w-full lg:w-1/2 lg:border-r border-gray-100 dark:border-gray-800 p-6 lg:p-10">
+                                    <div className="space-y-8">
                                         {/* Venue Address */}
-                                        <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start gap-2 sm:gap-4">
-                                            <Label className="text-gray-600 dark:text-gray-400 font-medium sm:pt-2 whitespace-nowrap">Venue Address</Label>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <MapPin className="h-5 w-5 text-red-500" />
+                                                <Label className="text-gray-700 dark:text-gray-300 font-semibold text-base">Venue Address</Label>
+                                            </div>
                                             <div className="w-full">
                                                 <Input
                                                     value={address}
                                                     onChange={handleAddressChange}
                                                     onBlur={handleBlur}
                                                     placeholder="Type the venue full address"
-                                                    className="bg-gray-100 dark:bg-gray-800 dark:text-gray-200 border-none rounded-full px-4 w-full"
+                                                    className="bg-gray-100 dark:bg-gray-800 dark:text-gray-200 border-none rounded-xl px-4 py-3 w-full h-12 text-base focus:ring-2 focus:ring-red-500 transition-all duration-200"
                                                 />
                                                 {suggestions.length > 0 && (
-                                                    <div className="w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden z-10 relative">
+                                                    <div className="w-full mt-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg overflow-hidden z-10 relative animate-in fade-in slide-in-from-top-2 duration-200">
                                                         {suggestions.map((item) => (
                                                             <div
                                                                 key={item.place_id}
-                                                                className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer text-xs text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-gray-700 last:border-0 truncate"
+                                                                className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer text-sm text-gray-700 dark:text-white border-b border-gray-100 dark:border-gray-800 last:border-0 truncate flex items-center gap-3 transition-colors duration-150"
                                                                 onClick={() => handleSelectAddress(item)}
                                                             >
-                                                                {item.display_name}
+                                                                <MapPin className="h-4 w-4 text-red-500 shrink-0" />
+                                                                <span className="truncate">{item.display_name}</span>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -373,17 +412,28 @@ export function CreateCoveragePlotForm() {
                                         </div>
 
                                         {/* Carrier Requirements */}
-                                        <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start gap-2 sm:gap-4">
-                                            <Label className="text-gray-600 dark:text-gray-400 font-medium sm:pt-1 whitespace-nowrap">Carrier Requirements</Label>
-                                            <div className="flex flex-wrap gap-4 sm:gap-6">
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <Radio className="h-5 w-5 text-red-500" />
+                                                <Label className="text-gray-700 dark:text-gray-300 font-semibold text-base">Carrier Requirements</Label>
+                                            </div>
+                                            <div className="flex flex-wrap gap-4">
                                                 {carrierList.map((carrier) => (
-                                                    <div key={carrier} className="flex items-center space-x-2">
+                                                    <div
+                                                        key={carrier}
+                                                        className={`flex items-center space-x-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${carrierRequirements[carrier]
+                                                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                                            }`}
+                                                        onClick={() => setCarrierRequirements(p => ({ ...p, [carrier]: !p[carrier] }))}
+                                                    >
                                                         <Checkbox
                                                             id={`carrier-${carrier}`}
                                                             checked={carrierRequirements[carrier]}
                                                             onCheckedChange={(checked) => setCarrierRequirements(p => ({ ...p, [carrier]: checked }))}
+                                                            className="pointer-events-none"
                                                         />
-                                                        <label htmlFor={`carrier-${carrier}`} className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400 cursor-pointer">
+                                                        <label htmlFor={`carrier-${carrier}`} className="text-sm font-medium leading-none text-gray-600 dark:text-gray-300 cursor-pointer">
                                                             {carrier}
                                                         </label>
                                                     </div>
@@ -392,17 +442,28 @@ export function CreateCoveragePlotForm() {
                                         </div>
 
                                         {/* Coverage Type */}
-                                        <div className="flex flex-col sm:grid sm:grid-cols-[160px_1fr] items-start gap-2 sm:gap-4">
-                                            <Label className="text-gray-600 dark:text-gray-400 font-medium sm:pt-1 whitespace-nowrap">Coverage type</Label>
-                                            <div className="flex flex-wrap gap-4 sm:gap-6">
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <Layers className="h-5 w-5 text-red-500" />
+                                                <Label className="text-gray-700 dark:text-gray-300 font-semibold text-base">Coverage Type</Label>
+                                            </div>
+                                            <div className="flex flex-wrap gap-4">
                                                 {coverageTypeList.map((type) => (
-                                                    <div key={type} className="flex items-center space-x-2">
+                                                    <div
+                                                        key={type}
+                                                        className={`flex items-center space-x-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${coverageType[type]
+                                                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                                            }`}
+                                                        onClick={() => setCoverageType(p => ({ ...p, [type]: !p[type] }))}
+                                                    >
                                                         <Checkbox
                                                             id={`coverage-${type}`}
                                                             checked={coverageType[type]}
                                                             onCheckedChange={(checked) => setCoverageType(p => ({ ...p, [type]: checked }))}
+                                                            className="pointer-events-none"
                                                         />
-                                                        <label htmlFor={`coverage-${type}`} className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400 cursor-pointer">
+                                                        <label htmlFor={`coverage-${type}`} className="text-sm font-medium leading-none text-gray-600 dark:text-gray-300 cursor-pointer">
                                                             {type}
                                                         </label>
                                                     </div>
@@ -412,7 +473,7 @@ export function CreateCoveragePlotForm() {
 
                                         {/* Error Message */}
                                         {errorMessage && (
-                                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl animate-in fade-in slide-in-from-top-2 duration-200">
                                                 {errorMessage}
                                             </div>
                                         )}
@@ -420,22 +481,22 @@ export function CreateCoveragePlotForm() {
                                 </div>
 
                                 {/* Right Column: Map */}
-                                <div className="w-full lg:w-1/2 bg-gray-50 dark:bg-gray-900 h-[300px] lg:h-auto relative shrink-0">
+                                <div className="w-full lg:w-1/2 bg-gray-50 dark:bg-gray-900 h-[400px] lg:h-auto lg:min-h-[500px] relative shrink-0">
                                     <CoverageMap lat={coordinates.lat} lng={coordinates.lng} zoom={zoom} />
-                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded text-xs font-semibold shadow-sm z-40 text-gray-500 pointer-events-none">
+                                    <div className="absolute top-4 right-4 bg-white/90 dark:bg-black/80 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm z-40 text-gray-600 dark:text-gray-400 pointer-events-none">
                                         OpenStreetMap View
                                     </div>
                                 </div>
                             </div>
 
                             {/* Footer: Create Button */}
-                            <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center items-center bg-white dark:bg-[#1a1d21] shrink-0 relative rounded-b-xl">
+                            <div className="p-6 border-t border-gray-100 dark:border-gray-800 flex justify-center items-center bg-white dark:bg-[#1a1d21] shrink-0 relative">
                                 <Button
                                     onClick={handleCreate}
                                     disabled={isCreating}
-                                    className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-8 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl px-10 py-3 h-12 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-200"
                                 >
-                                    {isCreating ? "Creating..." : "Create"}
+                                    {isCreating ? "Creating..." : "Create Coverage Plot"}
                                 </Button>
                             </div>
                         </Card>
