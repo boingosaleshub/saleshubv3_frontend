@@ -126,7 +126,7 @@ export function AppSidebar({ ...props }) {
   ]
 
   return (
-    <Sidebar collapsible="icon" className="border-r-4 border-[var(--boingo-red)] bg-[var(--sidebar)] text-[var(--sidebar-foreground)]" {...props}>
+    <Sidebar collapsible="icon" className="border-r-[32px] border-[var(--boingo-red)] bg-[var(--sidebar)] text-[var(--sidebar-foreground)]" {...props}>
       <SidebarHeader className="px-2 py-4">
         <div className={`flex items-center ${state === 'collapsed' ? 'justify-center' : 'justify-start'}`}>
           {state === 'collapsed' ? (
