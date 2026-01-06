@@ -24,11 +24,15 @@ export const metadata = {
     description: "Generate professional ROM proposals with automated pricing and streamlined workflows.",
     type: "website",
   },
+  manifest: "/site.webmanifest",
+  themeColor: "#dc2626",
   icons: {
     icon: [
       { url: "/logo boingo B_Round_PS FILE.png" },
       { url: "/logo boingo B_Round_PS FILE.png", sizes: "32x32", type: "image/png" },
       { url: "/logo boingo B_Round_PS FILE.png", sizes: "16x16", type: "image/png" },
+      { url: "/logo boingo B_Round_PS FILE.png", sizes: "192x192", type: "image/png" },
+      { url: "/logo boingo B_Round_PS FILE.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
       { url: "/logo boingo B_Round_PS FILE.png" },
@@ -41,6 +45,14 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        <link rel="icon" type="image/png" sizes="32x32" href="/logo boingo B_Round_PS FILE.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/logo boingo B_Round_PS FILE.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/logo boingo B_Round_PS FILE.png" />
+        <link rel="manifest" href="/site.webmanifest" />
+        <meta name="theme-color" content="#dc2626" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+      </head>
       <body className="antialiased">
         <AuthProvider>
           <LanguageProvider>
