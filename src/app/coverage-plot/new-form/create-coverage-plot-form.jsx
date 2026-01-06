@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card"
 import { Search, MapPin, Radio, Layers, ArrowRight } from "lucide-react"
 import dynamic from "next/dynamic"
 import { useLanguage } from "@/components/providers/language-provider"
+import { toast } from "sonner"
 import {
     Dialog,
     DialogContent,
@@ -59,7 +60,13 @@ export function CreateCoveragePlotForm() {
 
     const [isCreating, setIsCreating] = useState(false)
     const [showSuccessModal, setShowSuccessModal] = useState(false)
-    const [errorMessage, setErrorMessage] = useState("")
+
+    // Field-level error state
+    const [formErrors, setFormErrors] = useState({
+        address: false,
+        carrierRequirements: false,
+        coverageType: false
+    })
 
     // Animation state
     const [isTransitioning, setIsTransitioning] = useState(false)
@@ -71,13 +78,10 @@ export function CreateCoveragePlotForm() {
     const debounceRef = useRef(null)
     const [isSearching, setIsSearching] = useState(false)
 
-    // Watch for results from global context (in case we navigated away and back)
+    // Watch for results from global context
     useEffect(() => {
         if (results && !showSuccessModal) {
             setShowSuccessModal(true)
-            // Optional: trigger download again if needed, or assume it happened? 
-            // Browser might block auto-download on mount without user interaction.
-            // Better to rely on "Download" button in modal if we add one, or just re-trigger:
             download(results).catch(console.error)
         }
     }, [results, download, showSuccessModal])
@@ -100,6 +104,10 @@ export function CreateCoveragePlotForm() {
     const handleAddressChange = useCallback((e) => {
         const value = e.target.value
         setAddress(value)
+
+        // Clear address error when user types
+        setFormErrors(prev => ({ ...prev, address: false }))
+
         if (debounceRef.current) clearTimeout(debounceRef.current)
         if (value.length > 2) {
             debounceRef.current = setTimeout(() => {
@@ -117,6 +125,7 @@ export function CreateCoveragePlotForm() {
         const lon = parseFloat(item.lon)
         setCoordinates({ lat, lng: lon })
         setZoom(16)
+        setFormErrors(prev => ({ ...prev, address: false }))
     }, [])
 
     useEffect(() => {
@@ -159,9 +168,10 @@ export function CreateCoveragePlotForm() {
 
     // Validation
     const validateForm = useCallback(() => {
-        if (!address.trim()) {
-            setErrorMessage(VALIDATION_MESSAGES.ADDRESS_REQUIRED)
-            return false
+        const errors = {
+            address: !address.trim(),
+            carrierRequirements: false,
+            coverageType: false
         }
 
         const selectedCarriers = Object.entries(carrierRequirements)
@@ -169,8 +179,7 @@ export function CreateCoveragePlotForm() {
             .map(([carrier]) => carrier)
 
         if (selectedCarriers.length === 0) {
-            setErrorMessage(VALIDATION_MESSAGES.CARRIER_REQUIRED)
-            return false
+            errors.carrierRequirements = true
         }
 
         const selectedCoverageTypes = Object.entries(coverageType)
@@ -178,7 +187,15 @@ export function CreateCoveragePlotForm() {
             .map(([type]) => type)
 
         if (selectedCoverageTypes.length === 0) {
-            setErrorMessage(VALIDATION_MESSAGES.COVERAGE_TYPE_REQUIRED)
+            errors.coverageType = true
+        }
+
+        setFormErrors(errors)
+
+        if (errors.address || errors.carrierRequirements || errors.coverageType) {
+            toast.error("Please fill in all mandatory fields.", {
+                description: "Venue Address, Carrier Requirements, and Coverage Type are required."
+            })
             return false
         }
 
@@ -190,8 +207,6 @@ export function CreateCoveragePlotForm() {
 
     // Handle create
     const handleCreate = useCallback(async () => {
-        setErrorMessage("")
-
         const validation = validateForm()
         if (!validation) return
 
@@ -201,32 +216,16 @@ export function CreateCoveragePlotForm() {
 
         try {
             const userName = user?.user_metadata?.full_name || user?.email || 'Guest'
-            // We only trigger startAutomation here.
-            // Screen download and modal show will be handled by the useEffect watching 'results'
-            // OR by looking at the promise result if we stay on page.
-            // But to be consistent, let's rely on the state update?
-            // Actually, waiting for promise here is fine for "stay on page" UX.
-
             const screenshots = await startAutomation({
                 address: address.trim(),
                 carriers: selectedCarriers,
                 coverageTypes: selectedCoverageTypes
             }, userName)
 
-            // If we are still here, these will run.
-            // If we navigated away, the component unmounted, and these won't run.
-            // But the 'results' in context will update.
-            // When we come back, the useEffect will run.
-
-            // Valid redundancy?
-            // If we do it here, we might double download if useEffect also fires.
-            // useEffect checks if (!showSuccessModal).
-            // So if we set it here to true, useEffect won't run.
-
             await download(screenshots)
             setShowSuccessModal(true)
         } catch (err) {
-            setErrorMessage(err.message || "Failed to generate screenshots")
+            toast.error(err.message || "Failed to generate screenshots")
         } finally {
             setIsCreating(false)
         }
@@ -247,6 +246,11 @@ export function CreateCoveragePlotForm() {
             [COVERAGE_TYPES.OUTDOOR]: false,
             [COVERAGE_TYPES.INDOOR_OUTDOOR]: false
         })
+        setFormErrors({
+            address: false,
+            carrierRequirements: false,
+            coverageType: false
+        })
     }, [resetAutomation, transitionToStep])
 
     // Memoized carrier list
@@ -256,7 +260,7 @@ export function CreateCoveragePlotForm() {
     // Update error from hook
     useEffect(() => {
         if (error) {
-            setErrorMessage(error)
+            toast.error(error)
         }
     }, [error])
 
@@ -384,7 +388,9 @@ export function CreateCoveragePlotForm() {
                                         <div className="space-y-3">
                                             <div className="flex items-center gap-2">
                                                 <MapPin className="h-5 w-5 text-red-500" />
-                                                <Label className="text-gray-700 dark:text-gray-300 font-semibold text-base">Venue Address</Label>
+                                                <Label className="text-gray-700 dark:text-gray-300 font-semibold text-base">
+                                                    Venue Address <span className="text-red-500">*</span>
+                                                </Label>
                                             </div>
                                             <div className="w-full">
                                                 <Input
@@ -392,7 +398,14 @@ export function CreateCoveragePlotForm() {
                                                     onChange={handleAddressChange}
                                                     onBlur={handleBlur}
                                                     placeholder="Type the venue full address"
-                                                    className="bg-gray-100 dark:bg-gray-800 dark:text-gray-200 border-none rounded-xl px-4 py-3 w-full h-12 text-base focus:ring-2 focus:ring-red-500 transition-all duration-200"
+                                                    className={`
+                                                        bg-gray-100 dark:bg-gray-800 dark:text-gray-200 border-none rounded-xl px-4 py-3 w-full h-12 text-base 
+                                                        transition-all duration-200
+                                                        ${formErrors.address
+                                                            ? 'ring-2 ring-red-500 focus:ring-red-500 placeholder:text-red-300'
+                                                            : 'focus:ring-2 focus:ring-red-500'
+                                                        }
+                                                    `}
                                                 />
                                                 {suggestions.length > 0 && (
                                                     <div className="w-full mt-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg overflow-hidden z-10 relative animate-in fade-in slide-in-from-top-2 duration-200">
@@ -415,22 +428,32 @@ export function CreateCoveragePlotForm() {
                                         <div className="space-y-4">
                                             <div className="flex items-center gap-2">
                                                 <Radio className="h-5 w-5 text-red-500" />
-                                                <Label className="text-gray-700 dark:text-gray-300 font-semibold text-base">Carrier Requirements</Label>
+                                                <Label className="text-gray-700 dark:text-gray-300 font-semibold text-base">
+                                                    Carrier Requirements <span className="text-red-500">*</span>
+                                                </Label>
                                             </div>
-                                            <div className="flex flex-wrap gap-4">
+                                            <div className={`flex flex-wrap gap-4 p-4 rounded-xl transition-colors ${formErrors.carrierRequirements ? 'bg-red-50 dark:bg-red-900/10 border border-dashed border-red-300 dark:border-red-800' : ''}`}>
                                                 {carrierList.map((carrier) => (
                                                     <div
                                                         key={carrier}
                                                         className={`flex items-center space-x-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${carrierRequirements[carrier]
-                                                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                                                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                                                ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                                                : formErrors.carrierRequirements
+                                                                    ? 'border-red-200 dark:border-red-800/50 hover:border-red-300'
+                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                                                             }`}
-                                                        onClick={() => setCarrierRequirements(p => ({ ...p, [carrier]: !p[carrier] }))}
+                                                        onClick={() => {
+                                                            setCarrierRequirements(p => ({ ...p, [carrier]: !p[carrier] }))
+                                                            setFormErrors(prev => ({ ...prev, carrierRequirements: false }))
+                                                        }}
                                                     >
                                                         <Checkbox
                                                             id={`carrier-${carrier}`}
                                                             checked={carrierRequirements[carrier]}
-                                                            onCheckedChange={(checked) => setCarrierRequirements(p => ({ ...p, [carrier]: checked }))}
+                                                            onCheckedChange={(checked) => {
+                                                                setCarrierRequirements(p => ({ ...p, [carrier]: checked }))
+                                                                setFormErrors(prev => ({ ...prev, carrierRequirements: false }))
+                                                            }}
                                                             className="pointer-events-none"
                                                         />
                                                         <label htmlFor={`carrier-${carrier}`} className="text-sm font-medium leading-none text-gray-600 dark:text-gray-300 cursor-pointer">
@@ -445,22 +468,32 @@ export function CreateCoveragePlotForm() {
                                         <div className="space-y-4">
                                             <div className="flex items-center gap-2">
                                                 <Layers className="h-5 w-5 text-red-500" />
-                                                <Label className="text-gray-700 dark:text-gray-300 font-semibold text-base">Coverage Type</Label>
+                                                <Label className="text-gray-700 dark:text-gray-300 font-semibold text-base">
+                                                    Coverage Type <span className="text-red-500">*</span>
+                                                </Label>
                                             </div>
-                                            <div className="flex flex-wrap gap-4">
+                                            <div className={`flex flex-wrap gap-4 p-4 rounded-xl transition-colors ${formErrors.coverageType ? 'bg-red-50 dark:bg-red-900/10 border border-dashed border-red-300 dark:border-red-800' : ''}`}>
                                                 {coverageTypeList.map((type) => (
                                                     <div
                                                         key={type}
                                                         className={`flex items-center space-x-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${coverageType[type]
-                                                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                                                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                                                ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                                                : formErrors.coverageType
+                                                                    ? 'border-red-200 dark:border-red-800/50 hover:border-red-300'
+                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                                                             }`}
-                                                        onClick={() => setCoverageType(p => ({ ...p, [type]: !p[type] }))}
+                                                        onClick={() => {
+                                                            setCoverageType(p => ({ ...p, [type]: !p[type] }))
+                                                            setFormErrors(prev => ({ ...prev, coverageType: false }))
+                                                        }}
                                                     >
                                                         <Checkbox
                                                             id={`coverage-${type}`}
                                                             checked={coverageType[type]}
-                                                            onCheckedChange={(checked) => setCoverageType(p => ({ ...p, [type]: checked }))}
+                                                            onCheckedChange={(checked) => {
+                                                                setCoverageType(p => ({ ...p, [type]: checked }))
+                                                                setFormErrors(prev => ({ ...prev, coverageType: false }))
+                                                            }}
                                                             className="pointer-events-none"
                                                         />
                                                         <label htmlFor={`coverage-${type}`} className="text-sm font-medium leading-none text-gray-600 dark:text-gray-300 cursor-pointer">
@@ -470,13 +503,6 @@ export function CreateCoveragePlotForm() {
                                                 ))}
                                             </div>
                                         </div>
-
-                                        {/* Error Message */}
-                                        {errorMessage && (
-                                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl animate-in fade-in slide-in-from-top-2 duration-200">
-                                                {errorMessage}
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
 
