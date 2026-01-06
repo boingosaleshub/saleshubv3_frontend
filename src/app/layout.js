@@ -25,7 +25,16 @@ export const metadata = {
     type: "website",
   },
   icons: {
-    icon: "/logo boingo B_Round_PS FILE.png",
+    icon: [
+      { url: "/logo boingo B_Round_PS FILE.png" },
+      { url: "/logo boingo B_Round_PS FILE.png", sizes: "32x32", type: "image/png" },
+      { url: "/logo boingo B_Round_PS FILE.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [
+      { url: "/logo boingo B_Round_PS FILE.png" },
+      { url: "/logo boingo B_Round_PS FILE.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/logo boingo B_Round_PS FILE.png",
   },
 };
 
