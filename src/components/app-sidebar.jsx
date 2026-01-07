@@ -104,6 +104,12 @@ export function AppSidebar({ ...props }) {
       icon: BarChart2,
       items: [
         { title: t("createNew"), url: "/coverage-plot/new-form" },
+        // Role-based menu: Admin/Super Admin see "All Plots", Users see "My Plots"
+        ...(['Admin', 'Super Admin'].includes(user?.app_metadata?.role) ? [
+          { title: t("allPlots"), url: "/coverage-plot/all-plots" }
+        ] : [
+          { title: t("myPlots"), url: "/coverage-plot/my-plots" }
+        ]),
       ],
     },
     {

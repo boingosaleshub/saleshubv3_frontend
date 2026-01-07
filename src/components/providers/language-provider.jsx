@@ -131,6 +131,15 @@ const translations = {
         actions: "Actions",
         noUsersFound: "No users found.",
         totalUsers: "Total Users",
+        // Coverage Plots
+        allPlots: "All Plots",
+        myPlots: "My Plots",
+        viewPlot: "View Plot",
+        plotDetails: "Plot Details",
+        userName: "User Name",
+        carriers: "Carriers",
+        coverageTypes: "Coverage Types",
+        noPlotsFound: "No plots found.",
     },
     es: {
         dashboard: "Tablero",
@@ -258,6 +267,15 @@ const translations = {
         actions: "Acciones",
         noUsersFound: "No se encontraron usuarios.",
         totalUsers: "Usuarios Totales",
+        // Coverage Plots
+        allPlots: "Todos los Gráficos",
+        myPlots: "Mis Gráficos",
+        viewPlot: "Ver Gráfico",
+        plotDetails: "Detalles del Gráfico",
+        userName: "Nombre de Usuario",
+        carriers: "Operadores",
+        coverageTypes: "Tipos de Cobertura",
+        noPlotsFound: "No se encontraron gráficos.",
     },
     pt: {
         dashboard: "Painel",
@@ -385,6 +403,15 @@ const translations = {
         actions: "Ações",
         noUsersFound: "Nenhum usuário encontrado.",
         totalUsers: "Total de Usuários",
+        // Coverage Plots
+        allPlots: "Todos os Gráficos",
+        myPlots: "Meus Gráficos",
+        viewPlot: "Ver Gráfico",
+        plotDetails: "Detalhes do Gráfico",
+        userName: "Nome do Usuário",
+        carriers: "Operadoras",
+        coverageTypes: "Tipos de Cobertura",
+        noPlotsFound: "Nenhum gráfico encontrado.",
     },
     fr: {
         dashboard: "Tableau de bord",
@@ -512,6 +539,15 @@ const translations = {
         actions: "Actions",
         noUsersFound: "Aucun utilisateur trouvé.",
         totalUsers: "Total utilisateurs",
+        // Coverage Plots
+        allPlots: "Tous les Tracés",
+        myPlots: "Mes Tracés",
+        viewPlot: "Voir le Tracé",
+        plotDetails: "Détails du Tracé",
+        userName: "Nom d'utilisateur",
+        carriers: "Opérateurs",
+        coverageTypes: "Types de Couverture",
+        noPlotsFound: "Aucun tracé trouvé.",
     },
 };
 
