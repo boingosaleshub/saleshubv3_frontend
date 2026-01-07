@@ -335,12 +335,49 @@
     }
   }
 
+  /* Color blink animation for buttons */
+  @keyframes color-blink {
+
+    0%,
+    100% {
+      background-color: white;
+    }
+
+    50% {
+      background-color: #E41F26;
+      /* Boingo red */
+    }
+  }
+
+  .animate-color-blink {
+    animation: color-blink 1s ease-in-out 3;
+  }
+
+  /* Green color blink animation for download button */
+  @keyframes color-blink-green {
+
+    0%,
+    100% {
+      background-color: white;
+    }
+
+    50% {
+      background-color: #10b981;
+      /* Green */
+    }
+  }
+
+  .animate-color-blink-green {
+    animation: color-blink-green 1s ease-in-out 3;
+  }
+
   /* Ripple effect animation */
   @keyframes ripple {
     0% {
       transform: scale(0);
       opacity: 0.6;
     }
+
     100% {
       transform: scale(4);
       opacity: 0;

@@ -76,7 +76,7 @@ export function PlotImageModal({ isOpen, onClose, plot }) {
                             variant="secondary"
                             size="icon"
                             onClick={handleClose}
-                            className="bg-white hover:bg-gray-200 text-black rounded-full h-10 w-10"
+                            className="bg-white hover:bg-gray-200 text-black rounded-full h-10 w-10 animate-color-blink"
                             title="Close"
                         >
                             <X className="h-5 w-5" />
@@ -85,7 +85,7 @@ export function PlotImageModal({ isOpen, onClose, plot }) {
                             variant="secondary"
                             size="icon"
                             onClick={handleDownload}
-                            className="bg-white hover:bg-gray-200 text-black rounded-full h-10 w-10"
+                            className="bg-white hover:bg-gray-200 text-black rounded-full h-10 w-10 animate-color-blink-green"
                             title="Download image"
                         >
                             <Download className="h-5 w-5" />
