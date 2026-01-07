@@ -10,11 +10,13 @@ import LoadingIcon from "@/components/ui/loading-icon"
 import { toast } from "sonner"
 import { createClient } from "@/utils/supabase/client"
 import { useAuthStore } from "@/store/useAuthStore"
+import ForgotPasswordFlow from "@/components/auth/ForgotPasswordFlow"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
   const router = useRouter()
   const { setUser } = useAuthStore()
   const supabase = createClient()
@@ -22,7 +24,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -36,7 +38,7 @@ export default function LoginPage() {
 
     if (data.user) {
       setUser(data.user)
-      
+
       toast.success('Login successful!', {
         style: {
           '--normal-bg':
@@ -46,13 +48,13 @@ export default function LoginPage() {
           '--normal-border': 'light-dark(var(--color-green-600), var(--color-green-400))'
         }
       })
-      
+
       // Redirect to dashboard after a short delay to show the toast
       setTimeout(() => {
         router.push('/dashboard')
       }, 1000)
     } else {
-        setLoading(false)
+      setLoading(false)
     }
   }
 
@@ -70,7 +72,7 @@ export default function LoginPage() {
         />
       </section>
 
-      {/* Right: login form (no header, no container) */}
+      {/* Right: login form or forgot password flow */}
       <section className="flex min-h-screen items-center justify-center px-6">
         <div className="w-full max-w-md animate-in fade-in zoom-in duration-300">
           <div className="mb-6 text-center">
@@ -84,62 +86,71 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="rounded-xl border bg-card text-card-foreground shadow-lg">
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">Email</label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
+          {showForgotPassword ? (
+            <ForgotPasswordFlow onBackToLogin={() => setShowForgotPassword(false)} />
+          ) : (
+            <div className="rounded-xl border bg-card text-card-foreground shadow-lg">
+              <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">Password</label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-sm font-medium">Password</label>
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
 
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="rounded-sm border border-input" />
-                  Remember me
-                </label>
-                <Link href="#" className="text-sm text-primary underline-offset-4 hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" className="rounded-sm border border-input" />
+                    Remember me
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-primary underline-offset-4 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
 
-              <BoingoGradientButton
-                type="submit"
-                disabled={loading}
-                className="w-full h-10 px-4 py-2"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <LoadingIcon size={20} />
-                    <span>Signing in…</span>
-                  </span>
-                ) : (
-                  "Sign in"
-                )}
-              </BoingoGradientButton>
-            </form>
-          </div>
+                <BoingoGradientButton
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-10 px-4 py-2"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <LoadingIcon size={20} />
+                      <span>Signing in…</span>
+                    </span>
+                  ) : (
+                    "Sign in"
+                  )}
+                </BoingoGradientButton>
+              </form>
+            </div>
+          )}
         </div>
       </section>
     </div>
   )
 }
+
