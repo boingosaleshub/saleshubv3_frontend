@@ -12,6 +12,8 @@ import { Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react'
 
 export default function SetPasswordPage() {
   const router = useRouter()
+  // Create a single supabase client for this component instance
+  const [supabase] = useState(() => createClient())
   const [loading, setLoading] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -26,17 +28,15 @@ export default function SetPasswordPage() {
       const accessToken = hashParams.get('access_token')
       const refreshToken = hashParams.get('refresh_token')
       const type = hashParams.get('type')
-      
+
       if (accessToken && type === 'recovery') {
         try {
-          const supabase = createClient()
-          
-          // Exchange the tokens for a session
+          // Exchange the tokens for a session using the component's client instance
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           })
-          
+
           if (error) {
             console.error('Error setting session:', error)
             toast.error('Invalid or expired password reset link')
@@ -57,12 +57,12 @@ export default function SetPasswordPage() {
     }
 
     handleRecoveryToken()
-  }, [])
+  }, [supabase])
 
   // Password strength indicator
   const getPasswordStrength = (pwd) => {
     if (!pwd) return { strength: 0, label: '', color: '' }
-    
+
     let strength = 0
     if (pwd.length >= 8) strength++
     if (pwd.length >= 12) strength++
@@ -99,7 +99,15 @@ export default function SetPasswordPage() {
     setLoading(true)
 
     try {
-      const supabase = createClient()
+      // Verify we have a user session before updating
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+      if (userError || !user) {
+        console.error('No authenticated user found:', userError)
+        toast.error('Session expired. Please click the link in your email again.')
+        setLoading(false)
+        return
+      }
 
       // Update the user's password
       const { error } = await supabase.auth.updateUser({
@@ -114,10 +122,10 @@ export default function SetPasswordPage() {
       }
 
       toast.success('Password set successfully! Redirecting to login...')
-      
+
       // Sign out the user and redirect to login
       await supabase.auth.signOut()
-      
+
       setTimeout(() => {
         router.push('/login')
       }, 1500)
@@ -140,8 +148,8 @@ export default function SetPasswordPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              onClick={() => router.push('/login')} 
+            <Button
+              onClick={() => router.push('/login')}
               className="w-full bg-[#E41F26] hover:bg-[#B5121B]"
             >
               Go to Login
@@ -191,12 +199,11 @@ export default function SetPasswordPage() {
                     {passwordStrength.label}
                   </span>
                   <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full transition-all ${
-                        passwordStrength.strength <= 2 ? 'bg-red-500' : 
-                        passwordStrength.strength <= 3 ? 'bg-yellow-500' : 
-                        'bg-green-500'
-                      }`}
+                    <div
+                      className={`h-full transition-all ${passwordStrength.strength <= 2 ? 'bg-red-500' :
+                          passwordStrength.strength <= 3 ? 'bg-yellow-500' :
+                            'bg-green-500'
+                        }`}
                       style={{ width: `${(passwordStrength.strength / 5) * 100}%` }}
                     />
                   </div>
@@ -242,8 +249,8 @@ export default function SetPasswordPage() {
               )}
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={loading || !passwordsMatch || password.length < 6}
               className="w-full bg-[#E41F26] hover:bg-[#B5121B]"
             >
