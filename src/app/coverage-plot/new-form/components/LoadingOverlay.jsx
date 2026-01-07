@@ -47,7 +47,7 @@ export function LoadingOverlay({
                     className="object-contain"
                     unoptimized
                 />
-                
+
                 {/* Step-Based Progress Bar */}
                 <StepProgressBar
                     currentStepIndex={currentStepIndex}
@@ -55,14 +55,14 @@ export function LoadingOverlay({
                     progress={progress}
                     className="w-full"
                 />
-                
+
                 {/* Current Step Text */}
                 <StepDisplay step={currentStep} visible={stepVisible} />
-                
+
                 {/* Queue Link */}
                 <div className="text-center mt-4">
                     <p className="text-gray-500 dark:text-gray-400 text-sm">
-                        Wanna check out your coverage plot progress?{' '}
+                        Wanna check out your process progress?{' '}
                         <Link
                             href="/coverage-plot/progress-queue"
                             className="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400 font-medium hover:underline"
