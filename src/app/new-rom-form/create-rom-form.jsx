@@ -56,16 +56,17 @@ function AnimatedField({ children, delay = 0, className = "" }) {
     )
 }
 
-// Section header component
+// Section header component with enhanced animations
 function SectionHeader({ icon: Icon, title, subtitle }) {
     return (
-        <div className="flex items-center gap-3 pb-2 mb-4 border-b border-gray-100 dark:border-zinc-800">
-            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-md">
-                <Icon className="h-5 w-5 text-white" />
+        <div className="flex items-center gap-3 pb-3 mb-6 border-b border-gray-100 dark:border-zinc-800 group">
+            <div className="relative w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-md transition-all duration-300 group-hover:shadow-lg group-hover:scale-105">
+                <Icon className="h-5 w-5 text-white transition-transform duration-300 group-hover:rotate-6" />
+                <div className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
-            <div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{title}</h3>
-                {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>}
+            <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white transition-colors duration-200">{title}</h3>
+                {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
             </div>
         </div>
     )
@@ -469,9 +470,9 @@ export function CreateRomForm() {
                                             <div className="flex items-center gap-3">
                                                 <Switch
                                                     checked={hasParkingGarage} onCheckedChange={setHasParkingGarage}
-                                                    className="data-[state=checked]:bg-[#10B981] data-[state=unchecked]:bg-gray-200"
+                                                    className="data-[state=checked]:bg-[#10B981] data-[state=unchecked]:bg-gray-200 transition-all duration-200"
                                                 />
-                                                <span className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${hasParkingGarage ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-400'}`}>
+                                                <span className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all duration-200 ${hasParkingGarage ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 scale-105' : 'bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-400'}`}>
                                                     {hasParkingGarage ? t("yes") : t("no")}
                                                 </span>
                                             </div>
@@ -518,7 +519,7 @@ export function CreateRomForm() {
                                                     checked={isThirdParty} onCheckedChange={setIsThirdParty}
                                                     className="data-[state=checked]:bg-[#10B981] data-[state=unchecked]:bg-gray-200"
                                                 />
-                                                <span className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isThirdParty ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-400'}`}>
+                                                <span className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all duration-200 ${isThirdParty ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 scale-105' : 'bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-400'}`}>
                                                     {isThirdParty ? t("yes") : t("no")}
                                                 </span>
                                             </div>
@@ -556,9 +557,9 @@ export function CreateRomForm() {
                                                 {["700MHz", "850MHz", "450MHz"].map((mhz) => (
                                                     <div
                                                         key={mhz}
-                                                        className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer ${ahjRequirements[mhz]
-                                                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                                                            : 'border-gray-200 dark:border-zinc-700 hover:border-gray-300'
+                                                        className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:scale-105 ${ahjRequirements[mhz]
+                                                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20 shadow-md'
+                                                            : 'border-gray-200 dark:border-zinc-700 hover:border-red-300 hover:shadow-sm'
                                                             }`}
                                                         onClick={() => setAhjRequirements(p => ({ ...p, [mhz]: !p[mhz] }))}
                                                     >
