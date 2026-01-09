@@ -605,27 +605,31 @@ export function CreateRomForm() {
 
                                     {/* Dates */}
                                     <AnimatedField delay={550}>
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                            <div className="flex flex-col gap-2">
-                                                <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap flex items-center gap-2">
-                                                    <Calendar className="h-4 w-4 text-red-500" />
-                                                    {t("expectedCloseDate")}
-                                                </Label>
-                                                <Input type="date" value={closeDate} onChange={(e) => setCloseDate(e.target.value)} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11" />
+                                        <div className="space-y-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                                                <div className="flex flex-col gap-2">
+                                                    <Label className="text-gray-600 dark:text-gray-300 font-medium flex items-start gap-2 min-h-[24px]">
+                                                        <Calendar className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                                                        <span className="text-sm leading-tight">{t("expectedCloseDate")}</span>
+                                                    </Label>
+                                                    <Input type="date" value={closeDate} onChange={(e) => setCloseDate(e.target.value)} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11" />
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                    <Label className="text-gray-600 dark:text-gray-300 font-medium flex items-start gap-2 min-h-[24px]">
+                                                        <Calendar className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                                                        <span className="text-sm leading-tight">{t("expectedConstructionStart")}</span>
+                                                    </Label>
+                                                    <Input type="date" value={constructionDate} onChange={(e) => setConstructionDate(e.target.value)} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11" />
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col gap-2">
-                                                <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap flex items-center gap-2">
-                                                    <Calendar className="h-4 w-4 text-red-500" />
-                                                    {t("expectedConstructionStart")}
-                                                </Label>
-                                                <Input type="date" value={constructionDate} onChange={(e) => setConstructionDate(e.target.value)} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11" />
-                                            </div>
-                                            <div className="flex flex-col gap-2">
-                                                <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap flex items-center gap-2">
-                                                    <Calendar className="h-4 w-4 text-red-500" />
-                                                    {t("expectedOnAirDate")}
-                                                </Label>
-                                                <Input type="date" value={onAirDate} onChange={(e) => setOnAirDate(e.target.value)} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11" />
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                                                <div className="flex flex-col gap-2">
+                                                    <Label className="text-gray-600 dark:text-gray-300 font-medium flex items-start gap-2 min-h-[24px]">
+                                                        <Calendar className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                                                        <span className="text-sm leading-tight">{t("expectedOnAirDate")}</span>
+                                                    </Label>
+                                                    <Input type="date" value={onAirDate} onChange={(e) => setOnAirDate(e.target.value)} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11" />
+                                                </div>
                                             </div>
                                         </div>
                                     </AnimatedField>
