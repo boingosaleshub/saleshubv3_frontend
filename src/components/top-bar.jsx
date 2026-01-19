@@ -153,11 +153,11 @@ export function TopBar() {
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push("/profile")}>
                             <User className="mr-2 h-4 w-4" />
                             <span>{t("profile")}</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push("/settings/system-settings")}>
                             <Settings className="mr-2 h-4 w-4" />
                             <span>{t("settings")}</span>
                         </DropdownMenuItem>

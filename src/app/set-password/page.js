@@ -201,8 +201,8 @@ export default function SetPasswordPage() {
                   <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all ${passwordStrength.strength <= 2 ? 'bg-red-500' :
-                          passwordStrength.strength <= 3 ? 'bg-yellow-500' :
-                            'bg-green-500'
+                        passwordStrength.strength <= 3 ? 'bg-yellow-500' :
+                          'bg-green-500'
                         }`}
                       style={{ width: `${(passwordStrength.strength / 5) * 100}%` }}
                     />
