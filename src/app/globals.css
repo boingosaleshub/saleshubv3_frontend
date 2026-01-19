@@ -148,6 +148,88 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* High Contrast Mode - Light Theme */
+.high-contrast {
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f0f0;
+  --secondary-foreground: #000000;
+  --muted: #e0e0e0;
+  --muted-foreground: #1a1a1a;
+  --accent: #f0f0f0;
+  --accent-foreground: #000000;
+  --destructive: #cc0000;
+  --border: #000000;
+  --input: #000000;
+  --ring: #000000;
+  --boingo-red: #cc0000;
+  --boingo-red-dark: #990000;
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #333333;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #ffffff;
+  --sidebar-ring: #ffffff;
+}
+
+/* High Contrast Mode - Dark Theme */
+.high-contrast.dark {
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #000000;
+  --card-foreground: #ffffff;
+  --popover: #000000;
+  --popover-foreground: #ffffff;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
+  --muted: #262626;
+  --muted-foreground: #e0e0e0;
+  --accent: #1a1a1a;
+  --accent-foreground: #ffffff;
+  --destructive: #ff3333;
+  --border: #ffffff;
+  --input: #ffffff;
+  --ring: #ffffff;
+  --boingo-red: #ff3333;
+  --boingo-red-dark: #ff0000;
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #ffffff;
+  --sidebar-ring: #ffffff;
+}
+
+/* High Contrast Mode Base Overrides */
+.high-contrast * {
+  border-width: 2px !important;
+}
+
+.high-contrast button,
+.high-contrast a,
+.high-contrast input,
+.high-contrast select,
+.high-contrast textarea {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.high-contrast button:focus-visible,
+.high-contrast a:focus-visible,
+.high-contrast input:focus-visible,
+.high-contrast select:focus-visible,
+.high-contrast textarea:focus-visible {
+  outline-color: var(--ring);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

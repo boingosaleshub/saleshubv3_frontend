@@ -126,7 +126,7 @@ export function AppSidebar({ ...props }) {
         ...(['Admin', 'Super Admin'].includes(user?.app_metadata?.role) ? [
           { title: t("systemUser"), url: "/settings/users" }
         ] : []),
-        { title: t("systemSettings"), url: "#" },
+        { title: t("systemSettings"), url: "/settings/system-settings" },
       ],
     },
   ]
