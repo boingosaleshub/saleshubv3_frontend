@@ -386,13 +386,6 @@ export default function ProfilePage() {
                                         </div>
                                     </div>
                                 )}
-
-                                <button
-                                    className="mt-2 text-sm font-medium text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 border border-transparent hover:border-red-200 dark:hover:border-red-900 rounded-md px-3 py-2 w-full md:w-auto text-left transition-all flex items-center gap-2 group"
-                                >
-                                    <AlertTriangle className="h-4 w-4 group-hover:animate-pulse" />
-                                    Delete Account
-                                </button>
                             </div>
                         </div>
                     </CardContent>

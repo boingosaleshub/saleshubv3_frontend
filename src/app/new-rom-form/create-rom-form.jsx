@@ -422,10 +422,15 @@ export function CreateRomForm() {
                                                     <SelectValue placeholder={t("venueTypePlaceholder")} />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="stadium">{t("stadium")}</SelectItem>
-                                                    <SelectItem value="arena">{t("arena")}</SelectItem>
-                                                    <SelectItem value="convention">{t("conventionCenter")}</SelectItem>
-                                                    <SelectItem value="office">{t("officeBuilding")}</SelectItem>
+                                                    <SelectItem value="Apartments/Condos">{t("Apartments/Condos")}</SelectItem>
+                                                    <SelectItem value="Student Housing">{t("Student Housing")}</SelectItem>
+                                                    <SelectItem value="Hospital">{t("Hospital")}</SelectItem>
+                                                    <SelectItem value="Clinic/Outpatient Facility">{t("Clinic/Outpatient Facility")}</SelectItem>
+                                                    <SelectItem value="Office">{t("Office")}</SelectItem>
+                                                    <SelectItem value="Shopping Mall">{t("Shopping Mall")}</SelectItem>
+                                                    <SelectItem value="Hotel">{t("Hotel")}</SelectItem>
+                                                    <SelectItem value="Warehouse">{t("Warehouse")}</SelectItem>
+                                                    <SelectItem value="Airport">{t("Airport")}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -586,9 +591,11 @@ export function CreateRomForm() {
                                                     <SelectValue placeholder={t("densityPlaceholder")} />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="low">{t("low")}</SelectItem>
-                                                    <SelectItem value="medium">{t("medium")}</SelectItem>
-                                                    <SelectItem value="high">{t("high")}</SelectItem>
+                                                    <SelectItem value="Open Space">{t("Open Space")}</SelectItem>
+                                                    <SelectItem value="Light">{t("Light")}</SelectItem>
+                                                    <SelectItem value="Medium">{t("Medium")}</SelectItem>
+                                                    <SelectItem value="Dense">{t("Dense")}</SelectItem>
+                                                    <SelectItem value="High Density">{t("High Density")}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -679,9 +686,8 @@ export function CreateRomForm() {
                                                             <SelectValue placeholder={t("architecturePlaceholder")} />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="Active">{t("active")}</SelectItem>
-                                                            <SelectItem value="Passive">{t("passive")}</SelectItem>
-                                                            <SelectItem value="Hybrid">{t("hybrid")}</SelectItem>
+                                                            <SelectItem value="DAS (Distributed Antenna System)">{t("DAS (Distributed Antenna System)")}</SelectItem>
+                                                            <SelectItem value="Part 20 ( BDA only)">{t("Part 20 ( BDA only)")}</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
@@ -715,9 +721,12 @@ export function CreateRomForm() {
                                                             <SelectValue placeholder={t("dasVendorPlaceholder")} />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="commscope">CommScope</SelectItem>
-                                                            <SelectItem value="jma">JMA Wireless</SelectItem>
-                                                            <SelectItem value="corning">Corning</SelectItem>
+                                                            <SelectItem value="Comba">Comba</SelectItem>
+                                                            <SelectItem value="ADRF">ADRF</SelectItem>
+                                                            <SelectItem value="Solid">Solid</SelectItem>
+                                                            <SelectItem value="Commscope">Commscope</SelectItem>
+                                                            <SelectItem value="JMA">JMA</SelectItem>
+                                                            <SelectItem value="Corning">Corning</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
@@ -734,8 +743,8 @@ export function CreateRomForm() {
                                                             <SelectValue placeholder={t("bdaVendorPlaceholder")} />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="honeywell">Honeywell</SelectItem>
-                                                            <SelectItem value="adrf">ADRF</SelectItem>
+                                                            <SelectItem value="Solid">Solid</SelectItem>
+                                                            <SelectItem value="Nextivity">Nextivity</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
@@ -804,9 +813,10 @@ export function CreateRomForm() {
                                                         <SelectValue placeholder={t("signalSourcePlaceholder")} />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="off-air">{t("offAir")}</SelectItem>
-                                                        <SelectItem value="bts">{t("bts")}</SelectItem>
-                                                        <SelectItem value="smallcell">{t("smallCell")}</SelectItem>
+                                                        <SelectItem value="BDA">{t("BDA")}</SelectItem>
+                                                        <SelectItem value="eFento">{t("eFento")}</SelectItem>
+                                                        <SelectItem value="One Cell">{t("One Cell")}</SelectItem>
+                                                        <SelectItem value="BTS">{t("BTS")}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
