@@ -35,8 +35,12 @@ import {
     ChevronLeft,
     Sparkles,
     ArrowRight,
-    Search
+    Search,
+    Loader2,
+    CheckCircle2,
+    AlertCircle
 } from "lucide-react"
+import { createRomAutomation, downloadAllScreenshots } from "./services/romAutomationService"
 
 // Dynamically import the map to avoid SSR issues
 const RomMap = dynamic(() => import("./rom-map"), {
@@ -137,6 +141,11 @@ export function CreateRomForm() {
     })
     const [additionalInfo, setAdditionalInfo] = useState("")
 
+    // ROM Automation State
+    const [isCreatingRom, setIsCreatingRom] = useState(false)
+    const [romSuccess, setRomSuccess] = useState(false)
+    const [romError, setRomError] = useState("")
+
     // --- LOGIC ---
     const debounceRef = useRef(null)
     const [isSearching, setIsSearching] = useState(false)
@@ -219,14 +228,65 @@ export function CreateRomForm() {
         }
     }, [address, suggestions, handleSelectAddress, venueName, transitionToScreen])
 
+    // Get selected carriers as an array
+    const getSelectedCarriers = useCallback(() => {
+        return Object.entries(carrierRequirements)
+            .filter(([_, isSelected]) => isSelected)
+            .map(([carrier]) => carrier)
+    }, [carrierRequirements])
+
+    // Handle ROM Creation (automation)
+    const handleCreateRom = useCallback(async () => {
+        // Reset previous states
+        setRomError("")
+        setRomSuccess(false)
+
+        // Validation: Check address
+        if (!address || !address.trim()) {
+            setRomError("Please enter a venue address")
+            return
+        }
+
+        // Validation: Check at least one carrier is selected
+        const selectedCarriers = getSelectedCarriers()
+        if (selectedCarriers.length === 0) {
+            setRomError("Please select at least one carrier")
+            return
+        }
+
+        // Start automation
+        setIsCreatingRom(true)
+
+        try {
+            const result = await createRomAutomation({
+                address: address.trim(),
+                carriers: selectedCarriers
+            })
+
+            if (result.success && result.screenshots && result.screenshots.length > 0) {
+                // Download all screenshots
+                downloadAllScreenshots(result.screenshots)
+                setRomSuccess(true)
+            } else {
+                throw new Error("No screenshots received from automation")
+            }
+        } catch (error) {
+            console.error("ROM automation error:", error)
+            setRomError(error.message || "Failed to create ROM. Please try again.")
+        } finally {
+            setIsCreatingRom(false)
+        }
+    }, [address, getSelectedCarriers])
+
     // Navigation Handlers
     const handleNext = useCallback(() => {
         if (screen === 1) {
             transitionToScreen(2)
         } else if (screen === 2) {
-            console.log("Form Submitted", { venueName, systemType, address })
+            // Trigger ROM automation on Create button click
+            handleCreateRom()
         }
-    }, [screen, transitionToScreen, venueName, systemType, address])
+    }, [screen, transitionToScreen, handleCreateRom])
 
     const handleBack = useCallback(() => {
         if (screen === 2) {
@@ -723,10 +783,6 @@ export function CreateRomForm() {
                                                         <SelectContent>
                                                             <SelectItem value="Comba">Comba</SelectItem>
                                                             <SelectItem value="ADRF">ADRF</SelectItem>
-                                                            <SelectItem value="Solid">Solid</SelectItem>
-                                                            <SelectItem value="Commscope">Commscope</SelectItem>
-                                                            <SelectItem value="JMA">JMA</SelectItem>
-                                                            <SelectItem value="Corning">Corning</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
@@ -743,8 +799,8 @@ export function CreateRomForm() {
                                                             <SelectValue placeholder={t("bdaVendorPlaceholder")} />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="Solid">Solid</SelectItem>
-                                                            <SelectItem value="Nextivity">Nextivity</SelectItem>
+                                                            <SelectItem value="Comba">Comba</SelectItem>
+                                                            <SelectItem value="ADRF">ADRF</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
@@ -920,33 +976,74 @@ export function CreateRomForm() {
             </div>
 
             {/* Footer Actions */}
-            <div className="p-6 border-t border-gray-100 dark:border-zinc-800 flex justify-center items-center bg-white dark:bg-zinc-900 shrink-0 relative rounded-b-xl">
-                {(screen === 1 || screen === 2) && (
-                    <Button
-                        onClick={handleBack}
-                        className="absolute left-6 bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-zinc-700 rounded-xl px-6 h-11 flex items-center gap-2 transition-all duration-200"
-                    >
-                        <ChevronLeft className="h-4 w-4" />
-                        {t("back")}
-                    </Button>
+            <div className="p-6 border-t border-gray-100 dark:border-zinc-800 flex flex-col items-center bg-white dark:bg-zinc-900 shrink-0 relative rounded-b-xl gap-4">
+                {/* Status Messages */}
+                {screen === 2 && (romError || romSuccess || isCreatingRom) && (
+                    <div className="w-full max-w-md">
+                        {/* Error Message */}
+                        {romError && !isCreatingRom && (
+                            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                                <AlertCircle className="h-4 w-4 shrink-0" />
+                                <span>{romError}</span>
+                            </div>
+                        )}
+
+                        {/* Success Message */}
+                        {romSuccess && !isCreatingRom && (
+                            <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-green-700 dark:text-green-400 text-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                                <span>Success! Screenshots are being downloaded.</span>
+                            </div>
+                        )}
+
+                        {/* Loading Message */}
+                        {isCreatingRom && (
+                            <div className="flex items-center justify-center gap-3 p-4 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl text-gray-700 dark:text-gray-300 text-sm animate-in fade-in duration-300">
+                                <Loader2 className="h-5 w-5 animate-spin text-red-500" />
+                                <span className="font-medium">Creating ROM... This may take 2-3 minutes. Please wait.</span>
+                            </div>
+                        )}
+                    </div>
                 )}
 
-                <Button
-                    onClick={handleNext}
-                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl px-8 h-11 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                    {screen === 2 ? (
-                        <>
-                            <Sparkles className="h-4 w-4" />
-                            {t("create")}
-                        </>
-                    ) : (
-                        <>
-                            {t("next")}
-                            <ArrowRight className="h-4 w-4" />
-                        </>
+                {/* Navigation Buttons */}
+                <div className="flex justify-center items-center w-full relative">
+                    {(screen === 1 || screen === 2) && (
+                        <Button
+                            onClick={handleBack}
+                            disabled={isCreatingRom}
+                            className="absolute left-0 bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-zinc-700 rounded-xl px-6 h-11 flex items-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                            {t("back")}
+                        </Button>
                     )}
-                </Button>
+
+                    <Button
+                        onClick={handleNext}
+                        disabled={isCreatingRom}
+                        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl px-8 h-11 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg"
+                    >
+                        {screen === 2 ? (
+                            isCreatingRom ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Creating...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="h-4 w-4" />
+                                    {t("create")}
+                                </>
+                            )
+                        ) : (
+                            <>
+                                {t("next")}
+                                <ArrowRight className="h-4 w-4" />
+                            </>
+                        )}
+                    </Button>
+                </div>
             </div>
         </Card>
     )
