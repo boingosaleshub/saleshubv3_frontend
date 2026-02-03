@@ -4,6 +4,23 @@
  */
 
 /**
+ * Get the automation API base URL from environment
+ * @returns {string}
+ */
+function getApiUrl() {
+    return process.env.NEXT_PUBLIC_PLAYWRIGHT_BACKEND_URL || ''
+}
+
+/**
+ * Get the ROM automation endpoint URL
+ * @returns {string}
+ */
+function getRomEndpoint() {
+    const baseUrl = getApiUrl()
+    return baseUrl ? `${baseUrl}/api/rom/automate` : '/api/rom/automate'
+}
+
+/**
  * Triggers ROM automation for the given address and carriers
  * @param {Object} params - The automation parameters
  * @param {string} params.address - The venue address
@@ -11,7 +28,9 @@
  * @returns {Promise<{success: boolean, screenshots: Array<{filename: string, buffer: string}>}>}
  */
 export async function createRomAutomation({ address, carriers }) {
-    const response = await fetch('/api/rom/automate', {
+    const url = getRomEndpoint()
+    
+    const response = await fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
