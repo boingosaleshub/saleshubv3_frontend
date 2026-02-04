@@ -40,7 +40,7 @@ import {
     CheckCircle2,
     AlertCircle
 } from "lucide-react"
-import { createRomAutomation, downloadAllScreenshots } from "./services/romAutomationService"
+import { createRomAutomation, downloadAllRomFiles } from "./services/romAutomationService"
 
 // Dynamically import the map to avoid SSR issues
 const RomMap = dynamic(() => import("./rom-map"), {
@@ -254,21 +254,46 @@ export function CreateRomForm() {
             return
         }
 
+        // Validation: Check system type is selected
+        if (!systemType) {
+            setRomError("Please select a system type")
+            return
+        }
+
+        // Validation: Check vendor is selected based on system type
+        if ((systemType === 'DAS' || systemType === 'DAS & ERCES') && !dasVendor) {
+            setRomError("Please select a DAS vendor")
+            return
+        }
+        if ((systemType === 'ERCES' || systemType === 'DAS & ERCES') && !bdaVendor) {
+            setRomError("Please select a BDA/Booster vendor")
+            return
+        }
+
         // Start automation
         setIsCreatingRom(true)
 
         try {
             const result = await createRomAutomation({
                 address: address.trim(),
-                carriers: selectedCarriers
+                carriers: selectedCarriers,
+                systemType,
+                dasVendor,
+                bdaVendor,
+                grossSqFt: grossSqFt || 0
             })
 
-            if (result.success && result.screenshots && result.screenshots.length > 0) {
-                // Download all screenshots
-                downloadAllScreenshots(result.screenshots)
+            if (result.success || result.partialSuccess) {
+                // Download all files (Excel + screenshots)
+                downloadAllRomFiles(result)
                 setRomSuccess(true)
+                
+                // Show partial success message if applicable
+                if (result.partialSuccess) {
+                    console.warn("ROM automation partial success:", result.error)
+                }
             } else {
-                throw new Error("No screenshots received from automation")
+                throw new Error(result.error || "Automation failed")
             }
         } catch (error) {
             console.error("ROM automation error:", error)
@@ -276,7 +301,7 @@ export function CreateRomForm() {
         } finally {
             setIsCreatingRom(false)
         }
-    }, [address, getSelectedCarriers])
+    }, [address, getSelectedCarriers, systemType, dasVendor, bdaVendor, grossSqFt])
 
     // Navigation Handlers
     const handleNext = useCallback(() => {
