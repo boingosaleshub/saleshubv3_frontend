@@ -64,7 +64,7 @@ export function LoadingOverlay({
                     <p className="text-gray-500 dark:text-gray-400 text-sm">
                         Wanna check out your process progress?{' '}
                         <Link
-                            href="/coverage-plot/progress-queue"
+                            href="/process-queue"
                             className="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400 font-medium hover:underline"
                         >
                             Click here

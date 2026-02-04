@@ -39,20 +39,28 @@ const COLORS = {
  * @param {string} params.systemType - The system type (DAS, ERCES, DAS & ERCES)
  * @param {string} params.dasVendor - The DAS vendor (Comba, ADRF)
  * @param {string} params.bdaVendor - The BDA/Booster vendor (Comba, ADRF)
+ * @param {string} params.fileType - Optional: Force specific file type (DAS or ERCES) for combined systems
  * @returns {string} - The generated filename
  */
-export function generateExcelFilename({ systemType, dasVendor, bdaVendor }) {
+export function generateExcelFilename({ systemType, dasVendor, bdaVendor, fileType }) {
     let prefix = 'Pricing';
     let vendor = '';
 
-    if (systemType === 'ERCES') {
+    // If fileType is specified, use it directly (for combined systems generating separate files)
+    if (fileType === 'DAS') {
+        prefix = 'DAS_Pricing';
+        vendor = dasVendor || 'Comba';
+    } else if (fileType === 'ERCES') {
+        prefix = 'ERCES_Pricing';
+        vendor = bdaVendor || 'Comba';
+    } else if (systemType === 'ERCES') {
         prefix = 'ERCES_Pricing';
         vendor = bdaVendor || 'Comba';
     } else if (systemType === 'DAS') {
         prefix = 'DAS_Pricing';
         vendor = dasVendor || 'Comba';
     } else if (systemType === 'DAS & ERCES') {
-        // For combined systems, prioritize DAS vendor
+        // For combined systems without fileType specified, default to DAS
         prefix = 'DAS_Pricing';
         vendor = dasVendor || bdaVendor || 'Comba';
     } else {
@@ -93,11 +101,15 @@ function formatNumber(value) {
  * @param {string} systemType - The system type (DAS, ERCES, DAS & ERCES)
  * @param {string} dasVendor - The DAS vendor
  * @param {string} bdaVendor - The BDA/Booster vendor
+ * @param {string} fileType - Optional: Force specific file type (DAS or ERCES)
  * @returns {Array<{name: string, rows: number}>} - Array of section configurations
  */
-function getCategorySections(systemType, dasVendor, bdaVendor) {
-    // For ERCES systems
-    if (systemType === 'ERCES') {
+function getCategorySections(systemType, dasVendor, bdaVendor, fileType) {
+    // Determine effective type (fileType overrides for combined systems)
+    const effectiveType = fileType || systemType;
+    
+    // For ERCES systems (or ERCES file in combined)
+    if (effectiveType === 'ERCES') {
         return [
             { name: 'EQUIPMENT', rows: 12 },
             { name: 'CABLING &\nMATERIALS', rows: 7 },
@@ -107,37 +119,16 @@ function getCategorySections(systemType, dasVendor, bdaVendor) {
         ];
     }
     
-    // For DAS systems
-    if (systemType === 'DAS') {
+    // For DAS systems (or DAS file in combined)
+    if (effectiveType === 'DAS' || effectiveType === 'DAS & ERCES') {
+        const vendor = dasVendor || bdaVendor;
         const sections = [
             { name: 'DAS HEAD-END', rows: 10 },
             { name: 'REMOTE UNITS', rows: 8 }
         ];
         
         // Different section name based on vendor
-        if (dasVendor === 'ADRF') {
-            sections.push({ name: 'OTH EQUIP', rows: 6 });
-        } else {
-            sections.push({ name: 'ADD\'L EQUIPMENT', rows: 6 });
-        }
-        
-        sections.push(
-            { name: 'SIGNAL SOURCE', rows: 5 },
-            { name: 'SERVICE & LABOR', rows: 7 },
-            { name: 'USD', rows: 4 }
-        );
-        
-        return sections;
-    }
-    
-    // For DAS & ERCES combined (use DAS structure)
-    if (systemType === 'DAS & ERCES') {
-        const sections = [
-            { name: 'DAS HEAD-END', rows: 10 },
-            { name: 'REMOTE UNITS', rows: 8 }
-        ];
-        
-        if (dasVendor === 'ADRF') {
+        if (vendor === 'ADRF') {
             sections.push({ name: 'OTH EQUIP', rows: 6 });
         } else {
             sections.push({ name: 'ADD\'L EQUIPMENT', rows: 6 });
@@ -168,6 +159,7 @@ function getCategorySections(systemType, dasVendor, bdaVendor) {
  * @param {string} params.bdaVendor - The BDA/Booster vendor
  * @param {string|number} params.grossSqFt - The gross square footage (Total Area)
  * @param {number} params.areaPercentage - The percentage of area to consider (default 100)
+ * @param {string} params.fileType - Optional: Force specific file type (DAS or ERCES) for combined systems
  * @returns {Promise<{workbook: ExcelJS.Workbook, filename: string}>}
  */
 export async function generateRomExcel({
@@ -175,7 +167,8 @@ export async function generateRomExcel({
     dasVendor,
     bdaVendor,
     grossSqFt,
-    areaPercentage = 100
+    areaPercentage = 100,
+    fileType = null
 }) {
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'SalesHub ROM Automation';
@@ -196,8 +189,8 @@ export async function generateRomExcel({
     const totalArea = parseFloat(grossSqFt) || 0;
     const consideredArea = totalArea * (areaPercentage / 100);
     
-    // Get category sections based on system type and vendor
-    const categorySections = getCategorySections(systemType, dasVendor, bdaVendor);
+    // Get category sections based on system type, vendor, and optional fileType
+    const categorySections = getCategorySections(systemType, dasVendor, bdaVendor, fileType);
 
     // --- ROW 1-2: Header Area Information ---
     
@@ -383,7 +376,7 @@ export async function generateRomExcel({
     worksheet.getColumn('M').width = 10;  // % Area value
 
     // Generate filename
-    const filename = generateExcelFilename({ systemType, dasVendor, bdaVendor });
+    const filename = generateExcelFilename({ systemType, dasVendor, bdaVendor, fileType });
 
     return { workbook, filename };
 }
@@ -418,6 +411,55 @@ export async function generateRomExcelAsBase64(params) {
     const base64 = arrayBufferToBase64(buffer);
     
     return { filename, buffer: base64 };
+}
+
+/**
+ * Generates multiple Excel files for "DAS & ERCES" system type
+ * Returns both DAS and ERCES Excel files with appropriate structures
+ * @param {Object} params - The form parameters
+ * @param {string} params.systemType - The system type
+ * @param {string} params.dasVendor - The DAS vendor (Comba, ADRF)
+ * @param {string} params.bdaVendor - The BDA/Booster vendor (Comba, ADRF)
+ * @param {string|number} params.grossSqFt - The gross square footage
+ * @param {number} params.areaPercentage - The percentage of area to consider
+ * @returns {Promise<Array<{filename: string, buffer: string}>>} - Array of Excel files
+ */
+export async function generateMultipleExcelFiles(params) {
+    const { systemType, dasVendor, bdaVendor, grossSqFt, areaPercentage = 100 } = params;
+    const files = [];
+    
+    // For "DAS & ERCES" system type, generate both files
+    if (systemType === 'DAS & ERCES') {
+        // Generate DAS Excel file
+        const dasParams = {
+            systemType,
+            dasVendor,
+            bdaVendor,
+            grossSqFt,
+            areaPercentage,
+            fileType: 'DAS'
+        };
+        const dasFile = await generateRomExcelAsBase64(dasParams);
+        files.push(dasFile);
+        
+        // Generate ERCES Excel file
+        const ercesParams = {
+            systemType,
+            dasVendor,
+            bdaVendor,
+            grossSqFt,
+            areaPercentage,
+            fileType: 'ERCES'
+        };
+        const ercesFile = await generateRomExcelAsBase64(ercesParams);
+        files.push(ercesFile);
+    } else {
+        // Single file generation for DAS or ERCES only
+        const file = await generateRomExcelAsBase64(params);
+        files.push(file);
+    }
+    
+    return files;
 }
 
 /**
