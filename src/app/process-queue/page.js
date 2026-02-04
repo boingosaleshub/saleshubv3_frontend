@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, BarChart2, Layers } from "lucide-react"
+import { useAutomationStore } from "@/store/useAutomationStore"
 
 // Process type icons mapping
 const processIcons = {
@@ -20,6 +21,9 @@ const processColors = {
 export default function ProcessQueuePage() {
     const [queue, setQueue] = useState([])
     const [isLoading, setIsLoading] = useState(true)
+    
+    // Get active processes from persistent store
+    const { activeProcesses } = useAutomationStore()
 
     useEffect(() => {
         const fetchQueue = async () => {
@@ -41,6 +45,25 @@ export default function ProcessQueuePage() {
 
         return () => clearInterval(interval)
     }, [])
+    
+    // Merge API queue with local active processes (avoid duplicates)
+    const mergedQueue = (() => {
+        const localProcesses = activeProcesses.map(p => ({
+            userId: p.userId,
+            userName: p.userName,
+            processType: p.processType,
+            joinedAt: p.startedAt,
+            status: 'Processing',
+            isLocal: true
+        }))
+        
+        // Filter out API queue items that match local processes (by processType)
+        const localProcessTypes = new Set(localProcesses.map(p => p.processType))
+        const filteredApiQueue = queue.filter(item => !localProcessTypes.has(item.processType))
+        
+        // Local processes first (they're definitely running on this client)
+        return [...localProcesses, ...filteredApiQueue]
+    })()
 
     return (
         <div className="flex flex-1 items-center justify-center min-h-[calc(100vh-8rem)] bg-gray-50 dark:bg-transparent p-4">
@@ -54,23 +77,23 @@ export default function ProcessQueuePage() {
                     <div className="bg-[#3D434A] py-4 px-6 border-b-4 border-red-600">
                         <div className="flex justify-between items-center text-white">
                             <span className="font-semibold">Automation Queue</span>
-                            <span className="text-sm opacity-80">{queue.length} active {queue.length === 1 ? 'process' : 'processes'}</span>
+                            <span className="text-sm opacity-80">{mergedQueue.length} active {mergedQueue.length === 1 ? 'process' : 'processes'}</span>
                         </div>
                     </div>
 
                     <div className="divide-y divide-gray-100 dark:divide-gray-800 max-h-[600px] overflow-y-auto">
-                        {isLoading && queue.length === 0 ? (
+                        {isLoading && mergedQueue.length === 0 ? (
                             <div className="p-8 text-center text-gray-400">
                                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
                                 <p>Loading queue...</p>
                             </div>
-                        ) : queue.length === 0 ? (
+                        ) : mergedQueue.length === 0 ? (
                             <div className="p-12 text-center text-gray-400">
                                 <p>No active automation processes.</p>
                                 <p className="text-sm mt-1">The queue is currently empty.</p>
                             </div>
                         ) : (
-                            queue.map((item, index) => {
+                            mergedQueue.map((item, index) => {
                                 const ProcessIcon = processIcons[item.processType] || Layers
                                 const processColorClass = processColors[item.processType] || 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                                 

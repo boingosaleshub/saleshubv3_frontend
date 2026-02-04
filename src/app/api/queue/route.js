@@ -1,17 +1,58 @@
 import { NextResponse } from 'next/server';
+import { createAdminClient } from '@/lib/supabase-admin';
 
-// In-memory queue storage (Global scope to persist across hot reloads in dev, 
-// though production serverless might reset this depending on deployment)
-if (!globalThis.automationQueue) {
-    globalThis.automationQueue = [];
-}
+// Table name for the automation queue
+const QUEUE_TABLE = 'automation_queue';
 
+/**
+ * GET - Fetch current queue
+ */
 export async function GET() {
-    return NextResponse.json({
-        queue: globalThis.automationQueue
-    });
+    try {
+        const supabase = createAdminClient();
+        
+        // Fetch all active queue entries, ordered by join time
+        const { data, error } = await supabase
+            .from(QUEUE_TABLE)
+            .select('*')
+            .order('joined_at', { ascending: true });
+        
+        if (error) {
+            // If table doesn't exist, return empty queue with helpful message
+            if (error.code === '42P01') {
+                console.error('Queue table does not exist. Please create it in Supabase.');
+                return NextResponse.json({
+                    queue: [],
+                    error: 'Queue table not configured'
+                });
+            }
+            throw error;
+        }
+        
+        // Map database fields to expected format
+        const queue = (data || []).map(item => ({
+            id: item.id,
+            userId: item.user_id,
+            userName: item.user_name,
+            processType: item.process_type,
+            joinedAt: item.joined_at,
+            status: item.status
+        }));
+        
+        return NextResponse.json({ queue });
+        
+    } catch (error) {
+        console.error('Queue GET error:', error);
+        return NextResponse.json({ 
+            queue: [],
+            error: 'Failed to fetch queue' 
+        }, { status: 500 });
+    }
 }
 
+/**
+ * POST - Join the queue
+ */
 export async function POST(request) {
     try {
         const body = await request.json();
@@ -21,35 +62,90 @@ export async function POST(request) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
         }
 
+        const supabase = createAdminClient();
+        
         // Check if user is already in queue
-        const existingIndex = globalThis.automationQueue.findIndex(item => item.userId === userId);
-
-        if (existingIndex === -1) {
-            // Add to queue
-            globalThis.automationQueue.push({
-                userId,
-                userName: userName || 'Guest',
-                processType: processType || 'Coverage Plot',
-                joinedAt: new Date().toISOString(),
+        const { data: existing } = await supabase
+            .from(QUEUE_TABLE)
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+        
+        if (existing) {
+            // User already in queue, return their position
+            const { data: allEntries } = await supabase
+                .from(QUEUE_TABLE)
+                .select('*')
+                .order('joined_at', { ascending: true });
+            
+            const position = (allEntries || []).findIndex(item => item.user_id === userId);
+            const queue = (allEntries || []).map(item => ({
+                id: item.id,
+                userId: item.user_id,
+                userName: item.user_name,
+                processType: item.process_type,
+                joinedAt: item.joined_at,
+                status: item.status
+            }));
+            
+            return NextResponse.json({ position, queue });
+        }
+        
+        // Add new entry to queue
+        const { error: insertError } = await supabase
+            .from(QUEUE_TABLE)
+            .insert({
+                user_id: userId,
+                user_name: userName || 'Guest',
+                process_type: processType || 'Coverage Plot',
+                joined_at: new Date().toISOString(),
                 status: 'Waiting'
             });
+        
+        if (insertError) {
+            // If table doesn't exist, provide helpful error
+            if (insertError.code === '42P01') {
+                console.error('Queue table does not exist. Please create it in Supabase.');
+                return NextResponse.json({ 
+                    error: 'Queue table not configured. Please run the migration.',
+                    position: 0,
+                    queue: []
+                }, { status: 500 });
+            }
+            throw insertError;
         }
-
-        // Return current position
-        // If just added, they are at the end.
-        // Index 0 means "Processing" / "It's your turn"
-        const position = existingIndex === -1 ? globalThis.automationQueue.length - 1 : existingIndex;
-
-        return NextResponse.json({
-            position,
-            queue: globalThis.automationQueue
-        });
+        
+        // Fetch updated queue and return position
+        const { data: allEntries } = await supabase
+            .from(QUEUE_TABLE)
+            .select('*')
+            .order('joined_at', { ascending: true });
+        
+        const position = (allEntries || []).findIndex(item => item.user_id === userId);
+        const queue = (allEntries || []).map(item => ({
+            id: item.id,
+            userId: item.user_id,
+            userName: item.user_name,
+            processType: item.process_type,
+            joinedAt: item.joined_at,
+            status: item.status
+        }));
+        
+        return NextResponse.json({ position, queue });
 
     } catch (error) {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        console.error('Queue POST error:', error);
+        return NextResponse.json({ 
+            error: 'Failed to join queue',
+            position: 0,
+            queue: []
+        }, { status: 500 });
     }
 }
 
+/**
+ * DELETE - Leave the queue
+ */
 export async function DELETE(request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -59,15 +155,41 @@ export async function DELETE(request) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
         }
 
+        const supabase = createAdminClient();
+        
         // Remove user from queue
-        globalThis.automationQueue = globalThis.automationQueue.filter(item => item.userId !== userId);
+        const { error: deleteError } = await supabase
+            .from(QUEUE_TABLE)
+            .delete()
+            .eq('user_id', userId);
+        
+        if (deleteError && deleteError.code !== '42P01') {
+            throw deleteError;
+        }
+        
+        // Fetch remaining queue
+        const { data: allEntries } = await supabase
+            .from(QUEUE_TABLE)
+            .select('*')
+            .order('joined_at', { ascending: true });
+        
+        const queue = (allEntries || []).map(item => ({
+            id: item.id,
+            userId: item.user_id,
+            userName: item.user_name,
+            processType: item.process_type,
+            joinedAt: item.joined_at,
+            status: item.status
+        }));
 
-        return NextResponse.json({
-            success: true,
-            queue: globalThis.automationQueue
-        });
+        return NextResponse.json({ success: true, queue });
 
     } catch (error) {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        console.error('Queue DELETE error:', error);
+        return NextResponse.json({ 
+            error: 'Failed to leave queue',
+            success: false,
+            queue: []
+        }, { status: 500 });
     }
 }

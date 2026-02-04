@@ -278,11 +278,16 @@ export function CreateRomForm() {
 
         // Start automation
         setIsCreatingRom(true)
-        startRomAutomation()
+        
+        // Get user info for process tracking
+        const userName = user?.user_metadata?.full_name || user?.email || 'Guest'
+        const userId = user?.id || `guest_${Date.now()}`
+        
+        // Track in persistent store (shows in process queue and notification bell)
+        startRomAutomation(userName, userId)
 
         try {
             // Join the process queue with "ROM Generator" process type
-            const userName = user?.user_metadata?.full_name || user?.email || 'Guest'
             await joinQueue(userName, 'ROM Generator')
 
             const result = await createRomAutomation({
