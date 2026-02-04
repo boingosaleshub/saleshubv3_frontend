@@ -26,6 +26,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useLanguage } from "@/components/providers/language-provider";
 import { useTheme } from "@/components/providers/theme-provider";
 import { useAutomation } from "@/components/providers/automation-provider";
+import { useAutomationStore } from "@/store/useAutomationStore";
 import { useRouter } from "next/navigation";
 
 const FlagIcon = ({ code }) => {
@@ -43,14 +44,15 @@ export function TopBar() {
     const { language, changeLanguage, t } = useLanguage();
     const { theme, toggleTheme } = useTheme();
     const { isLoading } = useAutomation();
+    const { isRomAutomationRunning } = useAutomationStore();
     const router = useRouter();
 
     const hasActiveCoverageAutomation = !!isLoading;
+    const hasActiveRomAutomation = !!isRomAutomationRunning;
+    const hasAnyActiveAutomation = hasActiveCoverageAutomation || hasActiveRomAutomation;
 
-    const handleNotificationsClick = () => {
-        if (hasActiveCoverageAutomation) {
-            router.push("/coverage-plot/new-form");
-        }
+    const handleCoverageClick = () => {
+        router.push("/coverage-plot/new-form");
     };
 
     const languageLabels = {
@@ -100,26 +102,68 @@ export function TopBar() {
                     <span className="sr-only">Toggle theme</span>
                 </Button>
 
-                {/* Notifications / Coverage Automation Reminder */}
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="relative h-9 w-9"
-                    onClick={handleNotificationsClick}
-                >
-                    <Bell className="h-4 w-4" />
-                    {hasActiveCoverageAutomation && (
-                        <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                            <span className="relative inline-flex h-3 w-3 rounded-full bg-red-600" />
-                        </span>
-                    )}
-                    <span className="sr-only">
-                        {hasActiveCoverageAutomation
-                            ? "Coverage plot automation is running"
-                            : "Notifications"}
-                    </span>
-                </Button>
+                {/* Notifications / Automation Status Indicator */}
+                {hasAnyActiveAutomation ? (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="relative h-9 w-9"
+                            >
+                                <Bell className="h-4 w-4" />
+                                <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                                    <span className="relative inline-flex h-3 w-3 rounded-full bg-red-600" />
+                                </span>
+                                <span className="sr-only">Automation processes running</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuLabel className="text-xs text-muted-foreground">
+                                Active Processes
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {hasActiveRomAutomation && (
+                                <DropdownMenuItem 
+                                    className="cursor-default focus:bg-transparent"
+                                    onSelect={(e) => e.preventDefault()}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-500 opacity-75" />
+                                            <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
+                                        </span>
+                                        <span className="text-sm">ROM Generator process</span>
+                                    </div>
+                                </DropdownMenuItem>
+                            )}
+                            {hasActiveCoverageAutomation && (
+                                <DropdownMenuItem 
+                                    onClick={handleCoverageClick}
+                                    className="cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-500 opacity-75" />
+                                            <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
+                                        </span>
+                                        <span className="text-sm">Coverage Plot process</span>
+                                    </div>
+                                </DropdownMenuItem>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                ) : (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="relative h-9 w-9"
+                    >
+                        <Bell className="h-4 w-4" />
+                        <span className="sr-only">Notifications</span>
+                    </Button>
+                )}
 
                 <Separator orientation="vertical" className="h-6" />
 

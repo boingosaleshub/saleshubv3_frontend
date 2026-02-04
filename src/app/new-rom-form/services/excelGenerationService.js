@@ -295,9 +295,10 @@ export async function generateRomExcel({
     // Add category sections dynamically based on system type
     
     let currentRow = 5; // Start from row 5
+    const GAP_BETWEEN_SECTIONS = 4; // Number of empty rows between red category sections
     
     // Create each category section
-    categorySections.forEach((section) => {
+    categorySections.forEach((section, sectionIndex) => {
         const sectionStartRow = currentRow;
         const sectionEndRow = currentRow + section.rows - 1;
         
@@ -358,6 +359,11 @@ export async function generateRomExcel({
         
         // Move to next section
         currentRow = sectionEndRow + 1;
+        
+        // Add 4 empty rows gap between sections (except after the last section)
+        if (sectionIndex < categorySections.length - 1) {
+            currentRow += GAP_BETWEEN_SECTIONS;
+        }
     });
 
     // Set column widths more precisely

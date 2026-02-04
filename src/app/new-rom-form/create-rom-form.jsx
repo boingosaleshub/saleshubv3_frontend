@@ -43,6 +43,7 @@ import {
 import { createRomAutomation, downloadAllRomFiles } from "./services/romAutomationService"
 import { useQueue } from "@/app/coverage-plot/new-form/hooks/useQueue"
 import { useAuthStore } from "@/store/useAuthStore"
+import { useAutomationStore } from "@/store/useAutomationStore"
 
 // Dynamically import the map to avoid SSR issues
 const RomMap = dynamic(() => import("./rom-map"), {
@@ -89,6 +90,7 @@ export function CreateRomForm() {
     const { t } = useLanguage()
     const { user } = useAuthStore()
     const { joinQueue, leaveQueue } = useQueue()
+    const { startRomAutomation, stopRomAutomation } = useAutomationStore()
 
     // Screen State: 0 = Initial Address Search, 1 = Venue Info (Step 1), 2 = System Info (Step 2)
     const [screen, setScreen] = useState(0)
@@ -276,6 +278,7 @@ export function CreateRomForm() {
 
         // Start automation
         setIsCreatingRom(true)
+        startRomAutomation()
 
         try {
             // Join the process queue with "ROM Generator" process type
@@ -309,9 +312,10 @@ export function CreateRomForm() {
         } finally {
             // Leave the queue when done (success or error)
             await leaveQueue()
+            stopRomAutomation()
             setIsCreatingRom(false)
         }
-    }, [address, getSelectedCarriers, systemType, dasVendor, bdaVendor, grossSqFt, user, joinQueue, leaveQueue])
+    }, [address, getSelectedCarriers, systemType, dasVendor, bdaVendor, grossSqFt, user, joinQueue, leaveQueue, startRomAutomation, stopRomAutomation])
 
     // Navigation Handlers
     const handleNext = useCallback(() => {
