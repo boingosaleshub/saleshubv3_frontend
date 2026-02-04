@@ -1,7 +1,9 @@
 /**
  * ROM Automation Service
- * Simple service to call the backend ROM automation API
+ * Orchestrates Excel generation and Ookla automation for ROM creation
  */
+
+import { generateRomExcelAsBase64 } from './excelGenerationService';
 
 /**
  * Get the automation API base URL from environment
@@ -21,13 +23,13 @@ function getRomEndpoint() {
 }
 
 /**
- * Triggers ROM automation for the given address and carriers
+ * Runs the Ookla automation to capture screenshots
  * @param {Object} params - The automation parameters
  * @param {string} params.address - The venue address
  * @param {string[]} params.carriers - Array of carrier names (e.g., ['AT&T', 'Verizon'])
  * @returns {Promise<{success: boolean, screenshots: Array<{filename: string, buffer: string}>}>}
  */
-export async function createRomAutomation({ address, carriers }) {
+async function runOoklaAutomation({ address, carriers }) {
     const url = getRomEndpoint()
     
     const response = await fetch(url, {
@@ -40,18 +42,100 @@ export async function createRomAutomation({ address, carriers }) {
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Automation failed with status ${response.status}`);
+        throw new Error(errorData.error || `Ookla automation failed with status ${response.status}`);
     }
 
     return response.json();
 }
 
 /**
- * Downloads a screenshot from base64 data
- * @param {string} filename - The filename for the download
- * @param {string} base64Data - The base64 encoded image data
+ * Full ROM Automation Process:
+ * 1. Generate the pricing Excel file
+ * 2. Run Ookla automation for screenshots
+ * 3. Return both Excel file and screenshots
+ * 
+ * @param {Object} params - The automation parameters
+ * @param {string} params.address - The venue address
+ * @param {string[]} params.carriers - Array of carrier names (e.g., ['AT&T', 'Verizon'])
+ * @param {string} params.systemType - The system type (DAS, ERCES, DAS & ERCES)
+ * @param {string} params.dasVendor - The DAS vendor (Comba, ADRF)
+ * @param {string} params.bdaVendor - The BDA/Booster vendor (Comba, ADRF)
+ * @param {string|number} params.grossSqFt - The gross square footage (Total Area)
+ * @returns {Promise<{success: boolean, excelFile: {filename: string, buffer: string}, screenshots: Array<{filename: string, buffer: string}>}>}
  */
-export function downloadScreenshot(filename, base64Data) {
+export async function createRomAutomation({ 
+    address, 
+    carriers,
+    systemType,
+    dasVendor,
+    bdaVendor,
+    grossSqFt
+}) {
+    // Step 1: Generate Excel file
+    console.log('[ROM Automation] Step 1: Generating Excel pricing sheet...');
+    
+    let excelFile = null;
+    try {
+        excelFile = await generateRomExcelAsBase64({
+            systemType,
+            dasVendor,
+            bdaVendor,
+            grossSqFt,
+            areaPercentage: 100
+        });
+        console.log('[ROM Automation] Excel file generated:', excelFile.filename);
+    } catch (excelError) {
+        console.error('[ROM Automation] Excel generation failed:', excelError);
+        throw new Error(`Excel generation failed: ${excelError.message}`);
+    }
+
+    // Step 2: Run Ookla automation for screenshots
+    console.log('[ROM Automation] Step 2: Running Ookla automation for screenshots...');
+    
+    let ooklaResult = null;
+    try {
+        ooklaResult = await runOoklaAutomation({ address, carriers });
+        console.log('[ROM Automation] Screenshots captured:', ooklaResult.screenshots?.length || 0);
+    } catch (ooklaError) {
+        console.error('[ROM Automation] Ookla automation failed:', ooklaError);
+        // Return partial result with Excel file even if screenshots fail
+        return {
+            success: false,
+            partialSuccess: true,
+            excelFile,
+            screenshots: [],
+            error: `Screenshots failed but Excel was generated: ${ooklaError.message}`
+        };
+    }
+
+    // Step 3: Return combined result
+    console.log('[ROM Automation] Process completed successfully');
+    
+    return {
+        success: true,
+        excelFile,
+        screenshots: ooklaResult.screenshots || []
+    };
+}
+
+/**
+ * Legacy function for backward compatibility - just runs Ookla automation
+ * @param {Object} params - The automation parameters
+ * @param {string} params.address - The venue address
+ * @param {string[]} params.carriers - Array of carrier names
+ * @returns {Promise<{success: boolean, screenshots: Array<{filename: string, buffer: string}>}>}
+ */
+export async function createOoklaScreenshots({ address, carriers }) {
+    return runOoklaAutomation({ address, carriers });
+}
+
+/**
+ * Downloads a file from base64 data
+ * @param {string} filename - The filename for the download
+ * @param {string} base64Data - The base64 encoded data
+ * @param {string} mimeType - The MIME type of the file
+ */
+export function downloadFile(filename, base64Data, mimeType = 'application/octet-stream') {
     // Create a blob from the base64 data
     const byteCharacters = atob(base64Data);
     const byteNumbers = new Array(byteCharacters.length);
@@ -59,7 +143,7 @@ export function downloadScreenshot(filename, base64Data) {
         byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
     const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: 'image/png' });
+    const blob = new Blob([byteArray], { type: mimeType });
 
     // Create download link and trigger it
     const url = URL.createObjectURL(blob);
@@ -73,6 +157,28 @@ export function downloadScreenshot(filename, base64Data) {
 }
 
 /**
+ * Downloads a screenshot from base64 data
+ * @param {string} filename - The filename for the download
+ * @param {string} base64Data - The base64 encoded image data
+ */
+export function downloadScreenshot(filename, base64Data) {
+    downloadFile(filename, base64Data, 'image/png');
+}
+
+/**
+ * Downloads an Excel file from base64 data
+ * @param {string} filename - The filename for the download
+ * @param {string} base64Data - The base64 encoded Excel data
+ */
+export function downloadExcel(filename, base64Data) {
+    downloadFile(
+        filename, 
+        base64Data, 
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+}
+
+/**
  * Downloads all screenshots from the automation response
  * @param {Array<{filename: string, buffer: string}>} screenshots - Array of screenshot data
  */
@@ -83,4 +189,34 @@ export function downloadAllScreenshots(screenshots) {
             downloadScreenshot(screenshot.filename, screenshot.buffer);
         }, index * 500);
     });
+}
+
+/**
+ * Downloads all ROM automation results (Excel file + screenshots)
+ * @param {Object} result - The automation result
+ * @param {Object} result.excelFile - The Excel file data
+ * @param {string} result.excelFile.filename - The Excel filename
+ * @param {string} result.excelFile.buffer - The base64 encoded Excel data
+ * @param {Array<{filename: string, buffer: string}>} result.screenshots - Array of screenshot data
+ */
+export function downloadAllRomFiles(result) {
+    let downloadIndex = 0;
+
+    // Download Excel file first
+    if (result.excelFile && result.excelFile.buffer) {
+        setTimeout(() => {
+            downloadExcel(result.excelFile.filename, result.excelFile.buffer);
+        }, downloadIndex * 500);
+        downloadIndex++;
+    }
+
+    // Download all screenshots
+    if (result.screenshots && result.screenshots.length > 0) {
+        result.screenshots.forEach((screenshot) => {
+            setTimeout(() => {
+                downloadScreenshot(screenshot.filename, screenshot.buffer);
+            }, downloadIndex * 500);
+            downloadIndex++;
+        });
+    }
 }
