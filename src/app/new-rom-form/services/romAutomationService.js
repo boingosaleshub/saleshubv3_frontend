@@ -3,7 +3,7 @@
  * Orchestrates Excel generation and Ookla automation for ROM creation
  */
 
-import { generateRomExcelAsBase64 } from './excelGenerationService';
+import { generateMultipleExcelFiles } from './excelGenerationService';
 
 /**
  * Get the automation API base URL from environment
@@ -50,9 +50,9 @@ async function runOoklaAutomation({ address, carriers }) {
 
 /**
  * Full ROM Automation Process:
- * 1. Generate the pricing Excel file
+ * 1. Generate the pricing Excel file(s) - multiple files for "DAS & ERCES" system type
  * 2. Run Ookla automation for screenshots
- * 3. Return both Excel file and screenshots
+ * 3. Return both Excel files and screenshots
  * 
  * @param {Object} params - The automation parameters
  * @param {string} params.address - The venue address
@@ -61,7 +61,7 @@ async function runOoklaAutomation({ address, carriers }) {
  * @param {string} params.dasVendor - The DAS vendor (Comba, ADRF)
  * @param {string} params.bdaVendor - The BDA/Booster vendor (Comba, ADRF)
  * @param {string|number} params.grossSqFt - The gross square footage (Total Area)
- * @returns {Promise<{success: boolean, excelFile: {filename: string, buffer: string}, screenshots: Array<{filename: string, buffer: string}>}>}
+ * @returns {Promise<{success: boolean, excelFiles: Array<{filename: string, buffer: string}>, screenshots: Array<{filename: string, buffer: string}>}>}
  */
 export async function createRomAutomation({ 
     address, 
@@ -71,19 +71,20 @@ export async function createRomAutomation({
     bdaVendor,
     grossSqFt
 }) {
-    // Step 1: Generate Excel file
-    console.log('[ROM Automation] Step 1: Generating Excel pricing sheet...');
+    // Step 1: Generate Excel file(s)
+    // For "DAS & ERCES" system type, this generates both DAS and ERCES files
+    console.log('[ROM Automation] Step 1: Generating Excel pricing sheet(s)...');
     
-    let excelFile = null;
+    let excelFiles = [];
     try {
-        excelFile = await generateRomExcelAsBase64({
+        excelFiles = await generateMultipleExcelFiles({
             systemType,
             dasVendor,
             bdaVendor,
             grossSqFt,
             areaPercentage: 100
         });
-        console.log('[ROM Automation] Excel file generated:', excelFile.filename);
+        console.log('[ROM Automation] Excel files generated:', excelFiles.map(f => f.filename).join(', '));
     } catch (excelError) {
         console.error('[ROM Automation] Excel generation failed:', excelError);
         throw new Error(`Excel generation failed: ${excelError.message}`);
@@ -98,13 +99,13 @@ export async function createRomAutomation({
         console.log('[ROM Automation] Screenshots captured:', ooklaResult.screenshots?.length || 0);
     } catch (ooklaError) {
         console.error('[ROM Automation] Ookla automation failed:', ooklaError);
-        // Return partial result with Excel file even if screenshots fail
+        // Return partial result with Excel files even if screenshots fail
         return {
             success: false,
             partialSuccess: true,
-            excelFile,
+            excelFiles,
             screenshots: [],
-            error: `Screenshots failed but Excel was generated: ${ooklaError.message}`
+            error: `Screenshots failed but Excel files were generated: ${ooklaError.message}`
         };
     }
 
@@ -113,7 +114,7 @@ export async function createRomAutomation({
     
     return {
         success: true,
-        excelFile,
+        excelFiles,
         screenshots: ooklaResult.screenshots || []
     };
 }
@@ -192,22 +193,22 @@ export function downloadAllScreenshots(screenshots) {
 }
 
 /**
- * Downloads all ROM automation results (Excel file + screenshots)
+ * Downloads all ROM automation results (Excel files + screenshots)
  * @param {Object} result - The automation result
- * @param {Object} result.excelFile - The Excel file data
- * @param {string} result.excelFile.filename - The Excel filename
- * @param {string} result.excelFile.buffer - The base64 encoded Excel data
+ * @param {Array<{filename: string, buffer: string}>} result.excelFiles - Array of Excel file data
  * @param {Array<{filename: string, buffer: string}>} result.screenshots - Array of screenshot data
  */
 export function downloadAllRomFiles(result) {
     let downloadIndex = 0;
 
-    // Download Excel file first
-    if (result.excelFile && result.excelFile.buffer) {
-        setTimeout(() => {
-            downloadExcel(result.excelFile.filename, result.excelFile.buffer);
-        }, downloadIndex * 500);
-        downloadIndex++;
+    // Download all Excel files first
+    if (result.excelFiles && result.excelFiles.length > 0) {
+        result.excelFiles.forEach((excelFile) => {
+            setTimeout(() => {
+                downloadExcel(excelFile.filename, excelFile.buffer);
+            }, downloadIndex * 500);
+            downloadIndex++;
+        });
     }
 
     // Download all screenshots

@@ -41,6 +41,8 @@ import {
     AlertCircle
 } from "lucide-react"
 import { createRomAutomation, downloadAllRomFiles } from "./services/romAutomationService"
+import { useQueue } from "@/app/coverage-plot/new-form/hooks/useQueue"
+import { useAuthStore } from "@/store/useAuthStore"
 
 // Dynamically import the map to avoid SSR issues
 const RomMap = dynamic(() => import("./rom-map"), {
@@ -85,6 +87,8 @@ function extractVenueName(displayName) {
 
 export function CreateRomForm() {
     const { t } = useLanguage()
+    const { user } = useAuthStore()
+    const { joinQueue, leaveQueue } = useQueue()
 
     // Screen State: 0 = Initial Address Search, 1 = Venue Info (Step 1), 2 = System Info (Step 2)
     const [screen, setScreen] = useState(0)
@@ -274,6 +278,10 @@ export function CreateRomForm() {
         setIsCreatingRom(true)
 
         try {
+            // Join the process queue with "ROM Generator" process type
+            const userName = user?.user_metadata?.full_name || user?.email || 'Guest'
+            await joinQueue(userName, 'ROM Generator')
+
             const result = await createRomAutomation({
                 address: address.trim(),
                 carriers: selectedCarriers,
@@ -299,9 +307,11 @@ export function CreateRomForm() {
             console.error("ROM automation error:", error)
             setRomError(error.message || "Failed to create ROM. Please try again.")
         } finally {
+            // Leave the queue when done (success or error)
+            await leaveQueue()
             setIsCreatingRom(false)
         }
-    }, [address, getSelectedCarriers, systemType, dasVendor, bdaVendor, grossSqFt])
+    }, [address, getSelectedCarriers, systemType, dasVendor, bdaVendor, grossSqFt, user, joinQueue, leaveQueue])
 
     // Navigation Handlers
     const handleNext = useCallback(() => {

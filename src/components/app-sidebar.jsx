@@ -114,7 +114,7 @@ export function AppSidebar({ ...props }) {
     },
     {
       title: "Process Queue",
-      url: "/coverage-plot/progress-queue",
+      url: "/process-queue",
       icon: ListOrdered,
     },
     {
