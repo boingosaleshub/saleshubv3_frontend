@@ -89,6 +89,78 @@ function formatNumber(value) {
 }
 
 /**
+ * Gets the category sections based on system type and vendor
+ * @param {string} systemType - The system type (DAS, ERCES, DAS & ERCES)
+ * @param {string} dasVendor - The DAS vendor
+ * @param {string} bdaVendor - The BDA/Booster vendor
+ * @returns {Array<{name: string, rows: number}>} - Array of section configurations
+ */
+function getCategorySections(systemType, dasVendor, bdaVendor) {
+    // For ERCES systems
+    if (systemType === 'ERCES') {
+        return [
+            { name: 'EQUIPMENT', rows: 12 },
+            { name: 'CABLING &\nMATERIALS', rows: 7 },
+            { name: 'ALL-IN', rows: 5 },
+            { name: 'SERVICE & LABOR', rows: 7 },
+            { name: 'USD', rows: 4 }
+        ];
+    }
+    
+    // For DAS systems
+    if (systemType === 'DAS') {
+        const sections = [
+            { name: 'DAS HEAD-END', rows: 10 },
+            { name: 'REMOTE UNITS', rows: 8 }
+        ];
+        
+        // Different section name based on vendor
+        if (dasVendor === 'ADRF') {
+            sections.push({ name: 'OTH EQUIP', rows: 6 });
+        } else {
+            sections.push({ name: 'ADD\'L EQUIPMENT', rows: 6 });
+        }
+        
+        sections.push(
+            { name: 'SIGNAL SOURCE', rows: 5 },
+            { name: 'SERVICE & LABOR', rows: 7 },
+            { name: 'USD', rows: 4 }
+        );
+        
+        return sections;
+    }
+    
+    // For DAS & ERCES combined (use DAS structure)
+    if (systemType === 'DAS & ERCES') {
+        const sections = [
+            { name: 'DAS HEAD-END', rows: 10 },
+            { name: 'REMOTE UNITS', rows: 8 }
+        ];
+        
+        if (dasVendor === 'ADRF') {
+            sections.push({ name: 'OTH EQUIP', rows: 6 });
+        } else {
+            sections.push({ name: 'ADD\'L EQUIPMENT', rows: 6 });
+        }
+        
+        sections.push(
+            { name: 'SIGNAL SOURCE', rows: 5 },
+            { name: 'SERVICE & LABOR', rows: 7 },
+            { name: 'USD', rows: 4 }
+        );
+        
+        return sections;
+    }
+    
+    // Default fallback
+    return [
+        { name: 'EQUIPMENT', rows: 15 },
+        { name: 'SERVICE & LABOR', rows: 7 },
+        { name: 'USD', rows: 4 }
+    ];
+}
+
+/**
  * Generates the ROM pricing Excel workbook
  * @param {Object} params - The form parameters
  * @param {string} params.systemType - The system type
@@ -123,6 +195,9 @@ export async function generateRomExcel({
     // Parse total area value
     const totalArea = parseFloat(grossSqFt) || 0;
     const consideredArea = totalArea * (areaPercentage / 100);
+    
+    // Get category sections based on system type and vendor
+    const categorySections = getCategorySections(systemType, dasVendor, bdaVendor);
 
     // --- ROW 1-2: Header Area Information ---
     
@@ -223,58 +298,74 @@ export async function generateRomExcel({
         }
     });
 
-    // --- ROW 5+: Equipment Category and Rows (Empty data for now) ---
-    // Add "EQUIPMENT" category label in column A (rotated text)
+    // --- ROW 5+: Category Sections and Rows (Empty data for now) ---
+    // Add category sections dynamically based on system type
     
-    // Equipment rows start at row 5
-    const equipmentStartRow = 5;
-    const equipmentEndRow = 20; // Reserve 15 rows for equipment
-
-    // Merge cells A5:A20 for the "EQUIPMENT" category label
-    worksheet.mergeCells(`A${equipmentStartRow}:A${equipmentEndRow}`);
-    const equipmentCategoryCell = worksheet.getCell(`A${equipmentStartRow}`);
-    equipmentCategoryCell.value = 'EQUIPMENT';
-    equipmentCategoryCell.font = { bold: true, size: 11, color: { argb: COLORS.categoryText } };
-    equipmentCategoryCell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: COLORS.categoryBackground }
-    };
-    equipmentCategoryCell.alignment = { 
-        textRotation: 90, 
-        horizontal: 'center', 
-        vertical: 'middle' 
-    };
-    applyBorder(equipmentCategoryCell);
-
-    // Add empty equipment rows with borders
-    for (let rowNum = equipmentStartRow; rowNum <= equipmentEndRow; rowNum++) {
-        const row = worksheet.getRow(rowNum);
-        row.height = 18;
+    let currentRow = 5; // Start from row 5
+    
+    // Create each category section
+    categorySections.forEach((section) => {
+        const sectionStartRow = currentRow;
+        const sectionEndRow = currentRow + section.rows - 1;
         
-        // Apply borders to data cells (columns B through J)
-        ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].forEach(col => {
-            const cell = worksheet.getCell(`${col}${rowNum}`);
-            cell.value = col === 'F' ? '-' : ''; // Qty column shows dash when empty
-            if (col >= 'E' && col <= 'I') {
-                cell.value = '-';
-                cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            }
-            if (col === 'I') {
-                cell.value = '0.00';
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: COLORS.orangeBackground }
-                };
-                cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            }
-            applyBorder(cell);
-        });
-
-        // Merge equipment name cells (B-D)
-        worksheet.mergeCells(`B${rowNum}:D${rowNum}`);
-    }
+        // Merge cells in column A for the category label
+        worksheet.mergeCells(`A${sectionStartRow}:A${sectionEndRow}`);
+        const categoryCellLabel = worksheet.getCell(`A${sectionStartRow}`);
+        categoryCellLabel.value = section.name;
+        categoryCellLabel.font = { 
+            bold: true, 
+            size: 10, 
+            color: { argb: COLORS.categoryText } 
+        };
+        categoryCellLabel.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: COLORS.categoryBackground }
+        };
+        categoryCellLabel.alignment = { 
+            textRotation: 90, 
+            horizontal: 'center', 
+            vertical: 'middle',
+            wrapText: true
+        };
+        applyBorder(categoryCellLabel);
+        
+        // Add empty rows for this section
+        for (let rowNum = sectionStartRow; rowNum <= sectionEndRow; rowNum++) {
+            const row = worksheet.getRow(rowNum);
+            row.height = 18;
+            
+            // Apply borders to data cells (columns B through J)
+            ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].forEach(col => {
+                const cell = worksheet.getCell(`${col}${rowNum}`);
+                
+                // Set default values
+                if (col >= 'E' && col <= 'H') {
+                    cell.value = '-';
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                }
+                
+                // CAPEX/SF column with orange background
+                if (col === 'I') {
+                    cell.value = '0.00';
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: COLORS.orangeBackground }
+                    };
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                }
+                
+                applyBorder(cell);
+            });
+            
+            // Merge equipment/item name cells (B-D)
+            worksheet.mergeCells(`B${rowNum}:D${rowNum}`);
+        }
+        
+        // Move to next section
+        currentRow = sectionEndRow + 1;
+    });
 
     // Set column widths more precisely
     worksheet.getColumn('A').width = 4;   // Category column (narrow)
