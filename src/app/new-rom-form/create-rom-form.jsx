@@ -102,7 +102,7 @@ function extractVenueName(displayName) {
 export function CreateRomForm() {
     const { t } = useLanguage()
     const { user } = useAuthStore()
-    const { startRomAutomation, stopRomAutomation } = useAutomationStore()
+    const { startRomAutomation, stopRomAutomation, isRomAutomationRunning } = useAutomationStore()
 
     // ROM Automation hook (for loading overlay and SSE progress)
     const {
@@ -420,11 +420,11 @@ export function CreateRomForm() {
     if (screen === 0) {
         return (
             <div className="w-full relative" style={{ minHeight: 'calc(100vh - 8rem)' }}>
-                {/* Loading Overlay */}
+                {/* Loading Overlay - Show if automation is running (from context or persistent store) */}
                 <LoadingOverlay
-                    isLoading={isLoading}
+                    isLoading={isLoading || isRomAutomationRunning}
                     progress={progress}
-                    currentStep={currentStep}
+                    currentStep={currentStep || (isRomAutomationRunning ? 'ROM automation in progress...' : '')}
                     stepVisible={stepVisible}
                 />
 
@@ -454,7 +454,7 @@ export function CreateRomForm() {
                     </DialogContent>
                 </Dialog>
 
-                {!isLoading && (
+                {!isLoading && !isRomAutomationRunning && (
                     <div
                         className={`flex flex-1 items-center justify-center min-h-[60vh] transition-all duration-300 ease-out ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
                             }`}
@@ -530,11 +530,11 @@ export function CreateRomForm() {
     // Screens 1 & 2: Form Steps
     return (
         <div className="w-full relative" style={{ minHeight: 'calc(100vh - 8rem)' }}>
-            {/* Loading Overlay */}
+            {/* Loading Overlay - Show if automation is running (from context or persistent store) */}
             <LoadingOverlay
-                isLoading={isLoading}
+                isLoading={isLoading || isRomAutomationRunning}
                 progress={progress}
-                currentStep={currentStep}
+                currentStep={currentStep || (isRomAutomationRunning ? 'ROM automation in progress...' : '')}
                 stepVisible={stepVisible}
             />
 
@@ -564,7 +564,7 @@ export function CreateRomForm() {
                 </DialogContent>
             </Dialog>
 
-            {!isLoading && (
+            {!isLoading && !isRomAutomationRunning && (
                 <Card className="w-full bg-white dark:bg-zinc-900 shadow-xl border-0 dark:border dark:border-zinc-800 rounded-2xl flex flex-col overflow-hidden">
                     {/* Enhanced Header with Step Indicator */}
                     <div className="bg-gradient-to-r from-[#3D434A] to-[#4a5058] dark:from-zinc-950 dark:to-zinc-900 py-6 px-8 border-b-4 border-red-600 shrink-0">

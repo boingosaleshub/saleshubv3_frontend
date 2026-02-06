@@ -55,6 +55,10 @@ export function TopBar() {
         router.push("/coverage-plot/new-form");
     };
 
+    const handleRomClick = () => {
+        router.push("/new-rom-form");
+    };
+
     const languageLabels = {
         en: "English",
         es: "Español",
@@ -125,9 +129,9 @@ export function TopBar() {
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             {hasActiveRomAutomation && (
-                                <DropdownMenuItem 
-                                    className="cursor-default focus:bg-transparent"
-                                    onSelect={(e) => e.preventDefault()}
+                                <DropdownMenuItem
+                                    onClick={handleRomClick}
+                                    className="cursor-pointer"
                                 >
                                     <div className="flex items-center gap-2">
                                         <span className="flex h-2 w-2">
@@ -139,7 +143,7 @@ export function TopBar() {
                                 </DropdownMenuItem>
                             )}
                             {hasActiveCoverageAutomation && (
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                     onClick={handleCoverageClick}
                                     className="cursor-pointer"
                                 >
