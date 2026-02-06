@@ -2,6 +2,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { LanguageProvider } from "@/components/providers/language-provider";
 import { AutomationProvider } from "@/components/providers/automation-provider";
+import { RomAutomationProvider } from "@/components/providers/rom-automation-provider";
 import { HighContrastProvider } from "@/components/providers/high-contrast-provider";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
@@ -59,7 +60,9 @@ export default function RootLayout({ children }) {
           <LanguageProvider>
             <HighContrastProvider>
               <AutomationProvider>
-                {children}
+                <RomAutomationProvider>
+                  {children}
+                </RomAutomationProvider>
               </AutomationProvider>
             </HighContrastProvider>
           </LanguageProvider>

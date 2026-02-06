@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react"
 import { startRomAutomationStream } from "@/app/new-rom-form/services/romSseService"
 import { createSSEConnection } from "@/app/coverage-plot/new-form/services/sseClient"
+import { downloadAllRomFiles } from "@/app/new-rom-form/services/romAutomationService"
 import { ANIMATION_DURATIONS } from "@/app/coverage-plot/new-form/utils/constants"
 import { useQueue } from "@/app/coverage-plot/new-form/hooks/useQueue"
 
@@ -91,7 +92,14 @@ export function RomAutomationProvider({ children }) {
                         await leaveQueue() // Leave queue on success
                         hasActiveJobRef.current = false
                         setIsLoading(false)
-                        if (finalData.success) {
+                        if (finalData.success || finalData.partialSuccess) {
+                            // Trigger downloads immediately from the provider
+                            // (provider is at layout level, always mounted even during navigation)
+                            try {
+                                downloadAllRomFiles(finalData)
+                            } catch (dlErr) {
+                                console.error('[ROM] Download error:', dlErr)
+                            }
                             setResults(finalData)
                             resolve(finalData)
                         } else {

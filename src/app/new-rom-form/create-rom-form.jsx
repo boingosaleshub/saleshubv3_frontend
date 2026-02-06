@@ -48,7 +48,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { downloadAllRomFiles } from "./services/romAutomationService"
 import { useAuthStore } from "@/store/useAuthStore"
 import { useAutomationStore } from "@/store/useAutomationStore"
 
@@ -264,11 +263,10 @@ export function CreateRomForm() {
             .map(([carrier]) => carrier)
     }, [carrierRequirements])
 
-    // Watch for results from global context
+    // Watch for results from global context (downloads handled by provider)
     useEffect(() => {
         if (results && !showSuccessModal) {
             setShowSuccessModal(true)
-            downloadAllRomFiles(results).catch(console.error)
         }
     }, [results, showSuccessModal])
 
@@ -337,8 +335,8 @@ export function CreateRomForm() {
             }, userName)
 
             if (result.success || result.partialSuccess) {
-                // Download all files (Excel + screenshots)
-                downloadAllRomFiles(result)
+                // Downloads are triggered by the provider's onComplete callback
+                // (provider is at layout level, so it persists across navigation)
                 setShowSuccessModal(true)
 
                 // Show partial success message if applicable
