@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useCallback, useRef, useEffect } f
 import { startRomAutomationStream } from "@/app/new-rom-form/services/romSseService"
 import { createSSEConnection } from "@/app/coverage-plot/new-form/services/sseClient"
 import { downloadAllRomFiles } from "@/app/new-rom-form/services/romAutomationService"
+import { generateMultipleExcelFiles } from "@/app/new-rom-form/services/excelGenerationService"
 import { ANIMATION_DURATIONS } from "@/app/coverage-plot/new-form/utils/constants"
 import { useQueue } from "@/app/coverage-plot/new-form/hooks/useQueue"
 
@@ -19,6 +20,7 @@ export function RomAutomationProvider({ children }) {
     const [results, setResults] = useState(null)
 
     const currentStepRef = useRef('')
+    const payloadRef = useRef(null) // Store payload for client-side Excel generation
     const { joinQueue, checkStatus, leaveQueue } = useQueue()
     const pollingRef = useRef(null)
     const hasActiveJobRef = useRef(false)
@@ -82,6 +84,9 @@ export function RomAutomationProvider({ children }) {
             setCurrentStep('Starting ROM automation...')
             currentStepRef.current = 'Starting ROM automation...'
 
+            // Store payload for client-side Excel generation on completion
+            payloadRef.current = payload
+
             const response = await startRomAutomationStream(payload)
 
             return new Promise((resolve, reject) => {
@@ -93,15 +98,41 @@ export function RomAutomationProvider({ children }) {
                         hasActiveJobRef.current = false
                         setIsLoading(false)
                         if (finalData.success || finalData.partialSuccess) {
+                            // Generate Excel files client-side (the SSE stream only returns screenshots)
+                            // Excel generation uses ExcelJS in the browser with the original form payload
+                            let excelFiles = []
+                            const savedPayload = payloadRef.current
+                            if (savedPayload) {
+                                try {
+                                    console.log('[ROM] Generating Excel files client-side...')
+                                    excelFiles = await generateMultipleExcelFiles({
+                                        systemType: savedPayload.systemType,
+                                        dasVendor: savedPayload.dasVendor,
+                                        bdaVendor: savedPayload.bdaVendor,
+                                        grossSqFt: savedPayload.grossSqFt,
+                                        areaPercentage: 100
+                                    })
+                                    console.log('[ROM] Excel files generated:', excelFiles.map(f => f.filename).join(', '))
+                                } catch (excelErr) {
+                                    console.error('[ROM] Excel generation failed:', excelErr)
+                                }
+                            }
+
+                            // Merge Excel files with SSE result (screenshots)
+                            const completeResult = {
+                                ...finalData,
+                                excelFiles: [...excelFiles, ...(finalData.excelFiles || [])]
+                            }
+
                             // Trigger downloads immediately from the provider
                             // (provider is at layout level, always mounted even during navigation)
                             try {
-                                downloadAllRomFiles(finalData)
+                                downloadAllRomFiles(completeResult)
                             } catch (dlErr) {
                                 console.error('[ROM] Download error:', dlErr)
                             }
-                            setResults(finalData)
-                            resolve(finalData)
+                            setResults(completeResult)
+                            resolve(completeResult)
                         } else {
                             reject(new Error(finalData.error || 'ROM automation failed'))
                         }
