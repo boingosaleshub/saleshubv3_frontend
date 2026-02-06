@@ -133,6 +133,46 @@ export async function deleteUser(userId) {
   return { success: true }
 }
 
+export async function setInitialPassword(accessToken, newPassword) {
+  const supabaseAdmin = createAdminClient()
+
+  // Validate inputs
+  if (!accessToken) {
+    return { error: 'Invalid session. Please click the link in your email again.' }
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    return { error: 'Password must be at least 6 characters long.' }
+  }
+
+  try {
+    // Verify the access token and get the user identity
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(accessToken)
+
+    if (userError || !user) {
+      console.error('Token verification failed:', userError)
+      return { error: 'Session expired or invalid. Please click the link in your email again.' }
+    }
+
+    // Update the password using the admin API (bypasses client-side session issues)
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      user.id,
+      { password: newPassword }
+    )
+
+    if (updateError) {
+      console.error('Password update error:', updateError)
+      return { error: updateError.message || 'Failed to set password. Please try again.' }
+    }
+
+    console.log(`Password set successfully for user: ${user.email}`)
+    return { success: true }
+  } catch (error) {
+    console.error('Error in setInitialPassword:', error)
+    return { error: 'An unexpected error occurred. Please try again.' }
+  }
+}
+
 export async function updateUser(userId, data) {
   const supabaseAdmin = createAdminClient()
 

@@ -2,62 +2,38 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react'
+import { setInitialPassword } from '@/actions/user-actions'
 
 export default function SetPasswordPage() {
   const router = useRouter()
-  // Create a single supabase client for this component instance
-  const [supabase] = useState(() => createClient())
   const [loading, setLoading] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [hasToken, setHasToken] = useState(false)
+  const [accessToken, setAccessToken] = useState(null)
 
   useEffect(() => {
-    const handleRecoveryToken = async () => {
-      // Check if there's a recovery token in the URL hash
-      const hashParams = new URLSearchParams(window.location.hash.substring(1))
-      const accessToken = hashParams.get('access_token')
-      const refreshToken = hashParams.get('refresh_token')
-      const type = hashParams.get('type')
+    // Check if there's a recovery token in the URL hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1))
+    const token = hashParams.get('access_token')
+    const type = hashParams.get('type')
 
-      if (accessToken && type === 'recovery') {
-        try {
-          // Exchange the tokens for a session using the component's client instance
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          })
-
-          if (error) {
-            console.error('Error setting session:', error)
-            toast.error('Invalid or expired password reset link')
-            setHasToken(false)
-          } else {
-            console.log('Session established successfully')
-            setHasToken(true)
-          }
-        } catch (error) {
-          console.error('Error handling recovery token:', error)
-          toast.error('An error occurred. Please try again.')
-          setHasToken(false)
-        }
-      } else {
-        toast.error('Invalid or missing password reset link')
-        setHasToken(false)
-      }
+    if (token && type === 'recovery') {
+      setAccessToken(token)
+      setHasToken(true)
+    } else {
+      toast.error('Invalid or missing password reset link')
+      setHasToken(false)
     }
-
-    handleRecoveryToken()
-  }, [supabase])
+  }, [])
 
   // Password strength indicator
   const getPasswordStrength = (pwd) => {
@@ -81,7 +57,7 @@ export default function SetPasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!hasToken) {
+    if (!hasToken || !accessToken) {
       toast.error('Invalid password reset link')
       return
     }
@@ -99,32 +75,18 @@ export default function SetPasswordPage() {
     setLoading(true)
 
     try {
-      // Verify we have a user session before updating
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      // Use server action with admin API to set the password
+      // This bypasses client-side session issues that cause 504 timeouts
+      const result = await setInitialPassword(accessToken, password)
 
-      if (userError || !user) {
-        console.error('No authenticated user found:', userError)
-        toast.error('Session expired. Please click the link in your email again.')
-        setLoading(false)
-        return
-      }
-
-      // Update the user's password
-      const { error } = await supabase.auth.updateUser({
-        password: password
-      })
-
-      if (error) {
-        console.error('Error updating password:', error)
-        toast.error(error.message)
+      if (result.error) {
+        console.error('Error setting password:', result.error)
+        toast.error(result.error)
         setLoading(false)
         return
       }
 
       toast.success('Password set successfully! Redirecting to login...')
-
-      // Sign out the user and redirect to login
-      await supabase.auth.signOut()
 
       setTimeout(() => {
         router.push('/login')
