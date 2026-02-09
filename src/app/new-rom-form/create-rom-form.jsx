@@ -174,6 +174,35 @@ export function CreateRomForm() {
     const [showSuccessModal, setShowSuccessModal] = useState(false)
     const [romError, setRomError] = useState("")
 
+    // Field-level error state for form validation
+    const [formErrors, setFormErrors] = useState({
+        venueName: false,
+        address: false,
+        venueType: false,
+        numFloors: false,
+        grossSqFt: false,
+        parkingSqFt: false,
+        pops: false,
+        thirdPartyName: false,
+        thirdPartyFee: false,
+        density: false,
+        salesManager: false,
+        closeDate: false,
+        constructionDate: false,
+        onAirDate: false,
+        systemType: false,
+        dasArchitecture: false,
+        oemCriteria: false,
+        dasVendor: false,
+        bdaVendor: false,
+        errcsCoverage: false,
+        sectorCriteria: false,
+        signalSource: false,
+        carrierRequirements: false,
+        techSupported: false,
+        dateOrder: false
+    })
+
     // --- LOGIC ---
     const debounceRef = useRef(null)
     const [isSearching, setIsSearching] = useState(false)
@@ -278,44 +307,116 @@ export function CreateRomForm() {
         }
     }, [automationError])
 
+    // Comprehensive form validation
+    const validateForm = useCallback(() => {
+        const errors = {
+            venueName: !venueName.trim(),
+            address: !address.trim(),
+            venueType: !venueType,
+            numFloors: !numFloors,
+            grossSqFt: !grossSqFt,
+            parkingSqFt: hasParkingGarage && !parkingSqFt,
+            pops: !pops,
+            thirdPartyName: isThirdParty && !thirdPartyName.trim(),
+            thirdPartyFee: isThirdParty && !thirdPartyFee,
+            density: !density,
+            salesManager: !salesManager.trim(),
+            closeDate: !closeDate,
+            constructionDate: !constructionDate,
+            onAirDate: !onAirDate,
+            systemType: !systemType,
+            dasArchitecture: (systemType === 'DAS' || systemType === 'DAS & ERCES') && !dasArchitecture,
+            oemCriteria: !oemCriteria,
+            dasVendor: (systemType === 'DAS' || systemType === 'DAS & ERCES') && !dasVendor,
+            bdaVendor: (systemType === 'ERCES' || systemType === 'DAS & ERCES') && !bdaVendor,
+            errcsCoverage: (systemType === 'ERCES' || systemType === 'DAS & ERCES') && !errcsCoverage,
+            sectorCriteria: !sectorCriteria,
+            signalSource: !signalSource,
+            carrierRequirements: false,
+            techSupported: false,
+            dateOrder: false
+        }
+
+        // Check at least one carrier is selected
+        const selectedCarriers = Object.entries(carrierRequirements)
+            .filter(([_, isSelected]) => isSelected)
+            .map(([carrier]) => carrier)
+        if (selectedCarriers.length === 0) {
+            errors.carrierRequirements = true
+        }
+
+        // Check at least one tech is selected
+        const selectedTech = Object.entries(techSupported)
+            .filter(([_, isSelected]) => isSelected)
+            .map(([tech]) => tech)
+        if (selectedTech.length === 0) {
+            errors.techSupported = true
+        }
+
+        // Date order validation: Construction Start Date → Close Date → On Air Date
+        if (constructionDate && closeDate) {
+            const constructionDateObj = new Date(constructionDate)
+            const closeDateObj = new Date(closeDate)
+            if (closeDateObj < constructionDateObj) {
+                errors.closeDate = true
+                errors.dateOrder = true
+            }
+        }
+
+        if (closeDate && onAirDate) {
+            const closeDateObj = new Date(closeDate)
+            const onAirDateObj = new Date(onAirDate)
+            if (onAirDateObj < closeDateObj) {
+                errors.onAirDate = true
+                errors.dateOrder = true
+            }
+        }
+
+        if (constructionDate && onAirDate) {
+            const constructionDateObj = new Date(constructionDate)
+            const onAirDateObj = new Date(onAirDate)
+            if (onAirDateObj < constructionDateObj) {
+                errors.onAirDate = true
+                errors.dateOrder = true
+            }
+        }
+
+        setFormErrors(errors)
+
+        // Check if any error exists
+        const hasErrors = Object.values(errors).some(error => error)
+        if (hasErrors) {
+            if (errors.dateOrder) {
+                toast.error("Invalid date order.", {
+                    description: "Expected order: Construction Start Date → Close Date → On Air Date"
+                })
+            } else {
+                toast.error("Please fill in all mandatory fields.", {
+                    description: "All fields in the form are required."
+                })
+            }
+            return null
+        }
+
+        return { selectedCarriers }
+    }, [
+        venueName, address, venueType, numFloors, grossSqFt, hasParkingGarage, parkingSqFt,
+        pops, isThirdParty, thirdPartyName, thirdPartyFee, density, salesManager,
+        closeDate, constructionDate, onAirDate, systemType, dasArchitecture, oemCriteria,
+        dasVendor, bdaVendor, errcsCoverage, sectorCriteria, signalSource,
+        carrierRequirements, techSupported
+    ])
+
     // Handle ROM Creation (automation)
     const handleCreateRom = useCallback(async () => {
         // Reset previous states
         setRomError("")
 
-        // Validation: Check address
-        if (!address || !address.trim()) {
-            setRomError("Please enter a venue address")
-            toast.error("Please enter a venue address")
-            return
-        }
+        // Run comprehensive validation
+        const validation = validateForm()
+        if (!validation) return
 
-        // Validation: Check at least one carrier is selected
-        const selectedCarriers = getSelectedCarriers()
-        if (selectedCarriers.length === 0) {
-            setRomError("Please select at least one carrier")
-            toast.error("Please select at least one carrier")
-            return
-        }
-
-        // Validation: Check system type is selected
-        if (!systemType) {
-            setRomError("Please select a system type")
-            toast.error("Please select a system type")
-            return
-        }
-
-        // Validation: Check vendor is selected based on system type
-        if ((systemType === 'DAS' || systemType === 'DAS & ERCES') && !dasVendor) {
-            setRomError("Please select a DAS vendor")
-            toast.error("Please select a DAS vendor")
-            return
-        }
-        if ((systemType === 'ERCES' || systemType === 'DAS & ERCES') && !bdaVendor) {
-            setRomError("Please select a BDA/Booster vendor")
-            toast.error("Please select a BDA/Booster vendor")
-            return
-        }
+        const { selectedCarriers } = validation
 
         // Get user info for process tracking
         const userName = user?.user_metadata?.full_name || user?.email || 'Guest'
@@ -354,7 +455,7 @@ export function CreateRomForm() {
         } finally {
             stopRomAutomation()
         }
-    }, [address, getSelectedCarriers, systemType, dasVendor, bdaVendor, grossSqFt, user, startAutomation, startRomAutomation, stopRomAutomation])
+    }, [validateForm, address, systemType, dasVendor, bdaVendor, grossSqFt, user, startAutomation, startRomAutomation, stopRomAutomation])
 
     // Navigation Handlers
     const handleNext = useCallback(() => {
@@ -408,6 +509,33 @@ export function CreateRomForm() {
         setTechSupported({ "4G LTE": false, "4G LTE & 5G NR": false })
         setAdditionalInfo("")
         setRomError("")
+        setFormErrors({
+            venueName: false,
+            address: false,
+            venueType: false,
+            numFloors: false,
+            grossSqFt: false,
+            parkingSqFt: false,
+            pops: false,
+            thirdPartyName: false,
+            thirdPartyFee: false,
+            density: false,
+            salesManager: false,
+            closeDate: false,
+            constructionDate: false,
+            onAirDate: false,
+            systemType: false,
+            dasArchitecture: false,
+            oemCriteria: false,
+            dasVendor: false,
+            bdaVendor: false,
+            errcsCoverage: false,
+            sectorCriteria: false,
+            signalSource: false,
+            carrierRequirements: false,
+            techSupported: false,
+            dateOrder: false
+        })
     }, [resetAutomation, transitionToScreen])
 
     // Conditional Visibility Helpers
@@ -617,12 +745,15 @@ export function CreateRomForm() {
                                                 <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
                                                     <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap flex items-center gap-2">
                                                         <Building2 className="h-4 w-4 text-red-500" />
-                                                        {t("venueName")}
+                                                        {t("venueName")} <span className="text-red-500">*</span>
                                                     </Label>
                                                     <Input
-                                                        value={venueName} onChange={(e) => setVenueName(e.target.value)}
+                                                        value={venueName} onChange={(e) => {
+                                                            setVenueName(e.target.value)
+                                                            setFormErrors(prev => ({ ...prev, venueName: false }))
+                                                        }}
                                                         placeholder={t("venueNamePlaceholder")}
-                                                        className="bg-gray-50/50 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 focus:ring-2 focus:ring-red-500 transition-all duration-200"
+                                                        className={`bg-gray-50/50 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 transition-all duration-200 ${formErrors.venueName ? 'ring-2 ring-red-500' : 'focus:ring-2 focus:ring-red-500'}`}
                                                     />
                                                 </div>
                                             </AnimatedField>
@@ -632,13 +763,16 @@ export function CreateRomForm() {
                                                 <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start gap-2 sm:gap-4">
                                                     <Label className="text-gray-600 dark:text-gray-300 font-medium sm:pt-2 whitespace-nowrap flex items-center gap-2">
                                                         <MapPin className="h-4 w-4 text-red-500" />
-                                                        {t("venueAddress")}
+                                                        {t("venueAddress")} <span className="text-red-500">*</span>
                                                     </Label>
                                                     <div className="w-full">
                                                         <Input
-                                                            value={address} onChange={handleAddressChange} onBlur={handleBlur}
+                                                            value={address} onChange={(e) => {
+                                                                handleAddressChange(e)
+                                                                setFormErrors(prev => ({ ...prev, address: false }))
+                                                            }} onBlur={handleBlur}
                                                             placeholder={t("venueAddressPlaceholder")}
-                                                            className="bg-gray-100 dark:bg-zinc-800 border-none rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 focus:ring-2 focus:ring-red-500 transition-all duration-200"
+                                                            className={`bg-gray-100 dark:bg-zinc-800 border-none rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 transition-all duration-200 ${formErrors.address ? 'ring-2 ring-red-500' : 'focus:ring-2 focus:ring-red-500'}`}
                                                         />
                                                         {suggestions.length > 0 && (
                                                             <div className="w-full mt-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-lg overflow-hidden z-10 relative animate-in fade-in slide-in-from-top-2 duration-200">
@@ -663,10 +797,13 @@ export function CreateRomForm() {
                                                 <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
                                                     <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap flex items-center gap-2">
                                                         <Layers className="h-4 w-4 text-red-500" />
-                                                        {t("venueType")}
+                                                        {t("venueType")} <span className="text-red-500">*</span>
                                                     </Label>
-                                                    <Select value={venueType} onValueChange={setVenueType}>
-                                                        <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11">
+                                                    <Select value={venueType} onValueChange={(value) => {
+                                                        setVenueType(value)
+                                                        setFormErrors(prev => ({ ...prev, venueType: false }))
+                                                    }}>
+                                                        <SelectTrigger className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.venueType ? 'ring-2 ring-red-500' : ''}`}>
                                                             <SelectValue placeholder={t("venueTypePlaceholder")} />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -690,23 +827,29 @@ export function CreateRomForm() {
                                                     <div className="flex flex-col gap-2">
                                                         <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap flex items-center gap-2">
                                                             <Layers className="h-4 w-4 text-red-500" />
-                                                            {t("numFloors")}
+                                                            {t("numFloors")} <span className="text-red-500">*</span>
                                                         </Label>
                                                         <Input
-                                                            type="number" value={numFloors} onChange={(e) => setNumFloors(e.target.value)}
+                                                            type="number" value={numFloors} onChange={(e) => {
+                                                                setNumFloors(e.target.value)
+                                                                setFormErrors(prev => ({ ...prev, numFloors: false }))
+                                                            }}
                                                             placeholder={t("numFloorsPlaceholder")}
-                                                            className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11"
+                                                            className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.numFloors ? 'ring-2 ring-red-500' : ''}`}
                                                         />
                                                     </div>
                                                     <div className="flex flex-col gap-2">
                                                         <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap flex items-center gap-2">
                                                             <BarChart3 className="h-4 w-4 text-red-500" />
-                                                            {t("grossSqFt")}
+                                                            {t("grossSqFt")} <span className="text-red-500">*</span>
                                                         </Label>
                                                         <Input
-                                                            type="number" value={grossSqFt} onChange={(e) => setGrossSqFt(e.target.value)}
+                                                            type="number" value={grossSqFt} onChange={(e) => {
+                                                                setGrossSqFt(e.target.value)
+                                                                setFormErrors(prev => ({ ...prev, grossSqFt: false }))
+                                                            }}
                                                             placeholder={t("grossSqFtPlaceholder")}
-                                                            className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11"
+                                                            className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.grossSqFt ? 'ring-2 ring-red-500' : ''}`}
                                                         />
                                                     </div>
                                                 </div>
@@ -735,11 +878,14 @@ export function CreateRomForm() {
                                             {hasParkingGarage && (
                                                 <AnimatedField delay={250}>
                                                     <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("parkingSqFt")}</Label>
+                                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("parkingSqFt")} <span className="text-red-500">*</span></Label>
                                                         <Input
-                                                            type="number" value={parkingSqFt} onChange={(e) => setParkingSqFt(e.target.value)}
+                                                            type="number" value={parkingSqFt} onChange={(e) => {
+                                                                setParkingSqFt(e.target.value)
+                                                                setFormErrors(prev => ({ ...prev, parkingSqFt: false }))
+                                                            }}
                                                             placeholder={t("parkingSqFtPlaceholder")}
-                                                            className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11"
+                                                            className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.parkingSqFt ? 'ring-2 ring-red-500' : ''}`}
                                                         />
                                                     </div>
                                                 </AnimatedField>
@@ -749,12 +895,15 @@ export function CreateRomForm() {
                                                 <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
                                                     <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap flex items-center gap-2">
                                                         <Users className="h-4 w-4 text-red-500" />
-                                                        {t("pops")}
+                                                        {t("pops")} <span className="text-red-500">*</span>
                                                     </Label>
                                                     <Input
-                                                        type="number" value={pops} onChange={(e) => setPops(e.target.value)}
+                                                        type="number" value={pops} onChange={(e) => {
+                                                            setPops(e.target.value)
+                                                            setFormErrors(prev => ({ ...prev, pops: false }))
+                                                        }}
                                                         placeholder={t("popsPlaceholder")}
-                                                        className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11"
+                                                        className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.pops ? 'ring-2 ring-red-500' : ''}`}
                                                     />
                                                 </div>
                                             </AnimatedField>
@@ -782,17 +931,23 @@ export function CreateRomForm() {
                                             {isThirdParty && (
                                                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                                                     <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("thirdPartyName")}</Label>
+                                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("thirdPartyName")} <span className="text-red-500">*</span></Label>
                                                         <Input
-                                                            value={thirdPartyName} onChange={(e) => setThirdPartyName(e.target.value)}
-                                                            placeholder={t("thirdPartyNamePlaceholder")} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11"
+                                                            value={thirdPartyName} onChange={(e) => {
+                                                                setThirdPartyName(e.target.value)
+                                                                setFormErrors(prev => ({ ...prev, thirdPartyName: false }))
+                                                            }}
+                                                            placeholder={t("thirdPartyNamePlaceholder")} className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.thirdPartyName ? 'ring-2 ring-red-500' : ''}`}
                                                         />
                                                     </div>
                                                     <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("thirdPartyFee")}</Label>
+                                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("thirdPartyFee")} <span className="text-red-500">*</span></Label>
                                                         <Input
-                                                            type="number" value={thirdPartyFee} onChange={(e) => setThirdPartyFee(e.target.value)}
-                                                            placeholder={t("thirdPartyFeePlaceholder")} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11"
+                                                            type="number" value={thirdPartyFee} onChange={(e) => {
+                                                                setThirdPartyFee(e.target.value)
+                                                                setFormErrors(prev => ({ ...prev, thirdPartyFee: false }))
+                                                            }}
+                                                            placeholder={t("thirdPartyFeePlaceholder")} className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.thirdPartyFee ? 'ring-2 ring-red-500' : ''}`}
                                                         />
                                                     </div>
                                                 </div>
@@ -833,9 +988,12 @@ export function CreateRomForm() {
 
                                             <AnimatedField delay={450}>
                                                 <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("buildingDensity")}</Label>
-                                                    <Select value={density} onValueChange={setDensity}>
-                                                        <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11">
+                                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("buildingDensity")} <span className="text-red-500">*</span></Label>
+                                                    <Select value={density} onValueChange={(value) => {
+                                                        setDensity(value)
+                                                        setFormErrors(prev => ({ ...prev, density: false }))
+                                                    }}>
+                                                        <SelectTrigger className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.density ? 'ring-2 ring-red-500' : ''}`}>
                                                             <SelectValue placeholder={t("densityPlaceholder")} />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -851,10 +1009,13 @@ export function CreateRomForm() {
 
                                             <AnimatedField delay={500}>
                                                 <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("salesManager")}</Label>
+                                                    <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("salesManager")} <span className="text-red-500">*</span></Label>
                                                     <Input
-                                                        value={salesManager} onChange={(e) => setSalesManager(e.target.value)}
-                                                        placeholder={t("salesManagerPlaceholder")} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11"
+                                                        value={salesManager} onChange={(e) => {
+                                                            setSalesManager(e.target.value)
+                                                            setFormErrors(prev => ({ ...prev, salesManager: false }))
+                                                        }}
+                                                        placeholder={t("salesManagerPlaceholder")} className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.salesManager ? 'ring-2 ring-red-500' : ''}`}
                                                     />
                                                 </div>
                                             </AnimatedField>
@@ -866,27 +1027,41 @@ export function CreateRomForm() {
                                                         <div className="flex flex-col gap-2">
                                                             <Label className="text-gray-600 dark:text-gray-300 font-medium flex items-start gap-2 min-h-[24px]">
                                                                 <Calendar className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                                                                <span className="text-sm leading-tight">{t("expectedCloseDate")}</span>
+                                                                <span className="text-sm leading-tight">{t("expectedConstructionStart")} <span className="text-red-500">*</span></span>
                                                             </Label>
-                                                            <Input type="date" value={closeDate} onChange={(e) => setCloseDate(e.target.value)} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11" />
+                                                            <Input type="date" value={constructionDate} onChange={(e) => {
+                                                                setConstructionDate(e.target.value)
+                                                                setFormErrors(prev => ({ ...prev, constructionDate: false, dateOrder: false }))
+                                                            }} className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.constructionDate ? 'ring-2 ring-red-500' : ''}`} />
                                                         </div>
                                                         <div className="flex flex-col gap-2">
                                                             <Label className="text-gray-600 dark:text-gray-300 font-medium flex items-start gap-2 min-h-[24px]">
                                                                 <Calendar className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                                                                <span className="text-sm leading-tight">{t("expectedConstructionStart")}</span>
+                                                                <span className="text-sm leading-tight">{t("expectedCloseDate")} <span className="text-red-500">*</span></span>
                                                             </Label>
-                                                            <Input type="date" value={constructionDate} onChange={(e) => setConstructionDate(e.target.value)} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11" />
+                                                            <Input type="date" value={closeDate} onChange={(e) => {
+                                                                setCloseDate(e.target.value)
+                                                                setFormErrors(prev => ({ ...prev, closeDate: false, dateOrder: false }))
+                                                            }} className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.closeDate ? 'ring-2 ring-red-500' : ''}`} />
                                                         </div>
                                                     </div>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                                                         <div className="flex flex-col gap-2">
                                                             <Label className="text-gray-600 dark:text-gray-300 font-medium flex items-start gap-2 min-h-[24px]">
                                                                 <Calendar className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                                                                <span className="text-sm leading-tight">{t("expectedOnAirDate")}</span>
+                                                                <span className="text-sm leading-tight">{t("expectedOnAirDate")} <span className="text-red-500">*</span></span>
                                                             </Label>
-                                                            <Input type="date" value={onAirDate} onChange={(e) => setOnAirDate(e.target.value)} className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11" />
+                                                            <Input type="date" value={onAirDate} onChange={(e) => {
+                                                                setOnAirDate(e.target.value)
+                                                                setFormErrors(prev => ({ ...prev, onAirDate: false, dateOrder: false }))
+                                                            }} className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.onAirDate ? 'ring-2 ring-red-500' : ''}`} />
                                                         </div>
                                                     </div>
+                                                    {formErrors.dateOrder && (
+                                                        <p className="text-xs text-red-500 mt-2">
+                                                            Date order: Construction Start → Close Date → On Air Date
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </AnimatedField>
                                         </div>
@@ -909,10 +1084,13 @@ export function CreateRomForm() {
                                                     <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
                                                         <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap flex items-center gap-2">
                                                             <Cpu className="h-4 w-4 text-red-500" />
-                                                            {t("systemType")}
+                                                            {t("systemType")} <span className="text-red-500">*</span>
                                                         </Label>
-                                                        <Select value={systemType} onValueChange={setSystemType}>
-                                                            <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11">
+                                                        <Select value={systemType} onValueChange={(value) => {
+                                                            setSystemType(value)
+                                                            setFormErrors(prev => ({ ...prev, systemType: false }))
+                                                        }}>
+                                                            <SelectTrigger className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.systemType ? 'ring-2 ring-red-500' : ''}`}>
                                                                 <SelectValue placeholder={t("systemTypePlaceholder")} />
                                                             </SelectTrigger>
                                                             <SelectContent>
@@ -928,9 +1106,12 @@ export function CreateRomForm() {
                                                 {showDasFields && (
                                                     <AnimatedField delay={50}>
                                                         <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("dasArchitecture")}</Label>
-                                                            <Select value={dasArchitecture} onValueChange={setDasArchitecture}>
-                                                                <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11">
+                                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("dasArchitecture")} <span className="text-red-500">*</span></Label>
+                                                            <Select value={dasArchitecture} onValueChange={(value) => {
+                                                                setDasArchitecture(value)
+                                                                setFormErrors(prev => ({ ...prev, dasArchitecture: false }))
+                                                            }}>
+                                                                <SelectTrigger className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.dasArchitecture ? 'ring-2 ring-red-500' : ''}`}>
                                                                     <SelectValue placeholder={t("architecturePlaceholder")} />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -945,9 +1126,12 @@ export function CreateRomForm() {
                                                 {/* OEM Selection Criteria */}
                                                 <AnimatedField delay={100}>
                                                     <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("oemCriteria")}</Label>
-                                                        <Select value={oemCriteria} onValueChange={setOemCriteria}>
-                                                            <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11">
+                                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("oemCriteria")} <span className="text-red-500">*</span></Label>
+                                                        <Select value={oemCriteria} onValueChange={(value) => {
+                                                            setOemCriteria(value)
+                                                            setFormErrors(prev => ({ ...prev, oemCriteria: false }))
+                                                        }}>
+                                                            <SelectTrigger className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.oemCriteria ? 'ring-2 ring-red-500' : ''}`}>
                                                                 <SelectValue placeholder={t("oemCriteriaPlaceholder")} />
                                                             </SelectTrigger>
                                                             <SelectContent>
@@ -963,9 +1147,12 @@ export function CreateRomForm() {
                                                 {showDasFields && (
                                                     <AnimatedField delay={150}>
                                                         <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("dasVendor")}</Label>
-                                                            <Select value={dasVendor} onValueChange={setDasVendor}>
-                                                                <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11">
+                                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("dasVendor")} <span className="text-red-500">*</span></Label>
+                                                            <Select value={dasVendor} onValueChange={(value) => {
+                                                                setDasVendor(value)
+                                                                setFormErrors(prev => ({ ...prev, dasVendor: false }))
+                                                            }}>
+                                                                <SelectTrigger className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.dasVendor ? 'ring-2 ring-red-500' : ''}`}>
                                                                     <SelectValue placeholder={t("dasVendorPlaceholder")} />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -981,9 +1168,12 @@ export function CreateRomForm() {
                                                 {showErrcsFields && (
                                                     <AnimatedField delay={200}>
                                                         <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("bdaVendor")}</Label>
-                                                            <Select value={bdaVendor} onValueChange={setBdaVendor}>
-                                                                <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11">
+                                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("bdaVendor")} <span className="text-red-500">*</span></Label>
+                                                            <Select value={bdaVendor} onValueChange={(value) => {
+                                                                setBdaVendor(value)
+                                                                setFormErrors(prev => ({ ...prev, bdaVendor: false }))
+                                                            }}>
+                                                                <SelectTrigger className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.bdaVendor ? 'ring-2 ring-red-500' : ''}`}>
                                                                     <SelectValue placeholder={t("bdaVendorPlaceholder")} />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -999,9 +1189,12 @@ export function CreateRomForm() {
                                                 {showErrcsFields && (
                                                     <AnimatedField delay={250}>
                                                         <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("coverageArea")}</Label>
-                                                            <Select value={errcsCoverage} onValueChange={setErrcsCoverage}>
-                                                                <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11">
+                                                            <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("coverageArea")} <span className="text-red-500">*</span></Label>
+                                                            <Select value={errcsCoverage} onValueChange={(value) => {
+                                                                setErrcsCoverage(value)
+                                                                setFormErrors(prev => ({ ...prev, errcsCoverage: false }))
+                                                            }}>
+                                                                <SelectTrigger className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.errcsCoverage ? 'ring-2 ring-red-500' : ''}`}>
                                                                     <SelectValue placeholder={t("coverageAreaPlaceholder")} />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -1016,9 +1209,12 @@ export function CreateRomForm() {
                                                 {/* Sector Criteria & Number of Sectors */}
                                                 <AnimatedField delay={300}>
                                                     <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("sectorCriteria")}</Label>
-                                                        <Select value={sectorCriteria} onValueChange={setSectorCriteria}>
-                                                            <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11">
+                                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("sectorCriteria")} <span className="text-red-500">*</span></Label>
+                                                        <Select value={sectorCriteria} onValueChange={(value) => {
+                                                            setSectorCriteria(value)
+                                                            setFormErrors(prev => ({ ...prev, sectorCriteria: false }))
+                                                        }}>
+                                                            <SelectTrigger className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.sectorCriteria ? 'ring-2 ring-red-500' : ''}`}>
                                                                 <SelectValue placeholder={t("sectorCriteriaPlaceholder")} />
                                                             </SelectTrigger>
                                                             <SelectContent>
@@ -1050,10 +1246,13 @@ export function CreateRomForm() {
                                                     <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
                                                         <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap flex items-center gap-2">
                                                             <Signal className="h-4 w-4 text-red-500" />
-                                                            {t("signalSource")}
+                                                            {t("signalSource")} <span className="text-red-500">*</span>
                                                         </Label>
-                                                        <Select value={signalSource} onValueChange={setSignalSource}>
-                                                            <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11">
+                                                        <Select value={signalSource} onValueChange={(value) => {
+                                                            setSignalSource(value)
+                                                            setFormErrors(prev => ({ ...prev, signalSource: false }))
+                                                        }}>
+                                                            <SelectTrigger className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 ${formErrors.signalSource ? 'ring-2 ring-red-500' : ''}`}>
                                                                 <SelectValue placeholder={t("signalSourcePlaceholder")} />
                                                             </SelectTrigger>
                                                             <SelectContent>
@@ -1071,9 +1270,9 @@ export function CreateRomForm() {
                                                     <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start gap-2 sm:gap-4">
                                                         <Label className="text-gray-600 dark:text-gray-300 font-medium sm:pt-1 whitespace-nowrap flex items-center gap-2">
                                                             <Radio className="h-4 w-4 text-red-500" />
-                                                            {t("carrierRequirements")}
+                                                            {t("carrierRequirements")} <span className="text-red-500">*</span>
                                                         </Label>
-                                                        <div className="flex flex-wrap gap-3">
+                                                        <div className={`flex flex-wrap gap-3 ${formErrors.carrierRequirements ? 'ring-2 ring-red-500 rounded-xl p-1' : ''}`}>
                                                             {["AT&T", "Verizon", "T-Mobile"].map((carrier) => (
                                                                 <div
                                                                     key={carrier}
@@ -1081,12 +1280,18 @@ export function CreateRomForm() {
                                                                         ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                                                                         : 'border-gray-200 dark:border-zinc-700 hover:border-gray-300'
                                                                         }`}
-                                                                    onClick={() => setCarrierRequirements(p => ({ ...p, [carrier]: !p[carrier] }))}
+                                                                    onClick={() => {
+                                                                        setCarrierRequirements(p => ({ ...p, [carrier]: !p[carrier] }))
+                                                                        setFormErrors(prev => ({ ...prev, carrierRequirements: false }))
+                                                                    }}
                                                                 >
                                                                     <Checkbox
                                                                         id={carrier}
                                                                         checked={carrierRequirements[carrier]}
-                                                                        onCheckedChange={(checked) => setCarrierRequirements(p => ({ ...p, [carrier]: checked }))}
+                                                                        onCheckedChange={(checked) => {
+                                                                            setCarrierRequirements(p => ({ ...p, [carrier]: checked }))
+                                                                            setFormErrors(prev => ({ ...prev, carrierRequirements: false }))
+                                                                        }}
                                                                         className="pointer-events-none"
                                                                     />
                                                                     <label htmlFor={carrier} className="text-sm font-medium leading-none text-gray-600 dark:text-gray-300 cursor-pointer">
@@ -1103,9 +1308,9 @@ export function CreateRomForm() {
                                                     <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start gap-2 sm:gap-4">
                                                         <Label className="text-gray-600 dark:text-gray-300 font-medium sm:pt-1 whitespace-nowrap flex items-center gap-2">
                                                             <Wifi className="h-4 w-4 text-red-500" />
-                                                            {t("techSupported")}
+                                                            {t("techSupported")} <span className="text-red-500">*</span>
                                                         </Label>
-                                                        <div className="flex flex-wrap gap-3">
+                                                        <div className={`flex flex-wrap gap-3 ${formErrors.techSupported ? 'ring-2 ring-red-500 rounded-xl p-1' : ''}`}>
                                                             {["4G LTE", "4G LTE & 5G NR"].map((tech) => (
                                                                 <div
                                                                     key={tech}
@@ -1113,12 +1318,18 @@ export function CreateRomForm() {
                                                                         ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                                                                         : 'border-gray-200 dark:border-zinc-700 hover:border-gray-300'
                                                                         }`}
-                                                                    onClick={() => setTechSupported(p => ({ ...p, [tech]: !p[tech] }))}
+                                                                    onClick={() => {
+                                                                        setTechSupported(p => ({ ...p, [tech]: !p[tech] }))
+                                                                        setFormErrors(prev => ({ ...prev, techSupported: false }))
+                                                                    }}
                                                                 >
                                                                     <Checkbox
                                                                         id={tech}
                                                                         checked={techSupported[tech]}
-                                                                        onCheckedChange={(checked) => setTechSupported(p => ({ ...p, [tech]: checked }))}
+                                                                        onCheckedChange={(checked) => {
+                                                                            setTechSupported(p => ({ ...p, [tech]: checked }))
+                                                                            setFormErrors(prev => ({ ...prev, techSupported: false }))
+                                                                        }}
                                                                         className="pointer-events-none"
                                                                     />
                                                                     <label htmlFor={tech} className="text-sm font-medium leading-none text-gray-600 dark:text-gray-300 cursor-pointer">
