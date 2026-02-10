@@ -91,7 +91,11 @@ export const QTY_FORMULAS = {
                 dependencies: [],
             },
 
-            '1/2" Low Loss Air Dielectric Plenum-Rated Cable (per ft)': {
+            // NOTE: The key below must match the EXACT item name from the database.
+            //       If qty still shows empty, check the browser console for
+            //       "[QtyCalc] Formula ... has no matching item" and update
+            //       the key to match the actual API response name.
+            '1/2" Low Loss Air Dialectric Plenum-Rated Cable (per ft)': {
                 formula: (ctx) => {
                     // Qty = round_up( totalArea × 100, to nearest 500 )
                     return roundUpToNearest(ctx.totalArea * 100, 500);
