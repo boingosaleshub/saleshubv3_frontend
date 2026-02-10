@@ -9,6 +9,7 @@
 
 import ExcelJS from 'exceljs';
 import { fetchVendorData } from './vendorDataService';
+import { calculateQtyValues } from './qtyCalculationService';
 
 /**
  * Color palette for styling
@@ -349,9 +350,11 @@ export async function generateRomExcel({
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
 
-                // Qty (column F) - stays EMPTY as per requirement
+                // Qty (column F) - populated from DB value or calculated formula
                 if (col === 'F') {
-                    // Intentionally left empty - qty will be filled later
+                    if (item && item.qty !== null && item.qty !== undefined) {
+                        cell.value = item.qty;
+                    }
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
 
@@ -475,6 +478,10 @@ export async function generateMultipleExcelFiles(params) {
     const { systemType, dasVendor, bdaVendor, grossSqFt, areaPercentage = 100 } = params;
     const files = [];
 
+    // Parse area values for qty formula calculations
+    const totalArea = parseFloat(grossSqFt) || 0;
+    const consideredArea = totalArea * (areaPercentage / 100);
+
     // For "DAS & ERCES" system type, generate both files with respective vendor data
     if (systemType === 'DAS & ERCES') {
         // --- DAS Excel File ---
@@ -486,6 +493,9 @@ export async function generateMultipleExcelFiles(params) {
         } catch (err) {
             console.error('[ExcelGen] Failed to fetch DAS vendor data, using fallback:', err);
         }
+
+        // Calculate qty values using formulas from qtyFormulaConfig.js
+        dasVendorData = calculateQtyValues(dasVendorData, dasVendor || 'Comba', 'DAS', totalArea, consideredArea);
 
         const dasFile = await generateRomExcelAsBase64({
             systemType,
@@ -508,6 +518,9 @@ export async function generateMultipleExcelFiles(params) {
             console.error('[ExcelGen] Failed to fetch ERCES vendor data, using fallback:', err);
         }
 
+        // Calculate qty values using formulas from qtyFormulaConfig.js
+        ercesVendorData = calculateQtyValues(ercesVendorData, bdaVendor || 'Comba', 'ERCES', totalArea, consideredArea);
+
         const ercesFile = await generateRomExcelAsBase64({
             systemType,
             dasVendor,
@@ -529,6 +542,9 @@ export async function generateMultipleExcelFiles(params) {
             console.error('[ExcelGen] Failed to fetch DAS vendor data, using fallback:', err);
         }
 
+        // Calculate qty values using formulas from qtyFormulaConfig.js
+        vendorData = calculateQtyValues(vendorData, dasVendor || 'Comba', 'DAS', totalArea, consideredArea);
+
         const file = await generateRomExcelAsBase64({
             ...params,
             vendorData
@@ -544,6 +560,9 @@ export async function generateMultipleExcelFiles(params) {
         } catch (err) {
             console.error('[ExcelGen] Failed to fetch ERCES vendor data, using fallback:', err);
         }
+
+        // Calculate qty values using formulas from qtyFormulaConfig.js
+        vendorData = calculateQtyValues(vendorData, bdaVendor || 'Comba', 'ERCES', totalArea, consideredArea);
 
         const file = await generateRomExcelAsBase64({
             ...params,
