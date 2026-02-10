@@ -333,6 +333,14 @@ export async function generateRomExcel({
             const row = worksheet.getRow(rowNum);
             row.height = 18;
 
+            // Detect SUB-TOTAL and TOTAL rows by name for special styling
+            const itemNameUpper = item ? item.name.toUpperCase().trim() : '';
+            const isHighlightedRow = (itemNameUpper === 'SUB-TOTAL' || itemNameUpper === 'TOTAL');
+
+            if (isHighlightedRow) {
+                row.height = 22;
+            }
+
             // Apply borders and data to each cell in the row (columns B through J)
             ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].forEach(col => {
                 const cell = worksheet.getCell(`${col}${rowNum}`);
@@ -342,42 +350,88 @@ export async function generateRomExcel({
                     cell.value = item.name;
                     cell.alignment = { vertical: 'middle' };
                     cell.font = { size: 10 };
+
+                    // SUB-TOTAL / TOTAL: red background, white bold text
+                    if (isHighlightedRow) {
+                        cell.font = { bold: true, size: 11, color: { argb: COLORS.categoryText } };
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: COLORS.categoryBackground }
+                        };
+                        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                    }
                 }
 
-                // Unit Price (column E) - placeholder dash
+                // Also apply red fill to C and D for highlighted rows (before merge)
+                if ((col === 'C' || col === 'D') && isHighlightedRow) {
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: COLORS.categoryBackground }
+                    };
+                }
+
+                // Unit Price (column E)
                 if (col === 'E') {
-                    cell.value = '-';
+                    if (isHighlightedRow) {
+                        // Gray background for SUB-TOTAL / TOTAL
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: 'D9D9D9' }
+                        };
+                    } else {
+                        cell.value = '-';
+                    }
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
 
-                // Qty (column F) - populated from DB value or calculated formula
+                // Qty (column F)
                 if (col === 'F') {
-                    if (item && item.qty !== null && item.qty !== undefined) {
+                    if (isHighlightedRow) {
+                        // Gray background for SUB-TOTAL / TOTAL
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: 'D9D9D9' }
+                        };
+                    } else if (item && item.qty !== null && item.qty !== undefined) {
                         cell.value = item.qty;
                     }
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
 
-                // Capex (column G) - placeholder dash
+                // Capex (column G) - dash
                 if (col === 'G') {
                     cell.value = '-';
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
 
-                // Opex (column H) - placeholder dash
+                // Opex (column H) - dash
                 if (col === 'H') {
                     cell.value = '-';
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
 
-                // CAPEX/SF (column I) - with orange background
+                // CAPEX/SF (column I)
                 if (col === 'I') {
-                    cell.value = '0.00';
-                    cell.fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: COLORS.orangeBackground }
-                    };
+                    if (isHighlightedRow) {
+                        // Red background for SUB-TOTAL / TOTAL
+                        cell.value = '-';
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: COLORS.categoryBackground }
+                        };
+                    } else {
+                        cell.value = '0.00';
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: COLORS.orangeBackground }
+                        };
+                    }
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
 
@@ -403,228 +457,6 @@ export async function generateRomExcel({
             currentRow += GAP_BETWEEN_SECTIONS;
         }
     });
-
-    // --- SUMMARY SECTION: Category Subtotals, SUB-TOTAL, Extras, TOTAL ---
-    currentRow += GAP_BETWEEN_SECTIONS;
-
-    // Collect section names for subtotal rows (exclude USD and ALL-IN)
-    const subtotalSectionNames = categorySections
-        .map(s => {
-            // Use the raw section name, removing line-break display formatting
-            const rawName = (s.name || '').replace(/\n/g, ' ').trim();
-            return rawName;
-        })
-        .filter(name => {
-            const upper = name.toUpperCase();
-            return upper !== 'USD' && upper !== 'ALL-IN';
-        });
-
-    // --- Section category subtotal rows ---
-    subtotalSectionNames.forEach(sectionName => {
-        const rowNum = currentRow;
-        const row = worksheet.getRow(rowNum);
-        row.height = 18;
-
-        // Column A: empty with border
-        const aCell = worksheet.getCell(`A${rowNum}`);
-        applyBorder(aCell);
-
-        // Merge B-D for section name
-        worksheet.mergeCells(`B${rowNum}:D${rowNum}`);
-        const nameCell = worksheet.getCell(`B${rowNum}`);
-        nameCell.value = sectionName;
-        nameCell.font = { bold: true, size: 10 };
-        nameCell.alignment = { vertical: 'middle' };
-        applyBorder(nameCell);
-
-        // Columns E-H: dashes
-        ['E', 'F', 'G', 'H'].forEach(col => {
-            const cell = worksheet.getCell(`${col}${rowNum}`);
-            cell.value = '-';
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            applyBorder(cell);
-        });
-
-        // Column I: 0.00 with orange background
-        const capexCell = worksheet.getCell(`I${rowNum}`);
-        capexCell.value = '0.00';
-        capexCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: COLORS.orangeBackground }
-        };
-        capexCell.alignment = { horizontal: 'center', vertical: 'middle' };
-        applyBorder(capexCell);
-
-        currentRow++;
-    });
-
-    // --- SUB-TOTAL row (red background) ---
-    {
-        const rowNum = currentRow;
-        const row = worksheet.getRow(rowNum);
-        row.height = 22;
-
-        // Merge A-D for SUB-TOTAL label
-        worksheet.mergeCells(`A${rowNum}:D${rowNum}`);
-        const subtotalCell = worksheet.getCell(`A${rowNum}`);
-        subtotalCell.value = 'SUB-TOTAL';
-        subtotalCell.font = { bold: true, size: 11, color: { argb: COLORS.categoryText } };
-        subtotalCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: COLORS.categoryBackground }
-        };
-        subtotalCell.alignment = { horizontal: 'left', vertical: 'middle' };
-        applyBorder(subtotalCell);
-
-        // Columns E-F: gray background
-        ['E', 'F'].forEach(col => {
-            const cell = worksheet.getCell(`${col}${rowNum}`);
-            cell.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'D9D9D9' }
-            };
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            applyBorder(cell);
-        });
-
-        // Columns G-H: dashes
-        ['G', 'H'].forEach(col => {
-            const cell = worksheet.getCell(`${col}${rowNum}`);
-            cell.value = '-';
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            applyBorder(cell);
-        });
-
-        // Column I: red background
-        const capexCell = worksheet.getCell(`I${rowNum}`);
-        capexCell.value = '-';
-        capexCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: COLORS.categoryBackground }
-        };
-        capexCell.alignment = { horizontal: 'center', vertical: 'middle' };
-        applyBorder(capexCell);
-
-        currentRow++;
-    }
-
-    // --- Extra cost rows: Shipping, Estimated Tax, Contingency ---
-    const extraCostRows = [
-        { name: 'Shipping', label: 'Shipping', assumption: 'Standard shipping cost' },
-        { name: 'Estimated Tax', label: 'Tax', assumption: 'Standard rate - confirm if applicable' },
-        { name: 'Contingency', label: 'Contingency', assumption: '5% with a design / 10% without design' },
-    ];
-
-    extraCostRows.forEach(({ name, label, assumption }) => {
-        const rowNum = currentRow;
-        const row = worksheet.getRow(rowNum);
-        row.height = 18;
-
-        // Column A: empty with border
-        const aCell = worksheet.getCell(`A${rowNum}`);
-        applyBorder(aCell);
-
-        // Merge B-D for item name
-        worksheet.mergeCells(`B${rowNum}:D${rowNum}`);
-        const nameCell = worksheet.getCell(`B${rowNum}`);
-        nameCell.value = name;
-        nameCell.font = { size: 10 };
-        nameCell.alignment = { vertical: 'middle' };
-        applyBorder(nameCell);
-
-        // Columns E-H: dashes
-        ['E', 'F', 'G', 'H'].forEach(col => {
-            const cell = worksheet.getCell(`${col}${rowNum}`);
-            cell.value = '-';
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            applyBorder(cell);
-        });
-
-        // Column I: 0.00 with orange background
-        const capexCell = worksheet.getCell(`I${rowNum}`);
-        capexCell.value = '0.00';
-        capexCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: COLORS.orangeBackground }
-        };
-        capexCell.alignment = { horizontal: 'center', vertical: 'middle' };
-        applyBorder(capexCell);
-
-        // Column L: Label with orange background
-        const labelCell = worksheet.getCell(`L${rowNum}`);
-        labelCell.value = label;
-        labelCell.font = { bold: true, size: 10 };
-        labelCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: COLORS.orangeBackground }
-        };
-        labelCell.alignment = { horizontal: 'center', vertical: 'middle' };
-
-        // Column N: Assumption/note text
-        const assumptionCell = worksheet.getCell(`N${rowNum}`);
-        assumptionCell.value = assumption;
-        assumptionCell.font = { size: 9 };
-        assumptionCell.alignment = { vertical: 'middle', wrapText: true };
-
-        currentRow++;
-    });
-
-    // --- TOTAL row (red background) ---
-    {
-        const rowNum = currentRow;
-        const row = worksheet.getRow(rowNum);
-        row.height = 22;
-
-        // Merge A-D for TOTAL label
-        worksheet.mergeCells(`A${rowNum}:D${rowNum}`);
-        const totalCell = worksheet.getCell(`A${rowNum}`);
-        totalCell.value = 'TOTAL';
-        totalCell.font = { bold: true, size: 11, color: { argb: COLORS.categoryText } };
-        totalCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: COLORS.categoryBackground }
-        };
-        totalCell.alignment = { horizontal: 'left', vertical: 'middle' };
-        applyBorder(totalCell);
-
-        // Columns E-F: gray background
-        ['E', 'F'].forEach(col => {
-            const cell = worksheet.getCell(`${col}${rowNum}`);
-            cell.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'D9D9D9' }
-            };
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            applyBorder(cell);
-        });
-
-        // Columns G-H: dashes
-        ['G', 'H'].forEach(col => {
-            const cell = worksheet.getCell(`${col}${rowNum}`);
-            cell.value = '-';
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            applyBorder(cell);
-        });
-
-        // Column I: red background
-        const capexCell = worksheet.getCell(`I${rowNum}`);
-        capexCell.value = '-';
-        capexCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: COLORS.categoryBackground }
-        };
-        capexCell.alignment = { horizontal: 'center', vertical: 'middle' };
-        applyBorder(capexCell);
-    }
 
     // Set column widths
     worksheet.getColumn('A').width = 4;   // Category column (narrow)
