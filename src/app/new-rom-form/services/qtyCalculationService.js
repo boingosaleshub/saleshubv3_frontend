@@ -11,7 +11,7 @@
  * - Items with null/0 qty AND no formula → left empty
  */
 
-import { QTY_FORMULAS } from './qtyFormulaConfig';
+import { QTY_FORMULAS, calculateHpRuQty, calculateAntennaQty } from './qtyFormulaConfig';
 
 // ---------------------------------------------------------
 // Build a flat map of all item names → qty values from the
@@ -104,9 +104,11 @@ function buildFormulaLookup(formulas) {
  * @param {string} systemType - 'DAS' or 'ERCES'
  * @param {number} totalArea - Total area in sq ft (from grossSqFt)
  * @param {number} consideredArea - Considered area (totalArea * percentage / 100)
+ * @param {string} density - Density selection (Open Space, Light, Medium, Dense, High-density)
+ * @param {number} numSectors - Number of sectors from the form (used by DAS formulas)
  * @returns {Array} - Same vendorData structure with qty values filled in where formulas matched
  */
-export function calculateQtyValues(vendorData, vendor, systemType, totalArea, consideredArea) {
+export function calculateQtyValues(vendorData, vendor, systemType, totalArea, consideredArea, density, numSectors = 0) {
     // Get the formulas for this vendor + system type
     const formulas = QTY_FORMULAS[vendor]?.[systemType];
 
@@ -116,7 +118,7 @@ export function calculateQtyValues(vendorData, vendor, systemType, totalArea, co
     }
 
     console.log(`[QtyCalc] Calculating qty values for ${vendor} / ${systemType}...`);
-    console.log(`[QtyCalc] Total Area: ${totalArea}, Considered Area: ${consideredArea}`);
+    console.log(`[QtyCalc] Total Area: ${totalArea}, Considered Area: ${consideredArea}, Density: ${density}`);
     console.log(`[QtyCalc] Formulas available for: ${Object.keys(formulas).join(', ')}`);
 
     // 1. Build a flat map of ALL item names → their current qty from DB
@@ -175,10 +177,18 @@ export function calculateQtyValues(vendorData, vendor, systemType, totalArea, co
             continue;
         }
 
+        // Pre-compute HP RU and antenna quantities for formula use
+        const hpRuRequired = calculateHpRuQty(totalArea, density);
+        const totalAntennasRequired = calculateAntennaQty(totalArea, density);
+
         // Build the formula context
         const ctx = {
             totalArea,
             consideredArea,
+            density,
+            numSectors: numSectors || 0,
+            hpRuRequired,
+            totalAntennasRequired,
             currentQty: currentQty || 0,
             getItemQty: (name) => {
                 // First try exact match in the map

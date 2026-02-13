@@ -157,7 +157,7 @@ export function CreateRomForm() {
     const [bdaVendor, setBdaVendor] = useState("")
     const [errcsCoverage, setErrcsCoverage] = useState("")
     const [sectorCriteria, setSectorCriteria] = useState("")
-    const [numSectors, setNumSectors] = useState("3 sectors") // Default/Placeholder
+    const [numSectors, setNumSectors] = useState("3") // Default: 3 sectors (editable)
     const [signalSource, setSignalSource] = useState("")
     const [carrierRequirements, setCarrierRequirements] = useState({
         "AT&T": false,
@@ -432,7 +432,9 @@ export function CreateRomForm() {
                 systemType,
                 dasVendor,
                 bdaVendor,
-                grossSqFt: grossSqFt || 0
+                grossSqFt: grossSqFt || 0,
+                density,
+                numSectors: parseInt(numSectors) || 0
             }, userName)
 
             if (result.success || result.partialSuccess) {
@@ -455,7 +457,7 @@ export function CreateRomForm() {
         } finally {
             stopRomAutomation()
         }
-    }, [validateForm, address, systemType, dasVendor, bdaVendor, grossSqFt, user, startAutomation, startRomAutomation, stopRomAutomation])
+    }, [validateForm, address, systemType, dasVendor, bdaVendor, grossSqFt, density, numSectors, user, startAutomation, startRomAutomation, stopRomAutomation])
 
     // Navigation Handlers
     const handleNext = useCallback(() => {
@@ -503,7 +505,7 @@ export function CreateRomForm() {
         setBdaVendor("")
         setErrcsCoverage("")
         setSectorCriteria("")
-        setNumSectors("3 sectors")
+        setNumSectors("3")
         setSignalSource("")
         setCarrierRequirements({ "AT&T": false, "Verizon": false, "T-Mobile": false })
         setTechSupported({ "4G LTE": false, "4G LTE & 5G NR": false })
@@ -1227,11 +1229,14 @@ export function CreateRomForm() {
 
                                                 <AnimatedField delay={350}>
                                                     <div className="flex flex-col sm:grid sm:grid-cols-[180px_1fr] items-start sm:items-center gap-2 sm:gap-4">
-                                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("numSectors")}</Label>
+                                                        <Label className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t("numSectors")} <span className="text-red-500">*</span></Label>
                                                         <Input
+                                                            type="number"
+                                                            min="1"
                                                             value={numSectors}
-                                                            readOnly
-                                                            className="bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 text-gray-500 dark:text-gray-400 w-full h-11"
+                                                            onChange={(e) => setNumSectors(e.target.value)}
+                                                            placeholder="Enter number of sectors"
+                                                            className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-xl px-4 w-full text-gray-900 dark:text-white h-11 focus:ring-2 focus:ring-red-500"
                                                         />
                                                     </div>
                                                 </AnimatedField>

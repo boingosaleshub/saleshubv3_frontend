@@ -110,6 +110,8 @@ export function RomAutomationProvider({ children }) {
                                         dasVendor: savedPayload.dasVendor,
                                         bdaVendor: savedPayload.bdaVendor,
                                         grossSqFt: savedPayload.grossSqFt,
+                                        density: savedPayload.density,
+                                        numSectors: savedPayload.numSectors || 0,
                                         areaPercentage: 100
                                     })
                                     console.log('[ROM] Excel files generated:', excelFiles.map(f => f.filename).join(', '))

@@ -529,7 +529,7 @@ export async function generateRomExcelAsBase64(params) {
  * @returns {Promise<Array<{filename: string, buffer: string}>>} - Array of Excel files
  */
 export async function generateMultipleExcelFiles(params) {
-    const { systemType, dasVendor, bdaVendor, grossSqFt, areaPercentage = 100 } = params;
+    const { systemType, dasVendor, bdaVendor, grossSqFt, density, numSectors = 0, areaPercentage = 100 } = params;
     const files = [];
 
     // Parse area values for qty formula calculations
@@ -549,13 +549,14 @@ export async function generateMultipleExcelFiles(params) {
         }
 
         // Calculate qty values using formulas from qtyFormulaConfig.js
-        dasVendorData = calculateQtyValues(dasVendorData, dasVendor || 'Comba', 'DAS', totalArea, consideredArea);
+        dasVendorData = calculateQtyValues(dasVendorData, dasVendor || 'Comba', 'DAS', totalArea, consideredArea, density, numSectors);
 
         const dasFile = await generateRomExcelAsBase64({
             systemType,
             dasVendor,
             bdaVendor,
             grossSqFt,
+            density,
             areaPercentage,
             fileType: 'DAS',
             vendorData: dasVendorData
@@ -573,13 +574,14 @@ export async function generateMultipleExcelFiles(params) {
         }
 
         // Calculate qty values using formulas from qtyFormulaConfig.js
-        ercesVendorData = calculateQtyValues(ercesVendorData, bdaVendor || 'Comba', 'ERCES', totalArea, consideredArea);
+        ercesVendorData = calculateQtyValues(ercesVendorData, bdaVendor || 'Comba', 'ERCES', totalArea, consideredArea, density, numSectors);
 
         const ercesFile = await generateRomExcelAsBase64({
             systemType,
             dasVendor,
             bdaVendor,
             grossSqFt,
+            density,
             areaPercentage,
             fileType: 'ERCES',
             vendorData: ercesVendorData
@@ -597,7 +599,7 @@ export async function generateMultipleExcelFiles(params) {
         }
 
         // Calculate qty values using formulas from qtyFormulaConfig.js
-        vendorData = calculateQtyValues(vendorData, dasVendor || 'Comba', 'DAS', totalArea, consideredArea);
+        vendorData = calculateQtyValues(vendorData, dasVendor || 'Comba', 'DAS', totalArea, consideredArea, density, numSectors);
 
         const file = await generateRomExcelAsBase64({
             ...params,
@@ -616,7 +618,7 @@ export async function generateMultipleExcelFiles(params) {
         }
 
         // Calculate qty values using formulas from qtyFormulaConfig.js
-        vendorData = calculateQtyValues(vendorData, bdaVendor || 'Comba', 'ERCES', totalArea, consideredArea);
+        vendorData = calculateQtyValues(vendorData, bdaVendor || 'Comba', 'ERCES', totalArea, consideredArea, density, numSectors);
 
         const file = await generateRomExcelAsBase64({
             ...params,
