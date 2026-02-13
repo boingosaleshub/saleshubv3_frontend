@@ -255,11 +255,98 @@ export const QTY_FORMULAS = {
             },
         },
 
+        // -----------------------------------------------------
+        //  Comba  →  DAS
+        //  Formulas use ctx.numSectors, ctx.hpRuRequired,
+        //  and ctx.totalAntennasRequired from the formula context.
+        // -----------------------------------------------------
         DAS: {
-            'Indoor Wide Band Omni Antenna': {
+
+            // iDAS Master Unit v2 MIMO Rack = Number of Sectors
+            'iDAS Master Unit v2 MIMO Rack': {
+                formula: (ctx) => ctx.numSectors,
+                dependencies: [],
+            },
+
+            // iDAS Master Unit Fiber Optical Unit - with 4 optical ports
+            // Calculated = ROUNDUP(HP_RU / 4, 0)
+            // IF Calculated < Sectors THEN Sectors ELSE Calculated
+            'iDAS Master Unit Fiber Optical Unit - with 4 optical ports': {
                 formula: (ctx) => {
-                    return calculateAntennaQty(ctx.totalArea, ctx.density);
+                    const calculated = Math.ceil(ctx.hpRuRequired / 4);
+                    return calculated < ctx.numSectors ? ctx.numSectors : calculated;
                 },
+                dependencies: [],
+            },
+
+            // iDAS Master Unit FOU Dummy Load
+            // = MAX(0, (Sectors × 2) - FOU qty)
+            'iDAS Master Unit FOU Dummy Load': {
+                formula: (ctx) => {
+                    const fouQty = ctx.getItemQty('iDAS Master Unit Fiber Optical Unit - with 4 optical ports');
+                    const result = (ctx.numSectors * 2) - fouQty;
+                    return result < 0 ? 0 : result;
+                },
+                dependencies: ['iDAS Master Unit Fiber Optical Unit - with 4 optical ports'],
+            },
+
+            // iDAS Master Unit Power Supply Unit = Number of Sectors
+            'iDAS Master Unit Power Supply Unit': {
+                formula: (ctx) => ctx.numSectors,
+                dependencies: [],
+            },
+
+            // Remote Units 40W 4 bands = HP RU required
+            'Remote Units 40W 4 bands': {
+                formula: (ctx) => ctx.hpRuRequired,
+                dependencies: [],
+            },
+
+            // Outdoor Quad-Band Combiner = HP RU required
+            'Outdoor Quad-Band Combiner': {
+                formula: (ctx) => ctx.hpRuRequired,
+                dependencies: [],
+            },
+
+            // Remote Unit 5W 4 bands = 0
+            'Remote Unit 5W 4  bands': {
+                formula: () => 0,
+                dependencies: [],
+            },
+
+            // 2W/5W Remote Unit Power Supply Unit = 0
+            '2W/5W Remote Unit Power Supply Unit': {
+                formula: () => 0,
+                dependencies: [],
+            },
+
+            // Indoor Cabling & Materials = Total antennas required
+            'Indoor Cabling & Materials': {
+                formula: (ctx) => ctx.totalAntennasRequired,
+                dependencies: [],
+            },
+
+            // OneCell - OPEX = 0
+            'OneCell - OPEX': {
+                formula: () => 0,
+                dependencies: [],
+            },
+
+            // OneCell - Extra Sector CAPEX = 0
+            'OneCell - Extra Sector CAPEX': {
+                formula: () => 0,
+                dependencies: [],
+            },
+
+            // Site Survey, Design & Mgmt. = ROUNDUP(Total Area / 1000, 0)
+            'Site Survey, Design & Mgmt.': {
+                formula: (ctx) => Math.ceil(ctx.totalArea / 1000),
+                dependencies: [],
+            },
+
+            // Installation Labor = Total antennas required
+            'Installation Labor': {
+                formula: (ctx) => ctx.totalAntennasRequired,
                 dependencies: [],
             },
         },
