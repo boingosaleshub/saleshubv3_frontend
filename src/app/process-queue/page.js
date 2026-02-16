@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, BarChart2, Layers } from "lucide-react"
+import { Loader2, BarChart2, Layers, FileText } from "lucide-react"
 import { useAutomationStore } from "@/store/useAutomationStore"
 
 // Process type icons mapping
@@ -54,7 +54,10 @@ export default function ProcessQueuePage() {
             processType: p.processType,
             joinedAt: p.startedAt,
             status: 'Processing',
-            isLocal: true
+            isLocal: true,
+            progress: p.progress || 0,
+            currentStep: p.currentStep || '',
+            waitingFiles: p.waitingFiles || []
         }))
         
         // Filter out API queue items that match local processes (by processType)
@@ -96,50 +99,85 @@ export default function ProcessQueuePage() {
                             mergedQueue.map((item, index) => {
                                 const ProcessIcon = processIcons[item.processType] || Layers
                                 const processColorClass = processColors[item.processType] || 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                const progressValue = Math.round(item.progress || 0)
+                                const hasProgress = item.isLocal && progressValue > 0
+                                const hasWaitingFiles = item.isLocal && item.waitingFiles && item.waitingFiles.length > 0
                                 
                                 return (
                                     <div
                                         key={item.userId}
-                                        className={`p-4 flex items-center justify-between transition-colors ${index === 0 ? 'bg-red-50/50 dark:bg-red-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                                        className={`p-4 transition-colors ${index === 0 ? 'bg-red-50/50 dark:bg-red-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                                             }`}
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <div className={`
-                                                w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
-                                                ${index === 0 ? 'bg-red-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}
-                                            `}>
-                                                {index + 1}
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-gray-900 dark:text-white flex flex-wrap items-center gap-2">
-                                                    <span>{item.userName}</span>
-                                                    {item.processType && (
-                                                        <Badge variant="secondary" className={`text-[10px] px-2 py-0.5 h-5 flex items-center gap-1 ${processColorClass}`}>
-                                                            <ProcessIcon className="w-3 h-3" />
-                                                            {item.processType}
-                                                        </Badge>
-                                                    )}
-                                                    {index === 0 && (
-                                                        <Badge variant="secondary" className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] px-1.5 py-0 h-5">
-                                                            Processing
-                                                        </Badge>
-                                                    )}
-                                                </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                    Joined: {new Date(item.joinedAt).toLocaleTimeString()}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            {index === 0 ? (
-                                                <div className="flex items-center text-red-600 dark:text-red-400 text-sm font-medium">
-                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                    Running
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`
+                                                    w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0
+                                                    ${index === 0 ? 'bg-red-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}
+                                                `}>
+                                                    {index + 1}
                                                 </div>
-                                            ) : (
-                                                <span className="text-sm text-gray-500 dark:text-gray-400">Waiting...</span>
-                                            )}
+                                                <div>
+                                                    <p className="font-medium text-gray-900 dark:text-white flex flex-wrap items-center gap-2">
+                                                        <span>{item.userName}</span>
+                                                        {item.processType && (
+                                                            <Badge variant="secondary" className={`text-[10px] px-2 py-0.5 h-5 flex items-center gap-1 ${processColorClass}`}>
+                                                                <ProcessIcon className="w-3 h-3" />
+                                                                {item.processType}
+                                                            </Badge>
+                                                        )}
+                                                        {index === 0 && (
+                                                            <Badge variant="secondary" className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] px-1.5 py-0 h-5">
+                                                                Processing
+                                                            </Badge>
+                                                        )}
+                                                        {hasProgress && (
+                                                            <span className="text-sm font-bold text-red-600 dark:text-red-400 tabular-nums">
+                                                                {progressValue}%
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        Joined: {new Date(item.joinedAt).toLocaleTimeString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                {index === 0 ? (
+                                                    <div className="flex items-center text-red-600 dark:text-red-400 text-sm font-medium">
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Running
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-sm text-gray-500 dark:text-gray-400">Waiting...</span>
+                                                )}
+                                            </div>
                                         </div>
+
+                                        {/* Progress bar for running process */}
+                                        {hasProgress && (
+                                            <div className="mt-3 ml-12">
+                                                <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-500 ease-out"
+                                                        style={{ width: `${Math.min(100, Math.max(0, progressValue))}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Waiting files section */}
+                                        {hasWaitingFiles && (
+                                            <div className="mt-2 ml-12">
+                                                <div className="flex items-start gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                                    <FileText className="w-3.5 h-3.5 mt-0.5 shrink-0 text-gray-400 dark:text-gray-500" />
+                                                    <div>
+                                                        <span className="font-medium text-gray-600 dark:text-gray-300">Waiting files: </span>
+                                                        {item.waitingFiles.join(' | ')}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )
                             })

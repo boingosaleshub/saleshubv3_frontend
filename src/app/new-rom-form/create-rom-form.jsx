@@ -422,8 +422,19 @@ export function CreateRomForm() {
         const userName = user?.user_metadata?.full_name || user?.email || 'Guest'
         const userId = user?.id || `guest_${Date.now()}`
 
+        // Build waiting files list based on form selections
+        const waitingFiles = ['Coverage Snaps: Indoor & Outdoor']
+        if (systemType === 'DAS' && dasVendor) {
+            waitingFiles.push(`DAS ${dasVendor} Excel`)
+        } else if (systemType === 'ERCES' && bdaVendor) {
+            waitingFiles.push(`ERCES ${bdaVendor} Excel`)
+        } else if (systemType === 'DAS & ERCES') {
+            if (dasVendor) waitingFiles.push(`DAS ${dasVendor} Excel`)
+            if (bdaVendor) waitingFiles.push(`ERCES ${bdaVendor} Excel`)
+        }
+
         // Track in persistent store (shows in process queue and notification bell)
-        startRomAutomation(userName, userId)
+        startRomAutomation(userName, userId, { waitingFiles })
 
         try {
             const result = await startAutomation({

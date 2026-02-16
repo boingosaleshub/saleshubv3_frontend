@@ -7,6 +7,7 @@ import { downloadAllRomFiles } from "@/app/new-rom-form/services/romAutomationSe
 import { generateMultipleExcelFiles } from "@/app/new-rom-form/services/excelGenerationService"
 import { ANIMATION_DURATIONS } from "@/app/coverage-plot/new-form/utils/constants"
 import { useQueue } from "@/app/coverage-plot/new-form/hooks/useQueue"
+import { useAutomationStore } from "@/store/useAutomationStore"
 
 const RomAutomationContext = createContext(null)
 
@@ -27,6 +28,9 @@ export function RomAutomationProvider({ children }) {
 
     const handleProgress = useCallback((progressValue, step, status) => {
         setProgress(progressValue)
+
+        // Sync progress to global store (for process queue display)
+        useAutomationStore.getState().updateProcessProgress('ROM Generator', progressValue, step)
 
         // Fade out, change text, fade in
         if (step !== currentStepRef.current) {

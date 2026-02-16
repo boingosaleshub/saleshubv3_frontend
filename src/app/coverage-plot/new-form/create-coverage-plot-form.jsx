@@ -31,6 +31,7 @@ import { CARRIERS, COVERAGE_TYPES, VALIDATION_MESSAGES, DEFAULT_COORDINATES, DEF
 
 // Store
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAutomationStore } from '@/store/useAutomationStore'
 
 const CoverageMap = dynamic(() => import("./coverage-map"), {
     ssr: false,
@@ -206,6 +207,7 @@ export function CreateCoveragePlotForm() {
 
     // Authenticated User
     const { user } = useAuthStore()
+    const { startCoverageAutomation, stopCoverageAutomation } = useAutomationStore()
 
     // Handle create
     const handleCreate = useCallback(async () => {
@@ -216,8 +218,18 @@ export function CreateCoveragePlotForm() {
 
         setIsCreating(true)
 
+        // Build waiting files list from selected coverage types
+        const coverageLabel = selectedCoverageTypes.join(', ')
+        const waitingFiles = [`Coverage Snaps: ${coverageLabel}`]
+
+        // Get user info for process tracking
+        const userName = user?.user_metadata?.full_name || user?.email || 'Guest'
+        const userId = user?.id || `guest_${Date.now()}`
+
+        // Track in persistent store (shows in process queue and notification bell)
+        startCoverageAutomation(userName, userId, { waitingFiles })
+
         try {
-            const userName = user?.user_metadata?.full_name || user?.email || 'Guest'
             const screenshots = await startAutomation({
                 address: address.trim(),
                 carriers: selectedCarriers,
@@ -251,9 +263,10 @@ export function CreateCoveragePlotForm() {
         } catch (err) {
             toast.error(err.message || "Failed to generate screenshots")
         } finally {
+            stopCoverageAutomation()
             setIsCreating(false)
         }
-    }, [address, validateForm, startAutomation, download, uploadScreenshots, saveCoveragePlot, user])
+    }, [address, validateForm, startAutomation, download, uploadScreenshots, saveCoveragePlot, user, startCoverageAutomation, stopCoverageAutomation])
 
     // Reset form
     const resetForm = useCallback(() => {

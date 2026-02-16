@@ -18,14 +18,17 @@ export const useAutomationStore = create(
             romAutomationStartedAt: null,
 
             // Start a ROM automation process
-            startRomAutomation: (userName = 'Guest', userId = null) => {
+            startRomAutomation: (userName = 'Guest', userId = null, metadata = {}) => {
                 const processId = `rom_${Date.now()}`
                 const newProcess = {
                     id: processId,
                     processType: 'ROM Generator',
                     userName,
                     userId: userId || `user_${Math.random().toString(36).substr(2, 9)}`,
-                    startedAt: new Date().toISOString()
+                    startedAt: new Date().toISOString(),
+                    progress: 0,
+                    currentStep: '',
+                    waitingFiles: metadata.waitingFiles || []
                 }
                 set((state) => ({
                     isRomAutomationRunning: true,
@@ -45,14 +48,17 @@ export const useAutomationStore = create(
             },
 
             // Start a Coverage Plot automation process
-            startCoverageAutomation: (userName = 'Guest', userId = null) => {
+            startCoverageAutomation: (userName = 'Guest', userId = null, metadata = {}) => {
                 const processId = `coverage_${Date.now()}`
                 const newProcess = {
                     id: processId,
                     processType: 'Coverage Plot',
                     userName,
                     userId: userId || `user_${Math.random().toString(36).substr(2, 9)}`,
-                    startedAt: new Date().toISOString()
+                    startedAt: new Date().toISOString(),
+                    progress: 0,
+                    currentStep: '',
+                    waitingFiles: metadata.waitingFiles || []
                 }
                 set((state) => ({
                     activeProcesses: [...state.activeProcesses.filter(p => p.processType !== 'Coverage Plot'), newProcess]
@@ -64,6 +70,17 @@ export const useAutomationStore = create(
             stopCoverageAutomation: () => {
                 set((state) => ({
                     activeProcesses: state.activeProcesses.filter(p => p.processType !== 'Coverage Plot')
+                }))
+            },
+
+            // Update progress for a running process (called from automation providers)
+            updateProcessProgress: (processType, progress, currentStep) => {
+                set((state) => ({
+                    activeProcesses: state.activeProcesses.map(p =>
+                        p.processType === processType
+                            ? { ...p, progress, currentStep }
+                            : p
+                    )
                 }))
             },
 

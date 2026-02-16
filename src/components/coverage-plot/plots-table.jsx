@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Eye, MapPin, User as UserIcon, Calendar, Signal } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Eye, MapPin, User as UserIcon, Calendar, Signal, ChevronRight } from "lucide-react"
 import {
     Table,
     TableBody,
@@ -19,12 +20,18 @@ import { useLanguage } from "@/components/providers/language-provider"
 
 export function PlotsTable({ plots }) {
     const { t } = useLanguage()
+    const router = useRouter()
     const [selectedPlot, setSelectedPlot] = useState(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
-    const handleViewPlot = (plot) => {
+    const handleViewPlot = (e, plot) => {
+        e.stopPropagation()
         setSelectedPlot(plot)
         setIsModalOpen(true)
+    }
+
+    const handleRowClick = (plot) => {
+        router.push(`/coverage-plot/all-plots/${plot.id}`)
     }
 
     const getInitials = (name) => {
@@ -73,7 +80,8 @@ export function PlotsTable({ plots }) {
                         {plots.map((plot) => (
                             <TableRow 
                                 key={plot.id} 
-                                className="group hover:bg-gray-50/80 dark:hover:bg-gray-800/50 border-gray-100 dark:border-gray-800 transition-colors"
+                                className="group hover:bg-gray-50/80 dark:hover:bg-gray-800/50 border-gray-100 dark:border-gray-800 transition-colors cursor-pointer"
+                                onClick={() => handleRowClick(plot)}
                             >
                                 <TableCell className="pl-6 py-4">
                                     <div className="flex items-center gap-3">
@@ -138,15 +146,19 @@ export function PlotsTable({ plots }) {
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right pr-6 py-4">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleViewPlot(plot)}
-                                        className="text-gray-700 dark:text-gray-200 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-all duration-200 font-medium h-8"
-                                    >
-                                        <Eye className="h-4 w-4 mr-2" />
-                                        {t("viewPlot")}
-                                    </Button>
+                                    <div className="flex items-center justify-end gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => handleViewPlot(e, plot)}
+                                            className="text-gray-700 dark:text-gray-200 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-all duration-200 font-medium h-8"
+                                            title="Quick preview screenshots"
+                                        >
+                                            <Eye className="h-4 w-4 mr-2" />
+                                            {t("viewPlot")}
+                                        </Button>
+                                        <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-red-500 transition-colors duration-200" />
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}

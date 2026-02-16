@@ -5,6 +5,7 @@ import { startAutomationStream } from "@/app/coverage-plot/new-form/services/aut
 import { createSSEConnection } from "@/app/coverage-plot/new-form/services/sseClient"
 import { ANIMATION_DURATIONS } from "@/app/coverage-plot/new-form/utils/constants"
 import { useQueue } from "@/app/coverage-plot/new-form/hooks/useQueue"
+import { useAutomationStore } from "@/store/useAutomationStore"
 
 const AutomationContext = createContext(null)
 
@@ -23,6 +24,9 @@ export function AutomationProvider({ children }) {
 
     const handleProgress = useCallback((progressValue, step, status) => {
         setProgress(progressValue)
+
+        // Sync progress to global store (for process queue display)
+        useAutomationStore.getState().updateProcessProgress('Coverage Plot', progressValue, step)
 
         // Fade out, change text, fade in
         if (step !== currentStepRef.current) {
