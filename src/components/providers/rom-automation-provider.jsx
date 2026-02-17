@@ -8,6 +8,7 @@ import { generateMultipleExcelFiles } from "@/app/new-rom-form/services/excelGen
 import { ANIMATION_DURATIONS } from "@/app/coverage-plot/new-form/utils/constants"
 import { useQueue } from "@/app/coverage-plot/new-form/hooks/useQueue"
 import { useAutomationStore } from "@/store/useAutomationStore"
+import { useRomProposalSaver } from "@/app/new-rom-form/hooks/useRomProposalSaver"
 
 const RomAutomationContext = createContext(null)
 
@@ -22,7 +23,9 @@ export function RomAutomationProvider({ children }) {
 
     const currentStepRef = useRef('')
     const payloadRef = useRef(null) // Store payload for client-side Excel generation
+    const formDataRef = useRef(null) // Store full form data for database save
     const { joinQueue, checkStatus, leaveQueue } = useQueue()
+    const { saveCompleteRomProposal } = useRomProposalSaver()
     const pollingRef = useRef(null)
     const hasActiveJobRef = useRef(false)
 
@@ -43,7 +46,7 @@ export function RomAutomationProvider({ children }) {
         }
     }, [])
 
-    const startAutomation = useCallback(async (payload, userName = 'Guest') => {
+    const startAutomation = useCallback(async (payload, userName = 'Guest', fullFormData = null) => {
         setIsLoading(true)
         setProgress(0)
         setCurrentStep('Joining queue...')
@@ -90,6 +93,8 @@ export function RomAutomationProvider({ children }) {
 
             // Store payload for client-side Excel generation on completion
             payloadRef.current = payload
+            // Store full form data for database save
+            formDataRef.current = fullFormData
 
             const response = await startRomAutomationStream(payload)
 
@@ -137,6 +142,23 @@ export function RomAutomationProvider({ children }) {
                             } catch (dlErr) {
                                 console.error('[ROM] Download error:', dlErr)
                             }
+
+                            // Save ROM proposal to database (non-blocking background save)
+                            if (formDataRef.current) {
+                                const fd = formDataRef.current
+                                saveCompleteRomProposal({
+                                    userId: fd.userId,
+                                    venueInfo: fd.venueInfo,
+                                    systemInfo: fd.systemInfo,
+                                    screenshots: completeResult.screenshots || [],
+                                    excelFiles: completeResult.excelFiles || []
+                                }).then((saved) => {
+                                    console.log('[ROM] ✓ ROM proposal saved to database:', saved.id)
+                                }).catch((saveErr) => {
+                                    console.error('[ROM] Failed to save ROM proposal to database:', saveErr)
+                                })
+                            }
+
                             setResults(completeResult)
                             resolve(completeResult)
                         } else {
@@ -160,7 +182,7 @@ export function RomAutomationProvider({ children }) {
             setError(err.message)
             throw err
         }
-    }, [handleProgress, joinQueue, checkStatus, leaveQueue])
+    }, [handleProgress, joinQueue, checkStatus, leaveQueue, saveCompleteRomProposal])
 
     const resetAutomation = useCallback(() => {
         setProgress(0)

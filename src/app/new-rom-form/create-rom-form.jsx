@@ -436,6 +436,51 @@ export function CreateRomForm() {
         // Track in persistent store (shows in process queue and notification bell)
         startRomAutomation(userName, userId, { waitingFiles })
 
+        // Build full form data for database storage
+        const selectedAhj = Object.entries(ahjRequirements)
+            .filter(([_, v]) => v).map(([k]) => k)
+        const selectedTech = Object.entries(techSupported)
+            .filter(([_, v]) => v).map(([k]) => k)
+
+        const fullFormData = {
+            userId,
+            venueInfo: {
+                venueName,
+                address: address.trim(),
+                venueType,
+                numFloors,
+                grossSqFt,
+                hasParkingGarage,
+                parkingSqFt,
+                pops,
+                isThirdParty,
+                thirdPartyName,
+                thirdPartyFee,
+                ahjRequirements: selectedAhj,
+                density,
+                salesManager,
+                constructionDate,
+                closeDate,
+                onAirDate,
+                coordinates,
+                zoom
+            },
+            systemInfo: {
+                systemType,
+                dasArchitecture,
+                oemCriteria,
+                dasVendor,
+                bdaVendor,
+                errcsCoverage,
+                sectorCriteria,
+                numSectors,
+                signalSource,
+                carrierRequirements: selectedCarriers,
+                techSupported: selectedTech,
+                additionalInfo
+            }
+        }
+
         try {
             const result = await startAutomation({
                 address: address.trim(),
@@ -446,7 +491,7 @@ export function CreateRomForm() {
                 grossSqFt: grossSqFt || 0,
                 density,
                 numSectors: parseInt(numSectors) || 0
-            }, userName)
+            }, userName, fullFormData)
 
             if (result.success || result.partialSuccess) {
                 // Downloads are triggered by the provider's onComplete callback
@@ -468,7 +513,12 @@ export function CreateRomForm() {
         } finally {
             stopRomAutomation()
         }
-    }, [validateForm, address, systemType, dasVendor, bdaVendor, grossSqFt, density, numSectors, user, startAutomation, startRomAutomation, stopRomAutomation])
+    }, [validateForm, address, venueName, venueType, numFloors, grossSqFt, hasParkingGarage, parkingSqFt,
+        pops, isThirdParty, thirdPartyName, thirdPartyFee, ahjRequirements, density, salesManager,
+        constructionDate, closeDate, onAirDate, coordinates, zoom,
+        systemType, dasArchitecture, oemCriteria, dasVendor, bdaVendor, errcsCoverage,
+        sectorCriteria, numSectors, signalSource, techSupported, additionalInfo,
+        user, startAutomation, startRomAutomation, stopRomAutomation])
 
     // Navigation Handlers
     const handleNext = useCallback(() => {
