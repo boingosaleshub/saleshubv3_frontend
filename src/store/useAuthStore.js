@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { createClient } from '@/utils/supabase/client'
+import { clearIdleTimestamp } from '@/hooks/useIdleTimeout'
 
 export const useAuthStore = create((set) => ({
   user: null,
@@ -10,10 +11,10 @@ export const useAuthStore = create((set) => ({
   setIsLoading: (isLoading) => set({ isLoading }),
   signOut: async () => {
     try {
+      clearIdleTimestamp()
       const supabase = createClient()
       await supabase.auth.signOut()
       set({ user: null, session: null })
-      // Redirect to login page
       window.location.href = '/login'
     } catch (error) {
       console.error('Error signing out:', error)

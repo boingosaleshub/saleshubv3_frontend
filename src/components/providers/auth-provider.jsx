@@ -1,12 +1,19 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useIdleTimeout } from '@/hooks/useIdleTimeout'
 
 export const AuthProvider = ({ children }) => {
   const supabase = createClient()
-  const { setUser, setSession, setIsLoading } = useAuthStore()
+  const { setUser, setSession, setIsLoading, signOut, session } = useAuthStore()
+
+  const handleIdleTimeout = useCallback(() => {
+    signOut()
+  }, [signOut])
+
+  useIdleTimeout(handleIdleTimeout, !!session)
 
   useEffect(() => {
     const checkUser = async () => {
