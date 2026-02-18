@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import {
     Building2,
     MapPin,
@@ -8,11 +9,13 @@ import {
     ParkingCircle,
     Cpu,
     Search,
-    ChevronUp,
-    ChevronDown,
-    ChevronsUpDown,
+    ArrowUpDown,
+    ArrowUpAZ,
+    ArrowDownAZ,
     ChevronLeft,
     ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
     FileSpreadsheet,
 } from "lucide-react"
 import {
@@ -27,17 +30,13 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-
-const PAGE_SIZE = 10
-
-function SortIcon({ column, sortConfig }) {
-    if (sortConfig.key !== column) {
-        return <ChevronsUpDown className="h-3 w-3 ml-1 opacity-40" />
-    }
-    return sortConfig.direction === "asc"
-        ? <ChevronUp className="h-3 w-3 ml-1 text-red-500" />
-        : <ChevronDown className="h-3 w-3 ml-1 text-red-500" />
-}
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 function getVendor(rom) {
     const vendors = [rom.das_vendor, rom.bda_vendor].filter(Boolean)
@@ -46,55 +45,105 @@ function getVendor(rom) {
 }
 
 export function RomsTable({ roms }) {
+    const router = useRouter()
     const [searchQuery, setSearchQuery] = useState("")
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" })
+    const [sortOrder, setSortOrder] = useState(null)
     const [currentPage, setCurrentPage] = useState(1)
+    const [rowsPerPage, setRowsPerPage] = useState(10)
 
-    const handleSort = (key) => {
-        setSortConfig((prev) => {
-            if (prev.key === key) {
-                return { key, direction: prev.direction === "asc" ? "desc" : "asc" }
-            }
-            return { key, direction: "asc" }
-        })
+    const processedRoms = useMemo(() => {
+        let result = [...(roms || [])]
+
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase().trim()
+            result = result.filter((rom) =>
+                rom.venue_name?.toLowerCase().includes(q) ||
+                rom.venue_address?.toLowerCase().includes(q) ||
+                rom.venue_type?.toLowerCase().includes(q) ||
+                rom.system_type?.toLowerCase().includes(q) ||
+                rom.das_vendor?.toLowerCase().includes(q) ||
+                rom.bda_vendor?.toLowerCase().includes(q)
+            )
+        }
+
+        if (sortOrder) {
+            result.sort((a, b) => {
+                const nameA = (a.venue_name || "").toLowerCase()
+                const nameB = (b.venue_name || "").toLowerCase()
+                if (nameA < nameB) return sortOrder === "asc" ? -1 : 1
+                if (nameA > nameB) return sortOrder === "asc" ? 1 : -1
+                return 0
+            })
+        }
+
+        return result
+    }, [roms, searchQuery, sortOrder])
+
+    const totalItems = processedRoms.length
+    const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage))
+
+    const safeCurrentPage = Math.min(currentPage, totalPages)
+    if (safeCurrentPage !== currentPage) {
+        setCurrentPage(safeCurrentPage)
+    }
+
+    const startIndex = (safeCurrentPage - 1) * rowsPerPage
+    const endIndex = startIndex + rowsPerPage
+    const paginatedRoms = processedRoms.slice(startIndex, endIndex)
+
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value)
         setCurrentPage(1)
     }
 
-    const filtered = useMemo(() => {
-        if (!roms) return []
-        const q = searchQuery.toLowerCase().trim()
-        if (!q) return roms
-        return roms.filter((rom) =>
-            rom.venue_name?.toLowerCase().includes(q) ||
-            rom.venue_address?.toLowerCase().includes(q) ||
-            rom.venue_type?.toLowerCase().includes(q) ||
-            rom.system_type?.toLowerCase().includes(q) ||
-            rom.das_vendor?.toLowerCase().includes(q) ||
-            rom.bda_vendor?.toLowerCase().includes(q)
-        )
-    }, [roms, searchQuery])
+    const handleSortChange = (value) => {
+        setSortOrder(value === "none" ? null : value)
+        setCurrentPage(1)
+    }
 
-    const sorted = useMemo(() => {
-        if (!sortConfig.key) return filtered
-        return [...filtered].sort((a, b) => {
-            let aVal = a[sortConfig.key]
-            let bVal = b[sortConfig.key]
-            if (sortConfig.key === "vendor") {
-                aVal = getVendor(a)
-                bVal = getVendor(b)
-            }
-            if (aVal == null) return 1
-            if (bVal == null) return -1
-            if (typeof aVal === "number" && typeof bVal === "number") {
-                return sortConfig.direction === "asc" ? aVal - bVal : bVal - aVal
-            }
-            const cmp = String(aVal).localeCompare(String(bVal))
-            return sortConfig.direction === "asc" ? cmp : -cmp
-        })
-    }, [filtered, sortConfig])
+    const handleRowsPerPageChange = (value) => {
+        setRowsPerPage(Number(value))
+        setCurrentPage(1)
+    }
 
-    const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-    const paginated = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+    const getPageNumbers = () => {
+        const pages = []
+        const maxVisible = 5
+
+        if (totalPages <= maxVisible + 2) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i)
+            }
+        } else {
+            pages.push(1)
+
+            let start = Math.max(2, safeCurrentPage - 1)
+            let end = Math.min(totalPages - 1, safeCurrentPage + 1)
+
+            if (safeCurrentPage <= 3) {
+                end = Math.min(totalPages - 1, 4)
+            }
+            if (safeCurrentPage >= totalPages - 2) {
+                start = Math.max(2, totalPages - 3)
+            }
+
+            if (start > 2) {
+                pages.push("...")
+            }
+
+            for (let i = start; i <= end; i++) {
+                pages.push(i)
+            }
+
+            if (end < totalPages - 1) {
+                pages.push("...")
+            }
+
+            pages.push(totalPages)
+        }
+
+        return pages
+    }
 
     if (!roms || roms.length === 0) {
         return (
@@ -105,37 +154,53 @@ export function RomsTable({ roms }) {
         )
     }
 
-    const columns = [
-        { key: "venue_name", label: "Venue Name", icon: Building2 },
-        { key: "venue_address", label: "Venue Address", icon: MapPin },
-        { key: "venue_type", label: "Type", icon: Layers },
-        { key: "num_floors", label: "Floors", icon: null },
-        { key: "gross_sq_ft", label: "Total Coverage Area (sq ft)", icon: null },
-        { key: "has_parking_garage", label: "Parking", icon: ParkingCircle },
-        { key: "system_type", label: "System Type", icon: Cpu },
-        { key: "vendor", label: "Vendor", icon: null },
-        { key: "num_sectors", label: "Sectors", icon: null },
-    ]
-
     return (
-        <div className="space-y-4">
-            {/* Search Bar */}
-            <div className="flex items-center gap-3">
-                <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <>
+            {/* Search Bar & Sort Controls */}
+            <div className="flex flex-col sm:flex-row items-center justify-start gap-3 mb-4">
+                {/* Search Input */}
+                <div className="relative w-full sm:w-auto">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value)
-                            setCurrentPage(1)
-                        }}
+                        type="text"
                         placeholder="Search by venue name, address, type, vendor..."
-                        className="pl-9 h-10 bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 rounded-xl"
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                        className="pl-10 h-10 w-full sm:w-[500px] bg-white dark:bg-[#1a1d21] border-gray-200 dark:border-gray-700 focus-visible:ring-red-500/30 focus-visible:border-red-500 text-sm"
                     />
                 </div>
-                <span className="text-sm text-muted-foreground whitespace-nowrap">
-                    {filtered.length} {filtered.length === 1 ? "result" : "results"}
-                </span>
+
+                {/* Sort Dropdown */}
+                <Select
+                    value={sortOrder || "none"}
+                    onValueChange={handleSortChange}
+                >
+                    <SelectTrigger className="w-full sm:w-[220px] h-9 bg-white dark:bg-[#1a1d21] border-gray-200 dark:border-gray-700 text-sm">
+                        <div className="flex items-center gap-2">
+                            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+                            <SelectValue placeholder="Sort by Venue Name" />
+                        </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="none">
+                            <span className="flex items-center gap-2">
+                                No Sorting
+                            </span>
+                        </SelectItem>
+                        <SelectItem value="asc">
+                            <span className="flex items-center gap-2">
+                                <ArrowUpAZ className="h-4 w-4" />
+                                Venue Name: A → Z
+                            </span>
+                        </SelectItem>
+                        <SelectItem value="desc">
+                            <span className="flex items-center gap-2">
+                                <ArrowDownAZ className="h-4 w-4" />
+                                Venue Name: Z → A
+                            </span>
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             {/* Table */}
@@ -144,162 +209,234 @@ export function RomsTable({ roms }) {
                     <Table>
                         <TableHeader className="bg-gray-50/50 dark:bg-gray-900/50">
                             <TableRow className="hover:bg-transparent border-gray-100 dark:border-gray-800">
-                                {columns.map((col) => (
-                                    <TableHead
-                                        key={col.key}
-                                        onClick={() => handleSort(col.key)}
-                                        className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-gray-900 dark:hover:text-gray-100 transition-colors first:pl-6 last:pr-6 whitespace-nowrap"
-                                    >
-                                        <div className="flex items-center">
-                                            {col.label}
-                                            <SortIcon column={col.key} sortConfig={sortConfig} />
-                                        </div>
-                                    </TableHead>
-                                ))}
+                                <TableHead className="py-4 pl-6 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                    Venue Name
+                                </TableHead>
+                                <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                    Venue Address
+                                </TableHead>
+                                <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                    Type
+                                </TableHead>
+                                <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                    Floors
+                                </TableHead>
+                                <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                    Total Coverage Area (sq ft)
+                                </TableHead>
+                                <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                    Parking
+                                </TableHead>
+                                <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                    System Type
+                                </TableHead>
+                                <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                    Vendor
+                                </TableHead>
+                                <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                    Sectors
+                                </TableHead>
+                                <TableHead className="py-4 pr-6 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {paginated.map((rom) => (
-                                <TableRow
-                                    key={rom.id}
-                                    className="group hover:bg-gray-50/80 dark:hover:bg-gray-800/50 border-gray-100 dark:border-gray-800 transition-colors"
-                                >
-                                    {/* Venue Name */}
-                                    <TableCell className="pl-6 py-4">
-                                        <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">
-                                            {rom.venue_name}
-                                        </span>
-                                    </TableCell>
-
-                                    {/* Venue Address */}
-                                    <TableCell className="py-4 max-w-[280px]">
-                                        <div className="flex items-start gap-2">
-                                            <MapPin className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                                            <span className="text-sm text-gray-600 dark:text-gray-300 truncate font-medium" title={rom.venue_address}>
-                                                {rom.venue_address}
+                            {paginatedRoms.length > 0 ? (
+                                paginatedRoms.map((rom) => (
+                                    <TableRow
+                                        key={rom.id}
+                                        className="group hover:bg-gray-50/80 dark:hover:bg-gray-800/50 border-gray-100 dark:border-gray-800 transition-colors cursor-pointer"
+                                        onClick={() => router.push(`/all-roms/${rom.id}`)}
+                                    >
+                                        <TableCell className="pl-6 py-4">
+                                            <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                                                {rom.venue_name}
                                             </span>
+                                        </TableCell>
+
+                                        <TableCell className="py-4 max-w-[280px]">
+                                            <div className="flex items-start gap-2">
+                                                <MapPin className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                                                <span className="text-sm text-gray-600 dark:text-gray-300 truncate font-medium" title={rom.venue_address}>
+                                                    {rom.venue_address}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+
+                                        <TableCell className="py-4">
+                                            <Badge
+                                                variant="outline"
+                                                className="border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-medium whitespace-nowrap"
+                                            >
+                                                {rom.venue_type}
+                                            </Badge>
+                                        </TableCell>
+
+                                        <TableCell className="py-4 text-center">
+                                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                                {rom.num_floors}
+                                            </span>
+                                        </TableCell>
+
+                                        <TableCell className="py-4 text-center">
+                                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                                {Number(rom.gross_sq_ft).toLocaleString()}
+                                            </span>
+                                        </TableCell>
+
+                                        <TableCell className="py-4 text-center">
+                                            <Badge
+                                                variant="secondary"
+                                                className={rom.has_parking_garage
+                                                    ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-0 font-medium"
+                                                    : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-0 font-medium"
+                                                }
+                                            >
+                                                {rom.has_parking_garage ? "Yes" : "No"}
+                                            </Badge>
+                                        </TableCell>
+
+                                        <TableCell className="py-4">
+                                            <Badge
+                                                variant="secondary"
+                                                className="bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300 border-0 font-medium whitespace-nowrap"
+                                            >
+                                                {rom.system_type}
+                                            </Badge>
+                                        </TableCell>
+
+                                        <TableCell className="py-4">
+                                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                                                {getVendor(rom)}
+                                            </span>
+                                        </TableCell>
+
+                                        <TableCell className="py-4 text-center">
+                                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                                {rom.num_sectors}
+                                            </span>
+                                        </TableCell>
+
+                                        <TableCell className="text-right pr-6 py-4">
+                                            <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-red-500 transition-colors duration-200 ml-auto" />
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={10} className="h-32 text-center">
+                                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                            <Search className="h-8 w-8 opacity-30" />
+                                            <p className="text-sm">No records found matching &quot;{searchQuery}&quot;</p>
                                         </div>
                                     </TableCell>
-
-                                    {/* Venue Type */}
-                                    <TableCell className="py-4">
-                                        <Badge
-                                            variant="outline"
-                                            className="border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-medium whitespace-nowrap"
-                                        >
-                                            {rom.venue_type}
-                                        </Badge>
-                                    </TableCell>
-
-                                    {/* Number of Floors */}
-                                    <TableCell className="py-4 text-center">
-                                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                                            {rom.num_floors}
-                                        </span>
-                                    </TableCell>
-
-                                    {/* Gross Sq Ft */}
-                                    <TableCell className="py-4 text-center">
-                                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                                            {Number(rom.gross_sq_ft).toLocaleString()}
-                                        </span>
-                                    </TableCell>
-
-                                    {/* Parking Garage */}
-                                    <TableCell className="py-4 text-center">
-                                        <Badge
-                                            variant="secondary"
-                                            className={rom.has_parking_garage
-                                                ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-0 font-medium"
-                                                : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-0 font-medium"
-                                            }
-                                        >
-                                            {rom.has_parking_garage ? "Yes" : "No"}
-                                        </Badge>
-                                    </TableCell>
-
-                                    {/* System Type */}
-                                    <TableCell className="py-4">
-                                        <Badge
-                                            variant="secondary"
-                                            className="bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300 border-0 font-medium whitespace-nowrap"
-                                        >
-                                            {rom.system_type}
-                                        </Badge>
-                                    </TableCell>
-
-                                    {/* Vendor */}
-                                    <TableCell className="py-4">
-                                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
-                                            {getVendor(rom)}
-                                        </span>
-                                    </TableCell>
-
-                                    {/* Number of Sectors */}
-                                    <TableCell className="pr-6 py-4 text-center">
-                                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                                            {rom.num_sectors}
-                                        </span>
-                                    </TableCell>
                                 </TableRow>
-                            ))}
+                            )}
                         </TableBody>
                     </Table>
                 </div>
             </Card>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex items-center justify-between px-2">
-                    <span className="text-sm text-muted-foreground">
-                        Page {currentPage} of {totalPages}
-                    </span>
-                    <div className="flex items-center gap-2">
+            {/* Pagination Controls */}
+            {totalItems > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 px-1">
+                    {/* Rows per page selector + record info */}
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</span>
+                            <Select
+                                value={String(rowsPerPage)}
+                                onValueChange={handleRowsPerPageChange}
+                            >
+                                <SelectTrigger className="w-[75px] h-9 bg-white dark:bg-[#1a1d21] border-gray-200 dark:border-gray-700">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="10">10</SelectItem>
+                                    <SelectItem value="20">20</SelectItem>
+                                    <SelectItem value="30">30</SelectItem>
+                                    <SelectItem value="40">40</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            Showing {totalItems === 0 ? 0 : startIndex + 1}–{Math.min(endIndex, totalItems)} of {totalItems} record{totalItems !== 1 ? "s" : ""}
+                            {searchQuery.trim() && ` (filtered from ${roms.length} total)`}
+                        </span>
+                    </div>
+
+                    {/* Page navigation */}
+                    <div className="flex items-center gap-1">
                         <Button
                             variant="outline"
-                            size="sm"
-                            disabled={currentPage === 1}
-                            onClick={() => setCurrentPage((p) => p - 1)}
-                            className="h-8 w-8 p-0"
+                            size="icon"
+                            className="h-9 w-9 border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1d21] hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"
+                            onClick={() => setCurrentPage(1)}
+                            disabled={safeCurrentPage === 1}
+                            title="First page"
+                        >
+                            <ChevronsLeft className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1d21] hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={safeCurrentPage === 1}
+                            title="Previous page"
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1)
-                            .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                            .reduce((acc, p, idx, arr) => {
-                                if (idx > 0 && p - arr[idx - 1] > 1) {
-                                    acc.push("ellipsis-" + p)
-                                }
-                                acc.push(p)
-                                return acc
-                            }, [])
-                            .map((item) =>
-                                typeof item === "string" ? (
-                                    <span key={item} className="text-sm text-muted-foreground px-1">...</span>
-                                ) : (
-                                    <Button
-                                        key={item}
-                                        variant={item === currentPage ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => setCurrentPage(item)}
-                                        className={`h-8 w-8 p-0 ${item === currentPage ? "bg-red-600 hover:bg-red-700 text-white" : ""}`}
-                                    >
-                                        {item}
-                                    </Button>
-                                )
-                            )}
+
+                        {getPageNumbers().map((page, idx) =>
+                            page === "..." ? (
+                                <span
+                                    key={`ellipsis-${idx}`}
+                                    className="px-2 text-sm text-muted-foreground select-none"
+                                >
+                                    …
+                                </span>
+                            ) : (
+                                <Button
+                                    key={page}
+                                    variant={page === safeCurrentPage ? "default" : "outline"}
+                                    size="icon"
+                                    className={`h-9 w-9 text-sm font-medium transition-all duration-200 ${page === safeCurrentPage
+                                        ? "bg-red-600 hover:bg-red-700 text-white border-red-600 shadow-md"
+                                        : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1d21] hover:bg-gray-100 dark:hover:bg-gray-800"
+                                        }`}
+                                    onClick={() => setCurrentPage(page)}
+                                >
+                                    {page}
+                                </Button>
+                            )
+                        )}
+
                         <Button
                             variant="outline"
-                            size="sm"
-                            disabled={currentPage === totalPages}
-                            onClick={() => setCurrentPage((p) => p + 1)}
-                            className="h-8 w-8 p-0"
+                            size="icon"
+                            className="h-9 w-9 border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1d21] hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={safeCurrentPage === totalPages}
+                            title="Next page"
                         >
                             <ChevronRight className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1d21] hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"
+                            onClick={() => setCurrentPage(totalPages)}
+                            disabled={safeCurrentPage === totalPages}
+                            title="Last page"
+                        >
+                            <ChevronsRight className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
             )}
-        </div>
+        </>
     )
 }
