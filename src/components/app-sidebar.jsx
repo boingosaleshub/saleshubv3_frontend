@@ -93,7 +93,7 @@ export function AppSidebar({ ...props }) {
       icon: Layers,
       items: [
         { title: t("createNew"), url: "/new-rom-form" },
-        { title: t("searchRom"), url: "#" },
+        { title: t("searchRom"), url: "/all-roms" },
         { title: t("myRoms"), url: "#" },
         { title: t("approvals"), url: "#" },
       ],
