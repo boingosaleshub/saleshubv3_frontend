@@ -3,42 +3,199 @@
  * Generates pricing Excel sheets for ROM automation
  * Uses ExcelJS for professional Excel file generation with styling
  * 
- * Data is fetched from vendor_adrf / vendor_comba Supabase tables
- * and dynamically populates each section with the correct items.
+ * For DAS ADRF: loads the actual template file and only modifies dynamic values
+ * (Total Area, Considered Area, %, and Qty values). This guarantees the generated
+ * file is an exact cell-by-cell mirror of the template.
+ * 
+ * For other vendors/system types: builds workbook from scratch dynamically.
  */
 
 import ExcelJS from 'exceljs';
 import { fetchVendorData } from './vendorDataService';
 import { calculateQtyValues } from './qtyCalculationService';
 
-/**
- * Color palette for styling
- */
+// ========================================================
+//  COLOR PALETTE (for non-template generation)
+// ========================================================
 const COLORS = {
-    headerBackground: '3D434A',      // Dark gray header
-    headerText: 'FFFFFF',            // White text
-    greenBackground: '92D050',       // Green for area values
-    yellowBackground: 'FFFF00',      // Yellow for percentage
-    orangeBackground: 'FFC000',      // Orange for CAPEX/SF header
-    borderColor: 'B4B4B4',           // Light gray border
-    categoryBackground: 'C00000',    // Red for category labels
-    categoryText: 'FFFFFF',          // White text for categories
+    headerBackground: '3D434A',
+    headerText: 'FFFFFF',
+    greenBackground: '92D050',
+    yellowBackground: 'FFFF00',
+    orangeBackground: 'FFC000',
+    borderColor: 'B4B4B4',
+    categoryBackground: 'C00000',
+    categoryText: 'FFFFFF',
 };
+
+// ========================================================
+//  DAS ADRF TEMPLATE CONFIGURATION
+//  Maps each template item name to its exact row number
+//  in the CELLULAR DAS tab of the template file.
+//  Default values are used when no calculated qty is available.
+// ========================================================
+const DAS_ADRF_TEMPLATE_PATH = '/Project Name - Pricing v.2.2 - ADRF - Price Updated (4).xlsm';
+
+const DAS_ADRF_ITEM_ROWS = [
+    // DAS HEAD-END (rows 6-12)
+    { row: 6, name: 'ADX V Chassis w/ NMS (Network Management System)', defaultQty: 0 },
+    { row: 7, name: 'ADX V DAS Optical Donor Unit Module', defaultQty: 0 },
+    { row: 8, name: 'POI Module Standard frequencies (700MHz/800Mhz/PCS/AWS)', defaultQty: 0 },
+    { row: 9, name: 'POI Module BRS (2.5 GHz)', defaultQty: 0 },
+    { row: 10, name: 'POI Module C-Band (3.7 GHz)', defaultQty: 0 },
+    { row: 11, name: 'Head End Channel Combiner Module for Downlink', defaultQty: 0 },
+    { row: 12, name: 'Head End Channel Combiner Module for Uplink', defaultQty: 0 },
+
+    // REMOTE UNITS (rows 14-29)
+    { row: 14, name: 'High-Power Remote Chassis', defaultQty: 0 },
+    { row: 15, name: 'High Power Remote Rack', defaultQty: 0 },
+    { row: 16, name: 'High-Power Remote Amplifiers (700MHz/800Mhz/PCS/AWS)', defaultQty: 0 },
+    { row: 17, name: 'High-Power Remote Amplifiers (2.5GHz)', defaultQty: 0 },
+    { row: 18, name: 'High-Power Remote Amplifiers (C-Band)', defaultQty: 0 },
+    { row: 19, name: 'High-Power Remote Universal Channel Combiner', defaultQty: 0 },
+    { row: 20, name: 'High-Power Remote Optical Module', defaultQty: 0 },
+    { row: 21, name: 'ADX V DAS High Power Remote AC Power Supply Unit Module', defaultQty: 0 },
+    { row: 22, name: 'ADX V DAS High Power Remote AC Power Supply Unit Module (50v)', defaultQty: 0 },
+    { row: 23, name: 'Mid-Power Remote Chassis', defaultQty: 0 },
+    { row: 24, name: 'Mid-Power Remote Amplifiers (700MHz/800Mhz/PCS/AWS)', defaultQty: 0 },
+    { row: 25, name: 'Mid-Power Remote Amplifiers (2.5GHz)', defaultQty: 0 },
+    { row: 26, name: 'Mid-Power Remote Amplifiers (C-Band)', defaultQty: 0 },
+    { row: 27, name: 'Mid-Power Remote Universal Channel Combiner', defaultQty: 0 },
+    { row: 28, name: 'Mid-Power Remote Optical Module', defaultQty: 0 },
+
+    // OTH EQUIP (rows 31-36)
+    { row: 31, name: 'Indoor Cabling & Materials', defaultQty: 0 },
+    { row: 32, name: 'Outdoor Cabling & Materials', defaultQty: 0 },
+    { row: 33, name: 'Outdoor Poles', defaultQty: 0 },
+    { row: 34, name: 'Donor Antenna', defaultQty: '-' },
+    { row: 35, name: 'GPS ( Standard)', defaultQty: '-' },
+    { row: 36, name: 'Headend Miscellaneous', defaultQty: '-' },
+
+    // SIGNAL SOURCE (rows 38-46)
+    { row: 38, name: 'Verizon Extender', defaultQty: 0 },
+    { row: 39, name: 'AT&T MetroCell', defaultQty: 0 },
+    { row: 40, name: 'OneCell - CAPEX', defaultQty: '-' },
+    { row: 41, name: 'OneCell - OPEX', defaultQty: 0 },
+    { row: 42, name: 'OneCell - Extra Sector CAPEX', defaultQty: null },
+    { row: 43, name: 'AT&T Base Station', defaultQty: null },
+    { row: 44, name: 'Verizon BAse Station', defaultQty: null },
+    { row: 45, name: 'T-Mobile Base Station', defaultQty: null },
+    { row: 46, name: 'ADRF SDA Reapeter (mBDA)', defaultQty: '-' },
+
+    // SERVICE & LABOR (rows 48-53)
+    { row: 48, name: 'Site Survey, Design & Mgmt.', defaultQty: 0 },
+    { row: 49, name: 'Installation Labor', defaultQty: null },
+    { row: 50, name: 'Sales Commission', defaultQty: null },
+    { row: 51, name: 'GPO Fee', defaultQty: null },
+    { row: 52, name: 'Monitoring & Maintenance', defaultQty: null },
+    { row: 53, name: 'Insurance', defaultQty: null },
+];
+
+// ========================================================
+//  DAS ADRF: Build a case-insensitive qty lookup from
+//  the calculated vendor data (API + formulas)
+// ========================================================
+function buildDasAdrfQtyMap(vendorData) {
+    const map = new Map();
+    if (!vendorData) return map;
+
+    for (const section of vendorData) {
+        for (const item of section.items) {
+            if (item.qty !== null && item.qty !== undefined) {
+                map.set(item.name.trim().toLowerCase(), item.qty);
+            }
+        }
+    }
+    return map;
+}
+
+// ========================================================
+//  DAS ADRF: Generate Excel by loading the template file
+//  and only modifying dynamic cells (area + qty values).
+//  Everything else stays exactly as the template.
+// ========================================================
+async function generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorData }) {
+    const templateUrl = encodeURI(DAS_ADRF_TEMPLATE_PATH);
+    console.log('[ExcelGen] Fetching DAS ADRF template from:', templateUrl);
+
+    const response = await fetch(templateUrl);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch DAS ADRF template: ${response.status} ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+
+    const ws = workbook.getWorksheet(' CELLULAR DAS ');
+    if (!ws) {
+        throw new Error('CELLULAR DAS worksheet not found in template');
+    }
+
+    // --- Set TOTAL AREA (H2, merged H2:K2) ---
+    ws.getCell('H2').value = totalArea;
+    ['I2', 'J2', 'K2'].forEach(ref => { ws.getCell(ref).value = null; });
+
+    // --- Set CONSIDERED AREA (H3, merged H3:K3) ---
+    const consideredArea = totalArea * (areaPercentage / 100);
+    ws.getCell('H3').value = consideredArea;
+    ['I3', 'J3', 'K3'].forEach(ref => { ws.getCell(ref).value = null; });
+
+    // --- Set % AREA TO CONSIDER (O3) ---
+    // Template uses 1 for 100%, 0.8 for 80%, etc.
+    ws.getCell('O3').value = areaPercentage / 100;
+
+    // --- Set Qty values (column I) ---
+    const qtyMap = buildDasAdrfQtyMap(vendorData);
+    console.log('[ExcelGen] Built qty map with', qtyMap.size, 'items');
+
+    for (const { row, name, defaultQty } of DAS_ADRF_ITEM_ROWS) {
+        const calcQty = qtyMap.get(name.trim().toLowerCase()) ?? null;
+        const cell = ws.getCell(`I${row}`);
+
+        if (calcQty !== null) {
+            cell.value = calcQty;
+            console.log(`[ExcelGen] I${row} = ${calcQty} (${name})`);
+        } else if (defaultQty !== null && defaultQty !== undefined) {
+            cell.value = defaultQty;
+        } else {
+            cell.value = null;
+        }
+    }
+
+    // --- Remove SIZE and ERCES worksheets ---
+    // These contain template-specific data and formulas referencing them
+    // have already been replaced with direct values above.
+    const sizeSheet = workbook.getWorksheet(' SIZE ');
+    if (sizeSheet) workbook.removeWorksheet(sizeSheet.id);
+
+    const ercesSheet = workbook.getWorksheet('ERCES');
+    if (ercesSheet) workbook.removeWorksheet(ercesSheet.id);
+
+    console.log('[ExcelGen] DAS ADRF template generation complete');
+    return workbook;
+}
+
+async function generateDasAdrfAsBase64({ totalArea, areaPercentage, vendorData }) {
+    const workbook = await generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorData });
+    const filename = generateExcelFilename({ systemType: 'DAS', dasVendor: 'ADRF' });
+    const buffer = await workbook.xlsx.writeBuffer();
+    const base64 = arrayBufferToBase64(buffer);
+    return { filename, buffer: base64 };
+}
+
+
+// ========================================================
+//  FILENAME GENERATION
+// ========================================================
 
 /**
  * Generates the filename based on system type and vendor
- * @param {Object} params - The form parameters
- * @param {string} params.systemType - The system type (DAS, ERCES, DAS & ERCES)
- * @param {string} params.dasVendor - The DAS vendor (Comba, ADRF)
- * @param {string} params.bdaVendor - The BDA/Booster vendor (Comba, ADRF)
- * @param {string} params.fileType - Optional: Force specific file type (DAS or ERCES) for combined systems
- * @returns {string} - The generated filename
  */
 export function generateExcelFilename({ systemType, dasVendor, bdaVendor, fileType }) {
     let prefix = 'Pricing';
     let vendor = '';
 
-    // If fileType is specified, use it directly (for combined systems generating separate files)
     if (fileType === 'DAS') {
         prefix = 'DAS_Pricing';
         vendor = dasVendor || 'Comba';
@@ -52,11 +209,9 @@ export function generateExcelFilename({ systemType, dasVendor, bdaVendor, fileTy
         prefix = 'DAS_Pricing';
         vendor = dasVendor || 'Comba';
     } else if (systemType === 'DAS & ERCES') {
-        // For combined systems without fileType specified, default to DAS
         prefix = 'DAS_Pricing';
         vendor = dasVendor || bdaVendor || 'Comba';
     } else {
-        // Default fallback
         prefix = 'Pricing';
         vendor = dasVendor || bdaVendor || 'Comba';
     }
@@ -64,11 +219,12 @@ export function generateExcelFilename({ systemType, dasVendor, bdaVendor, fileTy
     return `${prefix}-V. 2.2-${vendor}.xlsx`;
 }
 
-/**
- * Applies border styling to a cell
- * @param {ExcelJS.Cell} cell - The cell to style
- * @param {string} style - Border style (thin, medium, thick)
- */
+
+// ========================================================
+//  GENERIC EXCEL GENERATION (non-ADRF DAS)
+//  Used for Comba, ERCES, and other vendor combinations
+// ========================================================
+
 function applyBorder(cell, style = 'thin') {
     cell.border = {
         top: { style, color: { argb: COLORS.borderColor } },
@@ -78,30 +234,12 @@ function applyBorder(cell, style = 'thin') {
     };
 }
 
-/**
- * Formats a number with commas for display
- * @param {number} value - The number to format
- * @returns {string} - Formatted number string
- */
 function formatNumber(value) {
     if (!value && value !== 0) return '-';
     return new Intl.NumberFormat('en-US').format(value);
 }
 
-/**
- * Gets the category sections based on vendor data from the database.
- * If vendorData is provided (fetched from DB), uses it to build dynamic sections.
- * Otherwise, falls back to hardcoded default sections.
- * 
- * @param {string} systemType - The system type (DAS, ERCES, DAS & ERCES)
- * @param {string} dasVendor - The DAS vendor
- * @param {string} bdaVendor - The BDA/Booster vendor
- * @param {string} fileType - Optional: Force specific file type (DAS or ERCES)
- * @param {Array|null} vendorData - Optional: Data fetched from vendor tables
- * @returns {Array<{name: string, rows: number, items: Array}>} - Array of section configurations
- */
 function getCategorySections(systemType, dasVendor, bdaVendor, fileType, vendorData) {
-    // If vendor data is available from the database, build sections dynamically
     if (vendorData && vendorData.length > 0) {
         return vendorData.map(section => ({
             name: section.displayName || section.name,
@@ -110,10 +248,8 @@ function getCategorySections(systemType, dasVendor, bdaVendor, fileType, vendorD
         }));
     }
 
-    // === FALLBACK: Hardcoded sections when no vendor data is available ===
     const effectiveType = fileType || systemType;
 
-    // For ERCES systems (or ERCES file in combined)
     if (effectiveType === 'ERCES') {
         return [
             { name: 'EQUIPMENT', rows: 12, items: [] },
@@ -124,7 +260,6 @@ function getCategorySections(systemType, dasVendor, bdaVendor, fileType, vendorD
         ];
     }
 
-    // For DAS systems (or DAS file in combined)
     if (effectiveType === 'DAS' || effectiveType === 'DAS & ERCES') {
         const vendor = dasVendor || bdaVendor;
         const sections = [
@@ -132,7 +267,6 @@ function getCategorySections(systemType, dasVendor, bdaVendor, fileType, vendorD
             { name: 'REMOTE UNITS', rows: 8, items: [] }
         ];
 
-        // Different section name based on vendor
         if (vendor === 'ADRF') {
             sections.push({ name: 'OTH EQUIP', rows: 6, items: [] });
         } else {
@@ -148,7 +282,6 @@ function getCategorySections(systemType, dasVendor, bdaVendor, fileType, vendorD
         return sections;
     }
 
-    // Default fallback
     return [
         { name: 'EQUIPMENT', rows: 15, items: [] },
         { name: 'SERVICE & LABOR', rows: 7, items: [] },
@@ -156,19 +289,6 @@ function getCategorySections(systemType, dasVendor, bdaVendor, fileType, vendorD
     ];
 }
 
-/**
- * Generates the ROM pricing Excel workbook
- * 
- * @param {Object} params - The form parameters
- * @param {string} params.systemType - The system type
- * @param {string} params.dasVendor - The DAS vendor
- * @param {string} params.bdaVendor - The BDA/Booster vendor
- * @param {string|number} params.grossSqFt - The gross square footage (Total Area)
- * @param {number} params.areaPercentage - The percentage of area to consider (default 100)
- * @param {string} params.fileType - Optional: Force specific file type (DAS or ERCES) for combined systems
- * @param {Array|null} params.vendorData - Optional: Pre-fetched vendor data from database
- * @returns {Promise<{workbook: ExcelJS.Workbook, filename: string}>}
- */
 export async function generateRomExcel({
     systemType,
     dasVendor,
@@ -182,19 +302,14 @@ export async function generateRomExcel({
     workbook.creator = 'SalesHub ROM Automation';
     workbook.created = new Date();
 
-    // Create the pricing worksheet
     const worksheet = workbook.addWorksheet('Pricing', {
         views: [{ showGridLines: true }]
     });
 
-    // Parse total area value
     const totalArea = parseFloat(grossSqFt) || 0;
     const consideredArea = totalArea * (areaPercentage / 100);
 
-    // Get category sections (dynamically from DB data or fallback to hardcoded)
     const categorySections = getCategorySections(systemType, dasVendor, bdaVendor, fileType, vendorData);
-
-    // --- ROW 1-2: Header Area Information ---
 
     // Row 1: Total Area
     worksheet.mergeCells('D1:F1');
@@ -203,7 +318,6 @@ export async function generateRomExcel({
     totalAreaLabelCell.font = { bold: true, size: 11 };
     totalAreaLabelCell.alignment = { horizontal: 'right', vertical: 'middle' };
 
-    // Total Area Value cell
     worksheet.mergeCells('G1:I1');
     const totalAreaValueCell = worksheet.getCell('G1');
     totalAreaValueCell.value = `${formatNumber(totalArea)} sq ft`;
@@ -215,7 +329,6 @@ export async function generateRomExcel({
     };
     totalAreaValueCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-    // % Area to Consider label and value
     worksheet.mergeCells('L1:M1');
     const percentLabelCell = worksheet.getCell('L1');
     percentLabelCell.value = '% AREA TO CONSIDER';
@@ -240,7 +353,6 @@ export async function generateRomExcel({
     };
     consideredAreaValueCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-    // % Area to Consider Value (100%)
     worksheet.mergeCells('L2:M2');
     const percentValueCell = worksheet.getCell('L2');
     percentValueCell.value = `${areaPercentage}%`;
@@ -252,17 +364,16 @@ export async function generateRomExcel({
     };
     percentValueCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-    // --- ROW 3: Empty row for spacing ---
+    // Row 3: Spacer
     worksheet.getRow(3).height = 10;
 
-    // --- ROW 4: Column Headers ---
+    // Row 4: Column Headers
     worksheet.getRow(4).height = 22;
 
-    // Define header positions (columns B through J, leaving A for equipment category)
     const headerCells = [
-        { col: 'B', value: '' },              // Equipment name column (no header text)
-        { col: 'C', value: '' },              // Part of equipment name area
-        { col: 'D', value: '' },              // Part of equipment name area
+        { col: 'B', value: '' },
+        { col: 'C', value: '' },
+        { col: 'D', value: '' },
         { col: 'E', value: 'Unit Price' },
         { col: 'F', value: 'Qty' },
         { col: 'G', value: 'Capex' },
@@ -271,10 +382,8 @@ export async function generateRomExcel({
         { col: 'J', value: 'Assumptions' }
     ];
 
-    // Merge cells B4:D4 for equipment column header area
     worksheet.mergeCells('B4:D4');
 
-    // Apply styles to header cells
     headerCells.forEach(({ col, value }) => {
         const cell = worksheet.getCell(`${col}4`);
         cell.value = value;
@@ -282,7 +391,6 @@ export async function generateRomExcel({
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
         applyBorder(cell);
 
-        // Special styling for CAPEX/SF header (orange background)
         if (value === 'CAPEX/SF') {
             cell.fill = {
                 type: 'pattern',
@@ -292,19 +400,16 @@ export async function generateRomExcel({
         }
     });
 
-    // --- ROW 5+: Category Sections with Data from Database ---
-    let currentRow = 5; // Start from row 5
-    const GAP_BETWEEN_SECTIONS = 4; // Number of empty rows between red category sections
+    // Category Sections
+    let currentRow = 5;
+    const GAP_BETWEEN_SECTIONS = 4;
 
-    // Create each category section and populate with data
     categorySections.forEach((section, sectionIndex) => {
-        // Ensure at least 1 row per section even if no items
         const rowCount = Math.max(section.rows, 1);
         const sectionStartRow = currentRow;
         const sectionEndRow = currentRow + rowCount - 1;
         const items = section.items || [];
 
-        // Merge cells in column A for the category label
         worksheet.mergeCells(`A${sectionStartRow}:A${sectionEndRow}`);
         const categoryCellLabel = worksheet.getCell(`A${sectionStartRow}`);
         categoryCellLabel.value = section.name;
@@ -326,14 +431,12 @@ export async function generateRomExcel({
         };
         applyBorder(categoryCellLabel);
 
-        // Populate rows for this section
         for (let i = 0; i < rowCount; i++) {
             const rowNum = sectionStartRow + i;
-            const item = items[i]; // May be undefined if fewer items than rows
+            const item = items[i];
             const row = worksheet.getRow(rowNum);
             row.height = 18;
 
-            // Detect SUB-TOTAL and TOTAL rows by name for special styling
             const itemNameUpper = item ? item.name.toUpperCase().trim() : '';
             const isHighlightedRow = (itemNameUpper === 'SUB-TOTAL' || itemNameUpper === 'TOTAL');
 
@@ -341,17 +444,14 @@ export async function generateRomExcel({
                 row.height = 22;
             }
 
-            // Apply borders and data to each cell in the row (columns B through J)
             ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].forEach(col => {
                 const cell = worksheet.getCell(`${col}${rowNum}`);
 
-                // Equipment/item name in column B (will be merged with C, D)
                 if (col === 'B' && item) {
                     cell.value = item.name;
                     cell.alignment = { vertical: 'middle' };
                     cell.font = { size: 10 };
 
-                    // SUB-TOTAL / TOTAL: red background, white bold text
                     if (isHighlightedRow) {
                         cell.font = { bold: true, size: 11, color: { argb: COLORS.categoryText } };
                         cell.fill = {
@@ -363,7 +463,6 @@ export async function generateRomExcel({
                     }
                 }
 
-                // Also apply red fill to C and D for highlighted rows (before merge)
                 if ((col === 'C' || col === 'D') && isHighlightedRow) {
                     cell.fill = {
                         type: 'pattern',
@@ -372,10 +471,8 @@ export async function generateRomExcel({
                     };
                 }
 
-                // Unit Price (column E)
                 if (col === 'E') {
                     if (isHighlightedRow) {
-                        // Gray background for SUB-TOTAL / TOTAL
                         cell.fill = {
                             type: 'pattern',
                             pattern: 'solid',
@@ -387,10 +484,8 @@ export async function generateRomExcel({
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
 
-                // Qty (column F)
                 if (col === 'F') {
                     if (isHighlightedRow) {
-                        // Gray background for SUB-TOTAL / TOTAL
                         cell.fill = {
                             type: 'pattern',
                             pattern: 'solid',
@@ -402,22 +497,18 @@ export async function generateRomExcel({
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
 
-                // Capex (column G) - dash
                 if (col === 'G') {
                     cell.value = '-';
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
 
-                // Opex (column H) - dash
                 if (col === 'H') {
                     cell.value = '-';
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
 
-                // CAPEX/SF (column I)
                 if (col === 'I') {
                     if (isHighlightedRow) {
-                        // Red background for SUB-TOTAL / TOTAL
                         cell.value = '-';
                         cell.fill = {
                             type: 'pattern',
@@ -435,7 +526,6 @@ export async function generateRomExcel({
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
 
-                // Assumptions (column J) - from database
                 if (col === 'J' && item && item.assumptions) {
                     cell.value = item.assumptions;
                     cell.alignment = { vertical: 'middle', wrapText: true };
@@ -445,45 +535,40 @@ export async function generateRomExcel({
                 applyBorder(cell);
             });
 
-            // Merge equipment/item name cells (B-D) for wider name display
             worksheet.mergeCells(`B${rowNum}:D${rowNum}`);
         }
 
-        // Move to next section
         currentRow = sectionEndRow + 1;
 
-        // Add empty rows gap between sections (except after the last section)
         if (sectionIndex < categorySections.length - 1) {
             currentRow += GAP_BETWEEN_SECTIONS;
         }
     });
 
-    // Set column widths
-    worksheet.getColumn('A').width = 4;   // Category column (narrow)
-    worksheet.getColumn('B').width = 15;  // Equipment name part 1
-    worksheet.getColumn('C').width = 15;  // Equipment name part 2
-    worksheet.getColumn('D').width = 15;  // Equipment name part 3
-    worksheet.getColumn('E').width = 12;  // Unit Price
-    worksheet.getColumn('F').width = 8;   // Qty
-    worksheet.getColumn('G').width = 10;  // Capex
-    worksheet.getColumn('H').width = 10;  // Opex
-    worksheet.getColumn('I').width = 10;  // CAPEX/SF
-    worksheet.getColumn('J').width = 35;  // Assumptions
-    worksheet.getColumn('K').width = 2;   // Spacer
-    worksheet.getColumn('L').width = 12;  // % Area label
-    worksheet.getColumn('M').width = 10;  // % Area value
+    worksheet.getColumn('A').width = 4;
+    worksheet.getColumn('B').width = 15;
+    worksheet.getColumn('C').width = 15;
+    worksheet.getColumn('D').width = 15;
+    worksheet.getColumn('E').width = 12;
+    worksheet.getColumn('F').width = 8;
+    worksheet.getColumn('G').width = 10;
+    worksheet.getColumn('H').width = 10;
+    worksheet.getColumn('I').width = 10;
+    worksheet.getColumn('J').width = 35;
+    worksheet.getColumn('K').width = 2;
+    worksheet.getColumn('L').width = 12;
+    worksheet.getColumn('M').width = 10;
 
-    // Generate filename
     const filename = generateExcelFilename({ systemType, dasVendor, bdaVendor, fileType });
 
     return { workbook, filename };
 }
 
-/**
- * Converts ArrayBuffer to base64 string (works in browser)
- * @param {ArrayBuffer} buffer - The buffer to convert
- * @returns {string} - Base64 encoded string
- */
+
+// ========================================================
+//  BUFFER / BASE64 HELPERS
+// ========================================================
+
 function arrayBufferToBase64(buffer) {
     let binary = '';
     const bytes = new Uint8Array(buffer);
@@ -494,52 +579,29 @@ function arrayBufferToBase64(buffer) {
     return btoa(binary);
 }
 
-/**
- * Generates Excel file and returns it as a base64 string
- * @param {Object} params - The form parameters (including optional vendorData)
- * @returns {Promise<{filename: string, buffer: string}>}
- */
 export async function generateRomExcelAsBase64(params) {
     const { workbook, filename } = await generateRomExcel(params);
-
-    // Generate buffer
     const buffer = await workbook.xlsx.writeBuffer();
-
-    // Convert to base64 (browser-compatible)
     const base64 = arrayBufferToBase64(buffer);
-
     return { filename, buffer: base64 };
 }
 
-/**
- * Generates multiple Excel files for ROM.
- * 
- * - For "DAS & ERCES" system type: generates separate DAS and ERCES files
- * - For "DAS" or "ERCES": generates a single file
- * 
- * Automatically fetches vendor data from Supabase tables (vendor_adrf or vendor_comba)
- * to populate each Excel sheet with the correct equipment items, names, and assumptions.
- * 
- * @param {Object} params - The form parameters
- * @param {string} params.systemType - The system type
- * @param {string} params.dasVendor - The DAS vendor (Comba, ADRF)
- * @param {string} params.bdaVendor - The BDA/Booster vendor (Comba, ADRF)
- * @param {string|number} params.grossSqFt - The gross square footage
- * @param {number} params.areaPercentage - The percentage of area to consider
- * @returns {Promise<Array<{filename: string, buffer: string}>>} - Array of Excel files
- */
+
+// ========================================================
+//  MAIN ENTRY POINT: Generate Excel files for ROM
+//  For DAS ADRF: uses template-based generation
+//  For everything else: uses dynamic generation
+// ========================================================
+
 export async function generateMultipleExcelFiles(params) {
     const { systemType, dasVendor, bdaVendor, grossSqFt, density, numSectors = 0, areaPercentage = 100 } = params;
     const files = [];
 
-    // Parse area values for qty formula calculations
     const totalArea = parseFloat(grossSqFt) || 0;
     const consideredArea = totalArea * (areaPercentage / 100);
 
-    // For "DAS & ERCES" system type, generate both files with respective vendor data
     if (systemType === 'DAS & ERCES') {
         // --- DAS Excel File ---
-        // Fetch DAS items from the DAS vendor table
         let dasVendorData = [];
         try {
             dasVendorData = await fetchVendorData(dasVendor || 'Comba', 'DAS');
@@ -548,23 +610,45 @@ export async function generateMultipleExcelFiles(params) {
             console.error('[ExcelGen] Failed to fetch DAS vendor data, using fallback:', err);
         }
 
-        // Calculate qty values using formulas from qtyFormulaConfig.js
         dasVendorData = calculateQtyValues(dasVendorData, dasVendor || 'Comba', 'DAS', totalArea, consideredArea, density, numSectors);
 
-        const dasFile = await generateRomExcelAsBase64({
-            systemType,
-            dasVendor,
-            bdaVendor,
-            grossSqFt,
-            density,
-            areaPercentage,
-            fileType: 'DAS',
-            vendorData: dasVendorData
-        });
-        files.push(dasFile);
+        if (dasVendor === 'ADRF') {
+            try {
+                const dasFile = await generateDasAdrfAsBase64({
+                    totalArea,
+                    areaPercentage,
+                    vendorData: dasVendorData,
+                });
+                files.push(dasFile);
+            } catch (err) {
+                console.error('[ExcelGen] DAS ADRF template generation failed, falling back to dynamic:', err);
+                const dasFile = await generateRomExcelAsBase64({
+                    systemType,
+                    dasVendor,
+                    bdaVendor,
+                    grossSqFt,
+                    density,
+                    areaPercentage,
+                    fileType: 'DAS',
+                    vendorData: dasVendorData
+                });
+                files.push(dasFile);
+            }
+        } else {
+            const dasFile = await generateRomExcelAsBase64({
+                systemType,
+                dasVendor,
+                bdaVendor,
+                grossSqFt,
+                density,
+                areaPercentage,
+                fileType: 'DAS',
+                vendorData: dasVendorData
+            });
+            files.push(dasFile);
+        }
 
         // --- ERCES Excel File ---
-        // Fetch ERCES items from the BDA vendor table
         let ercesVendorData = [];
         try {
             ercesVendorData = await fetchVendorData(bdaVendor || 'Comba', 'ERCES');
@@ -573,7 +657,6 @@ export async function generateMultipleExcelFiles(params) {
             console.error('[ExcelGen] Failed to fetch ERCES vendor data, using fallback:', err);
         }
 
-        // Calculate qty values using formulas from qtyFormulaConfig.js
         ercesVendorData = calculateQtyValues(ercesVendorData, bdaVendor || 'Comba', 'ERCES', totalArea, consideredArea, density, numSectors);
 
         const ercesFile = await generateRomExcelAsBase64({
@@ -589,7 +672,7 @@ export async function generateMultipleExcelFiles(params) {
         files.push(ercesFile);
 
     } else if (systemType === 'DAS') {
-        // Single DAS file - fetch from DAS vendor table
+        // Single DAS file
         let vendorData = [];
         try {
             vendorData = await fetchVendorData(dasVendor || 'Comba', 'DAS');
@@ -598,17 +681,33 @@ export async function generateMultipleExcelFiles(params) {
             console.error('[ExcelGen] Failed to fetch DAS vendor data, using fallback:', err);
         }
 
-        // Calculate qty values using formulas from qtyFormulaConfig.js
         vendorData = calculateQtyValues(vendorData, dasVendor || 'Comba', 'DAS', totalArea, consideredArea, density, numSectors);
 
-        const file = await generateRomExcelAsBase64({
-            ...params,
-            vendorData
-        });
-        files.push(file);
+        if (dasVendor === 'ADRF') {
+            try {
+                const file = await generateDasAdrfAsBase64({
+                    totalArea,
+                    areaPercentage,
+                    vendorData,
+                });
+                files.push(file);
+            } catch (err) {
+                console.error('[ExcelGen] DAS ADRF template generation failed, falling back to dynamic:', err);
+                const file = await generateRomExcelAsBase64({
+                    ...params,
+                    vendorData
+                });
+                files.push(file);
+            }
+        } else {
+            const file = await generateRomExcelAsBase64({
+                ...params,
+                vendorData
+            });
+            files.push(file);
+        }
 
     } else if (systemType === 'ERCES') {
-        // Single ERCES file - fetch from BDA vendor table
         let vendorData = [];
         try {
             vendorData = await fetchVendorData(bdaVendor || 'Comba', 'ERCES');
@@ -617,7 +716,6 @@ export async function generateMultipleExcelFiles(params) {
             console.error('[ExcelGen] Failed to fetch ERCES vendor data, using fallback:', err);
         }
 
-        // Calculate qty values using formulas from qtyFormulaConfig.js
         vendorData = calculateQtyValues(vendorData, bdaVendor || 'Comba', 'ERCES', totalArea, consideredArea, density, numSectors);
 
         const file = await generateRomExcelAsBase64({
@@ -627,7 +725,6 @@ export async function generateMultipleExcelFiles(params) {
         files.push(file);
 
     } else {
-        // Unknown system type - generate without vendor data (fallback)
         console.warn('[ExcelGen] Unknown system type:', systemType, '- generating with fallback');
         const file = await generateRomExcelAsBase64(params);
         files.push(file);
@@ -636,13 +733,12 @@ export async function generateMultipleExcelFiles(params) {
     return files;
 }
 
-/**
- * Downloads the generated Excel file in the browser
- * @param {string} filename - The filename for the download
- * @param {string} base64Data - The base64 encoded Excel data
- */
+
+// ========================================================
+//  DOWNLOAD HELPERS (browser)
+// ========================================================
+
 export function downloadExcelFile(filename, base64Data) {
-    // Convert base64 to blob
     const byteCharacters = atob(base64Data);
     const byteNumbers = new Array(byteCharacters.length);
     for (let i = 0; i < byteCharacters.length; i++) {
@@ -653,7 +749,6 @@ export function downloadExcelFile(filename, base64Data) {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     });
 
-    // Create download link and trigger it
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -664,19 +759,12 @@ export function downloadExcelFile(filename, base64Data) {
     URL.revokeObjectURL(url);
 }
 
-/**
- * Generates Excel workbook and triggers direct download in browser
- * @param {Object} params - The form parameters
- * @returns {Promise<{filename: string, success: boolean}>}
- */
 export async function generateAndDownloadExcel(params) {
     try {
         const { workbook, filename } = await generateRomExcel(params);
 
-        // Generate buffer
         const buffer = await workbook.xlsx.writeBuffer();
 
-        // Create blob and download
         const blob = new Blob([buffer], {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });

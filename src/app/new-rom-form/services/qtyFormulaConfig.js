@@ -230,6 +230,12 @@ export const QTY_FORMULAS = {
                 dependencies: [],
             },
 
+            // Site Survey, Design & Mgmt. = ROUNDUP(Total Area / 1000, 0)
+            'Site Survey, Design & Mgmt.': {
+                formula: (ctx) => Math.ceil(ctx.totalArea / 1000),
+                dependencies: [],
+            },
+
             // Installation Labor = Total antennas required
             'Installation Labor': {
                 formula: (ctx) => ctx.totalAntennasRequired,
