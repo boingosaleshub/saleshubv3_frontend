@@ -49,6 +49,9 @@ export async function createSSEConnection(response, onProgress, onComplete, onEr
                         } else {
                             // Progress update
                             console.log(`[SSE] Progress: ${data.progress}% - ${data.step}`)
+                            // #region agent log
+                            fetch('http://127.0.0.1:7243/ingest/34d748ff-628f-42e2-b92c-c8daf6c96a9e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sseClient.js:onProgress',message:'Calling onProgress callback',data:{progress:data.progress,step:data.step,status:data.status},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+                            // #endregion
                             onProgress(data.progress, data.step, data.status)
                         }
                     } catch (e) {

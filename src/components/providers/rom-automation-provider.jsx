@@ -12,6 +12,10 @@ import { useRomProposalSaver } from "@/app/new-rom-form/hooks/useRomProposalSave
 
 const RomAutomationContext = createContext(null)
 
+const PROCESS_TIMEOUT_MS = 6 * 60 * 1000  // 6 minutes – total process budget
+const STALL_TIMEOUT_MS   = 5 * 60 * 1000  // 5 minutes – max time without progress change
+const WATCHDOG_INTERVAL_MS = 15 * 1000     // check every 15 seconds
+
 export function RomAutomationProvider({ children }) {
     const [progress, setProgress] = useState(0)
     const [currentStep, setCurrentStep] = useState('')
@@ -22,15 +26,42 @@ export function RomAutomationProvider({ children }) {
     const [results, setResults] = useState(null)
 
     const currentStepRef = useRef('')
-    const payloadRef = useRef(null) // Store payload for client-side Excel generation
-    const formDataRef = useRef(null) // Store full form data for database save
+    const payloadRef = useRef(null)
+    const formDataRef = useRef(null)
     const { joinQueue, checkStatus, leaveQueue } = useQueue()
     const { saveCompleteRomProposal } = useRomProposalSaver()
     const pollingRef = useRef(null)
     const hasActiveJobRef = useRef(false)
 
+    // --- Watchdog refs ---
+    const processStartedAtRef = useRef(null)
+    const lastProgressAtRef = useRef(null)
+    const lastProgressValueRef = useRef(0)
+    const watchdogRef = useRef(null)
+    const abortControllerRef = useRef(null)
+
+    // Centralised cleanup so every exit path (success, error, timeout) is consistent
+    const cleanupProcess = useCallback(async () => {
+        if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null }
+        if (watchdogRef.current) { clearInterval(watchdogRef.current); watchdogRef.current = null }
+        processStartedAtRef.current = null
+        lastProgressAtRef.current = null
+        lastProgressValueRef.current = 0
+        hasActiveJobRef.current = false
+        await leaveQueue()
+    }, [leaveQueue])
+
     const handleProgress = useCallback((progressValue, step, status) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/34d748ff-628f-42e2-b92c-c8daf6c96a9e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'rom-automation-provider.jsx:handleProgress',message:'handleProgress called',data:{progressValue,step,status,typeOfProgress:typeof progressValue},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+        // #endregion
         setProgress(progressValue)
+
+        // Update stall-detection bookkeeping
+        if (progressValue !== lastProgressValueRef.current) {
+            lastProgressAtRef.current = Date.now()
+            lastProgressValueRef.current = progressValue
+        }
 
         // Sync progress to global store (for process queue display)
         useAutomationStore.getState().updateProcessProgress('ROM Generator', progressValue, step)
@@ -46,6 +77,49 @@ export function RomAutomationProvider({ children }) {
         }
     }, [])
 
+    // --- Watchdog: auto-fail on total timeout or stall ---
+    const startWatchdog = useCallback(() => {
+        if (watchdogRef.current) clearInterval(watchdogRef.current)
+
+        const now = Date.now()
+        processStartedAtRef.current = now
+        lastProgressAtRef.current = now
+        lastProgressValueRef.current = 0
+
+        watchdogRef.current = setInterval(async () => {
+            const elapsed = Date.now() - (processStartedAtRef.current ?? Date.now())
+            const sinceLast = Date.now() - (lastProgressAtRef.current ?? Date.now())
+
+            const timedOut = elapsed > PROCESS_TIMEOUT_MS
+            const stalled  = sinceLast > STALL_TIMEOUT_MS
+
+            if (timedOut || stalled) {
+                const reason = timedOut
+                    ? `ROM automation timed out after ${Math.round(elapsed / 60000)} minutes.`
+                    : `ROM automation stalled – no progress for ${Math.round(sinceLast / 60000)} minutes.`
+
+                console.warn(`[ROM Watchdog] ${reason}  Aborting.`)
+
+                // Abort any in-flight fetch / SSE stream
+                if (abortControllerRef.current) {
+                    abortControllerRef.current.abort()
+                    abortControllerRef.current = null
+                }
+
+                await cleanupProcess()
+                setIsLoading(false)
+                setError(reason)
+
+                // Also clean up the global automation store
+                useAutomationStore.getState().stopRomAutomation?.()
+            }
+        }, WATCHDOG_INTERVAL_MS)
+    }, [cleanupProcess])
+
+    const stopWatchdog = useCallback(() => {
+        if (watchdogRef.current) { clearInterval(watchdogRef.current); watchdogRef.current = null }
+    }, [])
+
     const startAutomation = useCallback(async (payload, userName = 'Guest', fullFormData = null) => {
         setIsLoading(true)
         setProgress(0)
@@ -56,9 +130,15 @@ export function RomAutomationProvider({ children }) {
         setResults(null)
         currentStepRef.current = 'Joining queue...'
 
+        // Kick off the watchdog from the very start (covers queue-waiting phase too)
+        startWatchdog()
+
         try {
             // 1. Join Queue
             let position = await joinQueue(userName, 'ROM Generator')
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/34d748ff-628f-42e2-b92c-c8daf6c96a9e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'rom-automation-provider.jsx:joinQueue',message:'joinQueue returned',data:{position,typeOfPosition:typeof position},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+            // #endregion
             setQueueInfo({ position })
             hasActiveJobRef.current = true
 
@@ -69,31 +149,45 @@ export function RomAutomationProvider({ children }) {
 
                 await new Promise((resolve, reject) => {
                     pollingRef.current = setInterval(async () => {
+                        // If the watchdog already aborted, stop polling
+                        if (!hasActiveJobRef.current) {
+                            clearInterval(pollingRef.current)
+                            reject(new Error('Process timed out while waiting in queue.'))
+                            return
+                        }
+
                         const newPos = await checkStatus()
+                        // #region agent log
+                        fetch('http://127.0.0.1:7243/ingest/34d748ff-628f-42e2-b92c-c8daf6c96a9e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'rom-automation-provider.jsx:checkStatus',message:'checkStatus returned',data:{newPos,typeOfNewPos:typeof newPos},timestamp:Date.now(),hypothesisId:'H1,H4'})}).catch(()=>{});
+                        // #endregion
                         setQueueInfo({ position: newPos })
 
                         if (newPos === 0) {
                             clearInterval(pollingRef.current)
                             resolve()
                         } else {
-                            // Update status message with new position
                             const msg = `Waiting in queue... Position: ${newPos + 1}`
                             if (msg !== currentStepRef.current) {
                                 setCurrentStep(msg)
                                 currentStepRef.current = msg
                             }
                         }
-                    }, 3000) // Poll every 3 seconds
+                    }, 3000)
                 })
             }
 
             // 3. Start Automation
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/34d748ff-628f-42e2-b92c-c8daf6c96a9e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'rom-automation-provider.jsx:startAutomation',message:'Queue resolved, starting SSE',data:{},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+            // #endregion
+
+            // Reset stall timer now that the real work begins
+            lastProgressAtRef.current = Date.now()
+
             setCurrentStep('Starting ROM automation...')
             currentStepRef.current = 'Starting ROM automation...'
 
-            // Store payload for client-side Excel generation on completion
             payloadRef.current = payload
-            // Store full form data for database save
             formDataRef.current = fullFormData
 
             const response = await startRomAutomationStream(payload)
@@ -103,12 +197,10 @@ export function RomAutomationProvider({ children }) {
                     response,
                     handleProgress,
                     async (finalData) => {
-                        await leaveQueue() // Leave queue on success
-                        hasActiveJobRef.current = false
+                        stopWatchdog()
+                        await cleanupProcess()
                         setIsLoading(false)
                         if (finalData.success || finalData.partialSuccess) {
-                            // Generate Excel files client-side (the SSE stream only returns screenshots)
-                            // Excel generation uses ExcelJS in the browser with the original form payload
                             let excelFiles = []
                             const savedPayload = payloadRef.current
                             if (savedPayload) {
@@ -129,21 +221,17 @@ export function RomAutomationProvider({ children }) {
                                 }
                             }
 
-                            // Merge Excel files with SSE result (screenshots)
                             const completeResult = {
                                 ...finalData,
                                 excelFiles: [...excelFiles, ...(finalData.excelFiles || [])]
                             }
 
-                            // Trigger downloads immediately from the provider
-                            // (provider is at layout level, always mounted even during navigation)
                             try {
                                 downloadAllRomFiles(completeResult)
                             } catch (dlErr) {
                                 console.error('[ROM] Download error:', dlErr)
                             }
 
-                            // Save ROM proposal to database (non-blocking background save)
                             if (formDataRef.current) {
                                 const fd = formDataRef.current
                                 saveCompleteRomProposal({
@@ -166,8 +254,8 @@ export function RomAutomationProvider({ children }) {
                         }
                     },
                     async (err) => {
-                        await leaveQueue() // Leave queue on error
-                        hasActiveJobRef.current = false
+                        stopWatchdog()
+                        await cleanupProcess()
                         setIsLoading(false)
                         setError(err.message)
                         reject(err)
@@ -175,16 +263,16 @@ export function RomAutomationProvider({ children }) {
                 )
             })
         } catch (err) {
-            if (pollingRef.current) clearInterval(pollingRef.current)
-            await leaveQueue()
-            hasActiveJobRef.current = false
+            stopWatchdog()
+            await cleanupProcess()
             setIsLoading(false)
             setError(err.message)
             throw err
         }
-    }, [handleProgress, joinQueue, checkStatus, leaveQueue, saveCompleteRomProposal])
+    }, [handleProgress, joinQueue, checkStatus, leaveQueue, saveCompleteRomProposal, startWatchdog, stopWatchdog, cleanupProcess])
 
     const resetAutomation = useCallback(() => {
+        stopWatchdog()
         setProgress(0)
         setCurrentStep('')
         setStepVisible(true)
@@ -193,14 +281,17 @@ export function RomAutomationProvider({ children }) {
         setQueueInfo(null)
         setResults(null)
         currentStepRef.current = ''
-    }, [])
+        processStartedAtRef.current = null
+        lastProgressAtRef.current = null
+        lastProgressValueRef.current = 0
+    }, [stopWatchdog])
 
-    // Cleanup polling and queue on unmount (e.g., full page refresh)
+    // Cleanup on unmount (e.g., full page refresh)
     useEffect(() => {
         return () => {
             if (pollingRef.current) clearInterval(pollingRef.current)
+            if (watchdogRef.current) clearInterval(watchdogRef.current)
             if (hasActiveJobRef.current) {
-                // Best-effort queue cleanup so Progress Queue doesn't show stale "Running"
                 leaveQueue()
             }
         }

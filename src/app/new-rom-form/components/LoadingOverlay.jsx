@@ -27,6 +27,9 @@ export function LoadingOverlay({
     currentStep = '',
     stepVisible = true
 }) {
+    // #region agent log
+    if (isLoading) { fetch('http://127.0.0.1:7243/ingest/34d748ff-628f-42e2-b92c-c8daf6c96a9e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoadingOverlay.jsx:render',message:'LoadingOverlay rendering',data:{isLoading,progress,currentStep,stepVisible},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{}); }
+    // #endregion
     if (!isLoading) return null
 
     // Calculate current step index based on progress

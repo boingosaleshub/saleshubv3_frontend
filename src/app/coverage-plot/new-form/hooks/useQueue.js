@@ -53,6 +53,9 @@ export function useQueue() {
     }, [userId])
 
     const checkStatus = useCallback(async () => {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/34d748ff-628f-42e2-b92c-c8daf6c96a9e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useQueue.js:checkStatus',message:'checkStatus called',data:{userId,hasUserId:!!userId},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+        // #endregion
         if (!userId) return
 
         try {
@@ -66,6 +69,9 @@ export function useQueue() {
 
             if (res.ok) {
                 const data = await res.json()
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/34d748ff-628f-42e2-b92c-c8daf6c96a9e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useQueue.js:checkStatus:response',message:'checkStatus API response',data:{position:data.position,queueLength:data.queue?.length,queue:data.queue?.map(q=>({userId:q.userId,processType:q.processType,status:q.status}))},timestamp:Date.now(),hypothesisId:'H1,H3'})}).catch(()=>{});
+                // #endregion
                 setQueuePosition(data.position)
                 return data.position
             }

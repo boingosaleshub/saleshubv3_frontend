@@ -4,17 +4,20 @@ import { NextResponse } from 'next/server';
 // Note: This resets on server restart, which is acceptable for queue management
 let queue = [];
 
+const STALE_ENTRY_TTL_MS = 6 * 60 * 1000; // 6 minutes – matches the frontend process timeout
+
+function purgeStaleEntries() {
+    const cutoff = Date.now() - STALE_ENTRY_TTL_MS;
+    queue = queue.filter(item => new Date(item.joinedAt).getTime() > cutoff);
+}
+
 /**
  * GET - Fetch current queue
  */
 export async function GET() {
     try {
-        // Clean up stale entries (older than 1 hour)
-        const oneHourAgo = Date.now() - (60 * 60 * 1000);
-        queue = queue.filter(item => new Date(item.joinedAt).getTime() > oneHourAgo);
-
+        purgeStaleEntries();
         return NextResponse.json({ queue });
-
     } catch (error) {
         console.error('Queue GET error:', error);
         return NextResponse.json({
@@ -36,9 +39,7 @@ export async function POST(request) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
         }
 
-        // Clean up stale entries (older than 1 hour)
-        const oneHourAgo = Date.now() - (60 * 60 * 1000);
-        queue = queue.filter(item => new Date(item.joinedAt).getTime() > oneHourAgo);
+        purgeStaleEntries();
 
         // Check if user is already in queue
         const existingIndex = queue.findIndex(item => item.userId === userId);
