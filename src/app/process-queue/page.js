@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2, BarChart2, Layers, FileText } from "lucide-react"
 import { useAutomationStore } from "@/store/useAutomationStore"
 
+const PROCESS_MAX_AGE_MS = 6 * 60 * 1000 // must match the store / queue API constant
+
 // Process type icons mapping
 const processIcons = {
     'Coverage Plot': BarChart2,
@@ -23,7 +25,14 @@ export default function ProcessQueuePage() {
     const [isLoading, setIsLoading] = useState(true)
     
     // Get active processes from persistent store
-    const { activeProcesses } = useAutomationStore()
+    const { activeProcesses, purgeStaleProcesses } = useAutomationStore()
+
+    // Purge stale local processes on mount and every 15 seconds
+    useEffect(() => {
+        purgeStaleProcesses()
+        const purgeInterval = setInterval(purgeStaleProcesses, 15_000)
+        return () => clearInterval(purgeInterval)
+    }, [purgeStaleProcesses])
 
     useEffect(() => {
         const fetchQueue = async () => {
@@ -47,22 +56,29 @@ export default function ProcessQueuePage() {
     }, [])
     
     // Merge API queue with local active processes (avoid duplicates)
+    // Also filter out any stale entries that slipped through
     const mergedQueue = (() => {
-        const localProcesses = activeProcesses.map(p => ({
-            userId: p.userId,
-            userName: p.userName,
-            processType: p.processType,
-            joinedAt: p.startedAt,
-            status: 'Processing',
-            isLocal: true,
-            progress: p.progress || 0,
-            currentStep: p.currentStep || '',
-            waitingFiles: p.waitingFiles || []
-        }))
+        const now = Date.now()
+
+        const localProcesses = activeProcesses
+            .filter(p => p.startedAt && (now - new Date(p.startedAt).getTime()) <= PROCESS_MAX_AGE_MS)
+            .map(p => ({
+                userId: p.userId,
+                userName: p.userName,
+                processType: p.processType,
+                joinedAt: p.startedAt,
+                status: 'Processing',
+                isLocal: true,
+                progress: p.progress || 0,
+                currentStep: p.currentStep || '',
+                waitingFiles: p.waitingFiles || []
+            }))
         
         // Filter out API queue items that match local processes (by processType)
         const localProcessTypes = new Set(localProcesses.map(p => p.processType))
-        const filteredApiQueue = queue.filter(item => !localProcessTypes.has(item.processType))
+        const filteredApiQueue = queue
+            .filter(item => !localProcessTypes.has(item.processType))
+            .filter(item => item.joinedAt && (now - new Date(item.joinedAt).getTime()) <= PROCESS_MAX_AGE_MS)
         
         // Local processes first (they're definitely running on this client)
         return [...localProcesses, ...filteredApiQueue]

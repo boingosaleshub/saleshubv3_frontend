@@ -6,6 +6,14 @@ import { persist } from 'zustand/middleware'
  * Used to show notification indicators in the top bar and process queue
  * Persists to localStorage so state survives page navigation
  */
+
+const PROCESS_MAX_AGE_MS = 6 * 60 * 1000 // 6 minutes – any process older than this is considered dead
+
+function isStale(process) {
+    if (!process.startedAt) return true
+    return Date.now() - new Date(process.startedAt).getTime() > PROCESS_MAX_AGE_MS
+}
+
 export const useAutomationStore = create(
     persist(
         (set, get) => ({
@@ -16,6 +24,21 @@ export const useAutomationStore = create(
             // ROM Generator automation state (for backward compatibility)
             isRomAutomationRunning: false,
             romAutomationStartedAt: null,
+
+            // Purge any processes whose startedAt is older than 6 minutes.
+            // Called on store rehydration (page load) and periodically from the
+            // Process Queue page so zombie entries never persist.
+            purgeStaleProcesses: () => {
+                const { activeProcesses } = get()
+                const alive = activeProcesses.filter(p => !isStale(p))
+                const hadRom = activeProcesses.some(p => p.processType === 'ROM Generator')
+                const hasRom = alive.some(p => p.processType === 'ROM Generator')
+
+                set({
+                    activeProcesses: alive,
+                    ...(hadRom && !hasRom ? { isRomAutomationRunning: false, romAutomationStartedAt: null } : {})
+                })
+            },
 
             // Start a ROM automation process
             startRomAutomation: (userName = 'Guest', userId = null, metadata = {}) => {
@@ -103,7 +126,14 @@ export const useAutomationStore = create(
                 activeProcesses: state.activeProcesses,
                 isRomAutomationRunning: state.isRomAutomationRunning,
                 romAutomationStartedAt: state.romAutomationStartedAt
-            })
+            }),
+            onRehydrateStorage: () => (state) => {
+                // Runs once when the store is rehydrated from localStorage.
+                // Immediately purge any zombie processes left from a previous session.
+                if (state) {
+                    state.purgeStaleProcesses()
+                }
+            }
         }
     )
 )
