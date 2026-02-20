@@ -13,7 +13,6 @@
 import ExcelJS from 'exceljs';
 import { fetchVendorData } from './vendorDataService';
 import { calculateQtyValues } from './qtyCalculationService';
-import { calculateHpRuQty, calculateAntennaQty } from './qtyFormulaConfig';
 
 // ========================================================
 //  COLOR PALETTE (for non-template generation)
@@ -115,7 +114,7 @@ function buildDasAdrfQtyMap(vendorData) {
 //  and only modifying dynamic cells (area + qty values).
 //  Everything else stays exactly as the template.
 // ========================================================
-async function generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorData, density }) {
+async function generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorData }) {
     const templateUrl = encodeURI(DAS_ADRF_TEMPLATE_PATH);
     console.log('[ExcelGen] Fetching DAS ADRF template from:', templateUrl);
 
@@ -180,44 +179,16 @@ async function generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorDa
     }
 
     // --- Remove ERCES worksheet (not needed for DAS file) ---
+    // Keep SIZE tab — it mirrors the template and is required.
     const ercesSheet = workbook.getWorksheet('ERCES');
     if (ercesSheet) workbook.removeWorksheet(ercesSheet.id);
-
-    // --- Populate SIZE tab with dynamic values ---
-    try {
-        const sizeSheet = workbook.getWorksheet(' SIZE ');
-        if (sizeSheet) {
-            const hpRu = calculateHpRuQty(totalArea, density);
-            const antennas = calculateAntennaQty(totalArea, density);
-            const sqftPerAnt = antennas > 0 ? Math.floor(totalArea / antennas) : 0;
-
-            // PUBLIC SAFETY section — row 4 area (D4)
-            sizeSheet.getCell('D4').value = totalArea;
-
-            // CELLULAR DAS section — P5 row (row 18): HP RU, Antennas, Area, sqft/ant
-            sizeSheet.getCell('D18').value = hpRu;
-            sizeSheet.getCell('E18').value = antennas;
-            sizeSheet.getCell('F18').value = totalArea;
-            // G18 had formula IFERROR(F18/E18,0); overwrite with integer value
-            sizeSheet.getCell('G18').value = sqftPerAnt;
-
-            // Clear the unwanted I29 cell (was IFERROR(F29/D29,0) = area/HP_RU)
-            sizeSheet.getCell('I29').value = 0;
-
-            console.log(`[ExcelGen] SIZE tab updated: HP RU=${hpRu}, Antennas=${antennas}, Area=${totalArea}, sqft/ant=${sqftPerAnt}`);
-        } else {
-            console.warn('[ExcelGen] SIZE worksheet not found in template');
-        }
-    } catch (sizeErr) {
-        console.error('[ExcelGen] SIZE tab update failed (non-fatal):', sizeErr);
-    }
 
     console.log('[ExcelGen] DAS ADRF template generation complete');
     return workbook;
 }
 
-async function generateDasAdrfAsBase64({ totalArea, areaPercentage, vendorData, density }) {
-    const workbook = await generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorData, density });
+async function generateDasAdrfAsBase64({ totalArea, areaPercentage, vendorData }) {
+    const workbook = await generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorData });
     const filename = generateExcelFilename({ systemType: 'DAS', dasVendor: 'ADRF' });
     const buffer = await workbook.xlsx.writeBuffer();
     const base64 = arrayBufferToBase64(buffer);
@@ -658,7 +629,6 @@ export async function generateMultipleExcelFiles(params) {
                     totalArea,
                     areaPercentage,
                     vendorData: dasVendorData,
-                    density,
                 });
                 files.push(dasFile);
             } catch (err) {
@@ -730,7 +700,6 @@ export async function generateMultipleExcelFiles(params) {
                     totalArea,
                     areaPercentage,
                     vendorData,
-                    density,
                 });
                 files.push(file);
             } catch (err) {
