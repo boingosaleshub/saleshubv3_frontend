@@ -183,6 +183,35 @@ async function generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorDa
     const ercesSheet = workbook.getWorksheet('ERCES');
     if (ercesSheet) workbook.removeWorksheet(ercesSheet.id);
 
+    // --- Populate SIZE tab with dynamic values ---
+    // Wrapped in its own try-catch so a SIZE-tab error never breaks
+    // the CELLULAR DAS sheet generation above.
+    try {
+        const sizeWs = workbook.getWorksheet(' SIZE ');
+        if (sizeWs) {
+            // Extract HP RU and Antenna totals from the qty map already built above
+            const hpRu = qtyMap.get('high-power remote chassis') || 0;
+            const antennas = qtyMap.get('indoor cabling & materials') || 0;
+            const sqftPerAnt = antennas > 0 ? Math.floor(totalArea / antennas) : 0;
+
+            // PUBLIC SAFETY section — D4 holds the area
+            sizeWs.getCell('D4').value = totalArea;
+
+            // CELLULAR DAS section — P5 row (row 18)
+            sizeWs.getCell('D18').value = hpRu;       // HP RU
+            sizeWs.getCell('E18').value = antennas;    // Antennas
+            sizeWs.getCell('F18').value = totalArea;   // Area (sqft)
+            sizeWs.getCell('G18').value = sqftPerAnt;  // sqft/ant (integer)
+
+            // Remove the unwanted I29 value (was area / HP_RU = 69,883)
+            sizeWs.getCell('I29').value = '';
+
+            console.log(`[ExcelGen] SIZE tab → HP RU=${hpRu}, Antennas=${antennas}, Area=${totalArea}, sqft/ant=${sqftPerAnt}`);
+        }
+    } catch (sizeErr) {
+        console.error('[ExcelGen] SIZE tab update failed (non-fatal):', sizeErr);
+    }
+
     console.log('[ExcelGen] DAS ADRF template generation complete');
     return workbook;
 }
