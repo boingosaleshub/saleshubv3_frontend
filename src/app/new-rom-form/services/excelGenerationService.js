@@ -133,16 +133,16 @@ async function generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorDa
     }
 
     // --- Set TOTAL AREA (H2, merged H2:K2) ---
-    ws.getCell('H2').value = totalArea;
-    ['I2', 'J2', 'K2'].forEach(ref => { ws.getCell(ref).value = null; });
+    // All cells in the merge must be set to the same value for proper display.
+    // numFmt "#,##0 "sq ft"" is preserved from template.
+    ['H2', 'I2', 'J2', 'K2'].forEach(ref => { ws.getCell(ref).value = totalArea; });
 
     // --- Set CONSIDERED AREA (H3, merged H3:K3) ---
     const consideredArea = totalArea * (areaPercentage / 100);
-    ws.getCell('H3').value = consideredArea;
-    ['I3', 'J3', 'K3'].forEach(ref => { ws.getCell(ref).value = null; });
+    ['H3', 'I3', 'J3', 'K3'].forEach(ref => { ws.getCell(ref).value = consideredArea; });
 
     // --- Set % AREA TO CONSIDER (O3) ---
-    // Template uses 1 for 100%, 0.8 for 80%, etc.
+    // Template numFmt is "0%" so 1 = 100%, 0.8 = 80%
     ws.getCell('O3').value = areaPercentage / 100;
 
     // --- Set Qty values (column I) ---
@@ -163,12 +163,23 @@ async function generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorDa
         }
     }
 
-    // --- Remove SIZE and ERCES worksheets ---
-    // These contain template-specific data and formulas referencing them
-    // have already been replaced with direct values above.
-    const sizeSheet = workbook.getWorksheet(' SIZE ');
-    if (sizeSheet) workbook.removeWorksheet(sizeSheet.id);
+    // --- Neutralize Opex formulas that produce unwanted $ values ---
+    // K39 = 360*I39 produces "$720" when AT&T MetroCell qty is set.
+    // Setting to 0 displays as "-" due to numFmt "$ #,##0;...;-;@"
+    ws.getCell('K39').value = 0;
+    ws.getCell('K41').value = 0;
+    ws.getCell('K52').value = 0;
+    ws.getCell('K53').value = 0;
 
+    // --- Clear USD summary section formulas (rows 56-64) ---
+    // Without unit prices filled in, these should all show "-" not dollar amounts.
+    for (const row of [56, 57, 58, 59, 60, 61, 62, 63, 64]) {
+        ws.getCell(`J${row}`).value = 0;
+        ws.getCell(`K${row}`).value = 0;
+    }
+
+    // --- Remove ERCES worksheet (not needed for DAS file) ---
+    // Keep SIZE tab — it mirrors the template and is required.
     const ercesSheet = workbook.getWorksheet('ERCES');
     if (ercesSheet) workbook.removeWorksheet(ercesSheet.id);
 
