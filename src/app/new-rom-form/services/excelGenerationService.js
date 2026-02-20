@@ -30,6 +30,42 @@ const COLORS = {
 };
 
 // ========================================================
+//  SHARED FORMULA FLATTENER
+//  ExcelJS cannot re-serialize shared formulas from .xlsm
+//  templates. This helper converts every shared/array
+//  formula into a plain individual formula or static value
+//  so writeBuffer() succeeds without errors.
+// ========================================================
+function flattenSharedFormulas(workbook) {
+    workbook.eachSheet((worksheet) => {
+        worksheet.eachRow({ includeEmpty: false }, (row) => {
+            row.eachCell({ includeEmpty: false }, (cell) => {
+                const v = cell.value;
+                if (v && typeof v === 'object') {
+                    // Shared formula clone (has sharedFormula but no formula text)
+                    if ('sharedFormula' in v) {
+                        if (v.formula) {
+                            // Master cell — keep formula as individual
+                            cell.value = { formula: v.formula, result: v.result };
+                        } else if (v.result !== undefined && v.result !== null) {
+                            // Clone cell — use the cached result as static value
+                            cell.value = v.result;
+                        } else {
+                            cell.value = null;
+                        }
+                        return;
+                    }
+                    // Regular formula — strip any stale sharedFormula key just in case
+                    if (v.formula && v.sharedFormula === undefined) {
+                        cell.value = { formula: v.formula, result: v.result };
+                    }
+                }
+            });
+        });
+    });
+}
+
+// ========================================================
 //  DAS ADRF TEMPLATE CONFIGURATION
 //  Maps each template item name to its exact row number
 //  in the CELLULAR DAS tab of the template file.
@@ -209,6 +245,10 @@ async function generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorDa
     // Keep SIZE tab — it mirrors the template and is required.
     const ercesSheet = workbook.getWorksheet('ERCES');
     if (ercesSheet) workbook.removeWorksheet(ercesSheet.id);
+
+    // --- Flatten shared formulas to prevent ExcelJS serialization errors ---
+    // ExcelJS cannot write shared formula master/clone relationships from .xlsm
+    flattenSharedFormulas(workbook);
 
     console.log('[ExcelGen] DAS ADRF template generation complete');
     return workbook;
