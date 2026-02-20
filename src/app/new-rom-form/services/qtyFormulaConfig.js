@@ -235,12 +235,6 @@ export const QTY_FORMULAS = {
                 formula: (ctx) => Math.ceil(ctx.totalArea / 1000),
                 dependencies: [],
             },
-
-            // Installation Labor = Total antennas required
-            'Installation Labor': {
-                formula: (ctx) => ctx.totalAntennasRequired,
-                dependencies: [],
-            },
         },
     },
 
