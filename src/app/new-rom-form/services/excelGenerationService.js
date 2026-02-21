@@ -5,7 +5,10 @@
  * 
  * For DAS ADRF: loads the actual template file and only modifies dynamic values
  * (Total Area, Considered Area, %, and Qty values). This guarantees the generated
- * file is an exact cell-by-cell mirror of the template.
+ * file is an exact cell-by-cell mirror of the template. Keeps SIZE + CELLULAR DAS tabs.
+ * 
+ * For ERCES ADRF: loads the same ADRF template and only modifies dynamic values.
+ * Keeps SIZE + ERCES tabs, removes CELLULAR DAS tab.
  * 
  * For other vendors/system types: builds workbook from scratch dynamically.
  */
@@ -129,10 +132,61 @@ const DAS_ADRF_ITEM_ROWS = [
 ];
 
 // ========================================================
-//  DAS ADRF: Build a case-insensitive qty lookup from
+//  ERCES ADRF TEMPLATE CONFIGURATION
+//  Maps each template item name to its exact row number
+//  in the ERCES tab of the template file.
+//  Items with aliases handle name mismatches between
+//  the template and the database/formula engine.
+//  Template formulas in column I are preserved unless
+//  a calculated qty value is available from vendor data.
+// ========================================================
+
+const ERCES_ADRF_ITEM_ROWS = [
+    // EQUIPMENT (rows 6-18)
+    { row: 6, name: '700/800 MHz 0.5W BDA' },
+    { row: 7, name: '700/800 MHz 2W BDA' },
+    { row: 8, name: '700/800 MHz 5W BDA' },
+    { row: 9, name: '700/800 MHz Fiber-optic Digital Repeater' },
+    { row: 10, name: '700/800 MHz 2W Fiber Remote Unit', aliases: ['Fiber DAS 700/800MHz Remote Unit'] },
+    { row: 11, name: 'VHF/UHF 5W BDA' },
+    { row: 12, name: '700/800MHz Filter' },
+    { row: 13, name: '125Ah 24V Lithium BBU' },
+    { row: 14, name: '45Ah 24V SLA BBU' },
+    { row: 15, name: 'Anunciator Panel + Cable' },
+    { row: 16, name: 'Indoor Wide Band Omni Antenna' },
+    { row: 17, name: 'Outdoor Directional Yagi Antenna' },
+    { row: 18, name: 'Type N F/F Bulkhead Coaxial RF Surge Protector' },
+
+    // CABLING & MATERIALS (rows 20-25)
+    { row: 20, name: '1/2" Low Loss Air Dialectrict Plenum-Rated Cable (per ft)', aliases: ['1/2" Low Loss Air Dialectric Plenum-Rated Cable (per ft)'] },
+    { row: 21, name: 'N-Male Connector LCF12-50' },
+    { row: 22, name: 'Preterminated Single Mode Fiber' },
+    { row: 23, name: 'Various XXdB Directional Couplers' },
+    { row: 24, name: '3ft 0.141 Jumper Cable, PIM Rated, Plenum Rated, N-M to N-M' },
+    { row: 25, name: 'Other Capex' },
+
+    // ALL-IN (rows 27-31)
+    { row: 27, name: 'NEMA-3R' },
+    { row: 28, name: 'NEMA-4' },
+    { row: 29, name: 'NEMA-1' },
+    { row: 30, name: '12x12 Access Hatch' },
+    { row: 31, name: 'Electrical labor' },
+
+    // SERVICE & LABOR (rows 33-39)
+    { row: 33, name: 'Site Survey, Design & Mgmt.' },
+    { row: 34, name: 'Installation Labor' },
+    { row: 35, name: 'Permit' },
+    { row: 36, name: 'Sales Commission' },
+    { row: 37, name: 'GPO Fee' },
+    { row: 38, name: '24x7 Monitoring & Maintenance' },
+    { row: 39, name: 'Annual Inspection' },
+];
+
+// ========================================================
+//  ADRF: Build a case-insensitive qty lookup from
 //  the calculated vendor data (API + formulas)
 // ========================================================
-function buildDasAdrfQtyMap(vendorData) {
+function buildAdrfQtyMap(vendorData) {
     const map = new Map();
     if (!vendorData) return map;
 
@@ -183,7 +237,7 @@ async function generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorDa
     ws.getCell('O3').value = areaPercentage / 100;
 
     // --- Set Qty values (column I) ---
-    const qtyMap = buildDasAdrfQtyMap(vendorData);
+    const qtyMap = buildAdrfQtyMap(vendorData);
     console.log('[ExcelGen] Built qty map with', qtyMap.size, 'items');
 
     for (const { row, name, defaultQty } of DAS_ADRF_ITEM_ROWS) {
@@ -257,6 +311,117 @@ async function generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorDa
 async function generateDasAdrfAsBase64({ totalArea, areaPercentage, vendorData, density }) {
     const workbook = await generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorData, density });
     const filename = generateExcelFilename({ systemType: 'DAS', dasVendor: 'ADRF' });
+    const buffer = await workbook.xlsx.writeBuffer();
+    const base64 = arrayBufferToBase64(buffer);
+    return { filename, buffer: base64 };
+}
+
+
+// ========================================================
+//  ERCES ADRF: Generate Excel by loading the template file
+//  and only modifying dynamic cells (area + qty values).
+//  Everything else stays exactly as the template.
+//  Removes the CELLULAR DAS sheet, keeps ERCES + SIZE.
+// ========================================================
+async function generateErcesAdrfFromTemplate({ totalArea, areaPercentage, vendorData, density }) {
+    const templateUrl = encodeURI(DAS_ADRF_TEMPLATE_PATH);
+    console.log('[ExcelGen] Fetching ERCES ADRF template from:', templateUrl);
+
+    const response = await fetch(templateUrl);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch ERCES ADRF template: ${response.status} ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+
+    const ws = workbook.getWorksheet('ERCES');
+    if (!ws) {
+        throw new Error('ERCES worksheet not found in template');
+    }
+
+    // --- Set TOTAL AREA (H2, merged H2:K2) ---
+    ['H2', 'I2', 'J2', 'K2'].forEach(ref => { ws.getCell(ref).value = totalArea; });
+
+    // --- Set CONSIDERED AREA (H3, merged H3:K3) ---
+    const consideredArea = totalArea * (areaPercentage / 100);
+    ['H3', 'I3', 'J3', 'K3'].forEach(ref => { ws.getCell(ref).value = consideredArea; });
+
+    // --- Set % AREA TO CONSIDER (O3) ---
+    ws.getCell('O3').value = areaPercentage / 100;
+
+    // --- Set Qty values (column I) ---
+    // Only override cells where we have a calculated value from vendor data.
+    // Template formulas are preserved for items without calculated values.
+    const qtyMap = buildAdrfQtyMap(vendorData);
+    console.log('[ExcelGen] Built ERCES qty map with', qtyMap.size, 'items');
+
+    for (const { row, name, aliases } of ERCES_ADRF_ITEM_ROWS) {
+        let calcQty = qtyMap.get(name.trim().toLowerCase()) ?? null;
+
+        if (calcQty === null && aliases) {
+            for (const alias of aliases) {
+                calcQty = qtyMap.get(alias.trim().toLowerCase()) ?? null;
+                if (calcQty !== null) break;
+            }
+        }
+
+        if (calcQty !== null) {
+            ws.getCell(`I${row}`).value = calcQty;
+            console.log(`[ExcelGen] ERCES I${row} = ${calcQty} (${name})`);
+        }
+    }
+
+    // --- Neutralize Opex formulas that produce unwanted $ values ---
+    ws.getCell('K38').value = 0;
+    ws.getCell('K39').value = 0;
+
+    // --- Clear USD summary section formulas (rows 42-49) ---
+    for (const row of [42, 43, 44, 45, 46, 47, 48, 49]) {
+        ws.getCell(`J${row}`).value = 0;
+        ws.getCell(`K${row}`).value = 0;
+    }
+
+    // --- Update SIZE tab with dynamic values ---
+    const sizeWs = workbook.getWorksheet('SIZE') || workbook.getWorksheet(' SIZE ');
+    if (sizeWs) {
+        const hpRuRequired = calculateHpRuQty(totalArea, density);
+        const totalAntennasRequired = calculateAntennaQty(totalArea, density);
+        const sqftPerAntenna = totalAntennasRequired > 0 ? Math.floor(totalArea / totalAntennasRequired) : 0;
+
+        // PUBLIC SAFETY section (row 4): antenna count + area
+        // C13 = SUM(C4:C12) is referenced by ERCES!I16 formula
+        sizeWs.getCell('C4').value = totalAntennasRequired;
+        sizeWs.getCell('D4').value = totalArea;
+
+        // CELLULAR DAS section (row 18)
+        sizeWs.getCell('D18').value = hpRuRequired;
+        sizeWs.getCell('E18').value = totalAntennasRequired;
+        sizeWs.getCell('F18').value = totalArea;
+        sizeWs.getCell('G18').value = sqftPerAntenna;
+
+        sizeWs.getCell('I29').value = null;
+
+        console.log(`[ExcelGen] SIZE tab updated: HP RU=${hpRuRequired}, Antennas=${totalAntennasRequired}, Area=${totalArea}, sqft/ant=${sqftPerAntenna}`);
+    } else {
+        console.warn('[ExcelGen] SIZE worksheet not found in template — skipping SIZE tab updates');
+    }
+
+    // --- Remove CELLULAR DAS worksheet (not needed for ERCES file) ---
+    const dasSheet = workbook.getWorksheet(' CELLULAR DAS ');
+    if (dasSheet) workbook.removeWorksheet(dasSheet.id);
+
+    // --- Flatten shared formulas to prevent ExcelJS serialization errors ---
+    flattenSharedFormulas(workbook);
+
+    console.log('[ExcelGen] ERCES ADRF template generation complete');
+    return workbook;
+}
+
+async function generateErcesAdrfAsBase64({ totalArea, areaPercentage, vendorData, density }) {
+    const workbook = await generateErcesAdrfFromTemplate({ totalArea, areaPercentage, vendorData, density });
+    const filename = generateExcelFilename({ systemType: 'ERCES', bdaVendor: 'ADRF' });
     const buffer = await workbook.xlsx.writeBuffer();
     const base64 = arrayBufferToBase64(buffer);
     return { filename, buffer: base64 };
@@ -738,17 +903,42 @@ export async function generateMultipleExcelFiles(params) {
 
         ercesVendorData = calculateQtyValues(ercesVendorData, bdaVendor || 'Comba', 'ERCES', totalArea, consideredArea, density, numSectors);
 
-        const ercesFile = await generateRomExcelAsBase64({
-            systemType,
-            dasVendor,
-            bdaVendor,
-            grossSqFt,
-            density,
-            areaPercentage,
-            fileType: 'ERCES',
-            vendorData: ercesVendorData
-        });
-        files.push(ercesFile);
+        if (bdaVendor === 'ADRF') {
+            try {
+                const ercesFile = await generateErcesAdrfAsBase64({
+                    totalArea,
+                    areaPercentage,
+                    vendorData: ercesVendorData,
+                    density,
+                });
+                files.push(ercesFile);
+            } catch (err) {
+                console.error('[ExcelGen] ERCES ADRF template generation failed, falling back to dynamic:', err);
+                const ercesFile = await generateRomExcelAsBase64({
+                    systemType,
+                    dasVendor,
+                    bdaVendor,
+                    grossSqFt,
+                    density,
+                    areaPercentage,
+                    fileType: 'ERCES',
+                    vendorData: ercesVendorData
+                });
+                files.push(ercesFile);
+            }
+        } else {
+            const ercesFile = await generateRomExcelAsBase64({
+                systemType,
+                dasVendor,
+                bdaVendor,
+                grossSqFt,
+                density,
+                areaPercentage,
+                fileType: 'ERCES',
+                vendorData: ercesVendorData
+            });
+            files.push(ercesFile);
+        }
 
     } else if (systemType === 'DAS') {
         // Single DAS file
@@ -798,11 +988,30 @@ export async function generateMultipleExcelFiles(params) {
 
         vendorData = calculateQtyValues(vendorData, bdaVendor || 'Comba', 'ERCES', totalArea, consideredArea, density, numSectors);
 
-        const file = await generateRomExcelAsBase64({
-            ...params,
-            vendorData
-        });
-        files.push(file);
+        if (bdaVendor === 'ADRF') {
+            try {
+                const file = await generateErcesAdrfAsBase64({
+                    totalArea,
+                    areaPercentage,
+                    vendorData,
+                    density,
+                });
+                files.push(file);
+            } catch (err) {
+                console.error('[ExcelGen] ERCES ADRF template generation failed, falling back to dynamic:', err);
+                const file = await generateRomExcelAsBase64({
+                    ...params,
+                    vendorData
+                });
+                files.push(file);
+            }
+        } else {
+            const file = await generateRomExcelAsBase64({
+                ...params,
+                vendorData
+            });
+            files.push(file);
+        }
 
     } else {
         console.warn('[ExcelGen] Unknown system type:', systemType, '- generating with fallback');
