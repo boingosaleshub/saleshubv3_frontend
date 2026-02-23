@@ -44,6 +44,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
 
 import { createClient } from "@/utils/supabase/client"
 
@@ -114,17 +115,24 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
     const confirmDelete = async () => {
         if (!romToDelete) return
 
+        const rom = romToDelete
+        if (!rom?.id) {
+            toast.error("Invalid ROM proposal (missing id)")
+            return
+        }
+
         try {
             const supabase = createClient()
-            const rom = romToDelete
 
-            // Extract file paths from URLs
+            // Extract file paths from URLs (strip query string for storage remove)
             const getPathsFromUrls = (urls) => {
                 if (!urls || urls.length === 0) return []
                 return urls.map(url => {
                     if (typeof url !== 'string') return null
                     const parts = url.split('/rom-proposals/')
-                    return parts.length > 1 ? decodeURIComponent(parts[1]) : null
+                    if (parts.length < 2) return null
+                    const path = decodeURIComponent(parts[1].split('?')[0])
+                    return path || null
                 }).filter(Boolean)
             }
 
@@ -144,21 +152,32 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                 }
             }
 
-            // 2. Delete the record from the database
-            const { error: dbError } = await supabase
+            // 2. Delete the record from the database and return deleted row to verify
+            // (Supabase returns 204/no error when RLS blocks delete, so we must check data)
+            const { data: deletedRows, error: dbError } = await supabase
                 .from('rom_proposals')
                 .delete()
                 .eq('id', rom.id)
+                .select('id')
 
             if (dbError) throw dbError
 
-            // 3. Notify parent to refresh
+            const actuallyDeleted = Array.isArray(deletedRows) && deletedRows.length > 0
+            if (!actuallyDeleted) {
+                toast.error(
+                    "Delete not allowed. Row may be protected by permissions (RLS). " +
+                    "In Supabase, add a DELETE policy on rom_proposals for authenticated users."
+                )
+                return
+            }
+
+            toast.success("ROM proposal deleted")
             if (onDelete) {
                 onDelete()
             }
         } catch (error) {
             console.error("Error deleting ROM proposal:", error)
-            alert("Failed to delete ROM proposal: " + error.message)
+            toast.error("Failed to delete ROM proposal: " + (error?.message || "Unknown error"))
         } finally {
             setRomToDelete(null)
         }
