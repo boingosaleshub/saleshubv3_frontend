@@ -49,6 +49,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
 
 export function PlotsTable({ plots, showDeleteOption, onDelete }) {
     const { t } = useLanguage()
@@ -119,13 +120,13 @@ export function PlotsTable({ plots, showDeleteOption, onDelete }) {
 
             if (dbError) throw dbError
 
-            // 3. Notify parent to refresh
+            toast.success("Coverage plot deleted")
             if (onDelete) {
                 onDelete()
             }
         } catch (error) {
             console.error("Error deleting plot:", error)
-            alert("Failed to delete plot: " + error.message)
+            toast.error("Failed to delete plot: " + (error?.message || "Unknown error"))
         } finally {
             setPlotToDelete(null)
         }
