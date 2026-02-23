@@ -94,7 +94,7 @@ export function AppSidebar({ ...props }) {
       items: [
         { title: t("createNew"), url: "/new-rom-form" },
         { title: t("searchRom"), url: "/all-roms" },
-        { title: t("myRoms"), url: "#" },
+        { title: t("myRoms"), url: "/my-roms" },
         { title: t("approvals"), url: "#" },
       ],
     },

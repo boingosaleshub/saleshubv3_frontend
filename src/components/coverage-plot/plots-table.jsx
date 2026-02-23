@@ -16,6 +16,7 @@ import {
     ChevronLeft,
     ChevronsLeft,
     ChevronsRight,
+    Trash2,
 } from "lucide-react"
 import {
     Table,
@@ -39,12 +40,24 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PlotImageModal } from "./plot-image-modal"
 import { useLanguage } from "@/components/providers/language-provider"
+import { createClient } from "@/utils/supabase/client"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
-export function PlotsTable({ plots }) {
+export function PlotsTable({ plots, showDeleteOption, onDelete }) {
     const { t } = useLanguage()
     const router = useRouter()
     const [selectedPlot, setSelectedPlot] = useState(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [plotToDelete, setPlotToDelete] = useState(null)
 
     // Search state
     const [searchQuery, setSearchQuery] = useState("")
@@ -60,6 +73,64 @@ export function PlotsTable({ plots }) {
         e.stopPropagation()
         setSelectedPlot(plot)
         setIsModalOpen(true)
+    }
+
+    const handleDeleteClick = (e, plot) => {
+        e.stopPropagation()
+        setPlotToDelete(plot)
+    }
+
+    const confirmDelete = async () => {
+        if (!plotToDelete) return
+
+        try {
+            const supabase = createClient()
+            const plot = plotToDelete
+
+            // Extract file paths from URLs
+            const getPathsFromUrls = (urls) => {
+                if (!urls || urls.length === 0) return []
+                return urls.map(url => {
+                    if (typeof url !== 'string') return null
+                    // Extract the filename from the end of the URL
+                    const urlParts = url.split('/')
+                    return urlParts[urlParts.length - 1]
+                }).filter(Boolean)
+            }
+
+            // 1. Delete screenshots from storage if they exist
+            if (plot.screenshot_urls && plot.screenshot_urls.length > 0) {
+                const filenames = getPathsFromUrls(plot.screenshot_urls)
+
+                if (filenames.length > 0) {
+                    const { error: storageError } = await supabase.storage
+                        .from('coverage-plots')
+                        .remove(filenames)
+
+                    if (storageError) {
+                        console.warn("Could not delete some screenshots from storage:", storageError)
+                    }
+                }
+            }
+
+            // 2. Delete the record from the database
+            const { error: dbError } = await supabase
+                .from('coverage_plots')
+                .delete()
+                .eq('id', plot.id)
+
+            if (dbError) throw dbError
+
+            // 3. Notify parent to refresh
+            if (onDelete) {
+                onDelete()
+            }
+        } catch (error) {
+            console.error("Error deleting plot:", error)
+            alert("Failed to delete plot: " + error.message)
+        } finally {
+            setPlotToDelete(null)
+        }
     }
 
     const handleRowClick = (plot) => {
@@ -350,6 +421,17 @@ export function PlotsTable({ plots }) {
                                                 <Eye className="h-4 w-4 mr-2" />
                                                 {t("viewPlot")}
                                             </Button>
+                                            {showDeleteOption && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={(e) => handleDeleteClick(e, plot)}
+                                                    className="text-gray-700 dark:text-gray-200 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-all duration-200 font-medium h-8 ml-1"
+                                                    title="Delete plot"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                             <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-red-500 transition-colors duration-200" />
                                         </div>
                                     </TableCell>
@@ -480,6 +562,24 @@ export function PlotsTable({ plots }) {
                 onClose={() => setIsModalOpen(false)}
                 plot={selectedPlot}
             />
+
+            {/* Delete Confirmation Modal */}
+            <AlertDialog open={!!plotToDelete} onOpenChange={(open) => !open && setPlotToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the coverage plot and remove its data from our servers.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 focus:ring-red-600 text-white">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     )
 }
