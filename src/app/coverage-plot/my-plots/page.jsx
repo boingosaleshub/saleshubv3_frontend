@@ -106,7 +106,7 @@ export default function MyPlotsPage() {
                 </p>
             </div>
 
-            <PlotsTable plots={plots} />
+            <PlotsTable plots={plots} showDeleteOption={true} />
         </div>
     )
 }

@@ -125,8 +125,9 @@ export default function AllPlotsPage() {
 
       {/* Content Section */}
       <div className="mx-4 py-8">
-        <PlotsTable plots={plots} showDeleteOption={["Admin", "Super Admin"].includes(user?.app_metadata?.role)} />
+        <PlotsTable plots={plots} showDeleteOption={true} />
       </div>
     </div>
   )
 }
+
