@@ -73,7 +73,7 @@ export default function AllRomsPage() {
 
             {/* Content Section */}
             <div className="mx-4 py-8">
-                <RomsTable roms={roms} />
+                <RomsTable roms={roms} onDelete={fetchRomProposals} />
             </div>
         </div>
     )

@@ -3,11 +3,7 @@
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import {
-    Building2,
     MapPin,
-    Layers,
-    ParkingCircle,
-    Cpu,
     Search,
     ArrowUpDown,
     ArrowUpAZ,
@@ -308,7 +304,8 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                                 <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
                                     Sectors
                                 </TableHead>
-                                <TableHead className="py-4 pr-6 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                <TableHead className="py-4 pr-6 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap text-center">
+                                    Action
                                 </TableHead>
                             </TableRow>
                         </TableHeader>
@@ -389,9 +386,9 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                                             </span>
                                         </TableCell>
 
-                                        <TableCell className="text-right pr-6 py-4">
-                                            <div className="flex items-center justify-end gap-1">
-                                                {showDeleteOption && (
+                                        <TableCell className="text-center pr-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                            <div className="flex items-center justify-center gap-1">
+                                                {showDeleteOption !== false && (
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
@@ -402,7 +399,6 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 )}
-                                                <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-red-500 transition-colors duration-200 ml-auto" />
                                             </div>
                                         </TableCell>
                                     </TableRow>
