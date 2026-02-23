@@ -21,6 +21,25 @@ export default function MyRomsPage() {
         }
     }, [user])
 
+    // Realtime subscription: remove deleted ROMs from local state instantly
+    useEffect(() => {
+        const supabase = createClient()
+        const channel = supabase
+            .channel("my-roms-realtime")
+            .on(
+                "postgres_changes",
+                { event: "DELETE", schema: "public", table: "rom_proposals" },
+                (payload) => {
+                    setRoms((prev) => prev.filter((r) => r.id !== payload.old.id))
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [])
+
     const fetchMyRomProposals = async () => {
         try {
             setLoading(true)
@@ -80,7 +99,6 @@ export default function MyRomsPage() {
                 <RomsTable
                     roms={roms}
                     showDeleteOption={isAdmin}
-                    onDelete={fetchMyRomProposals}
                 />
             </div>
         </div>

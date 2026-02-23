@@ -30,6 +30,25 @@ export default function AllPlotsPage() {
     // Only re-run when user id or router changes, not on session/token refresh (avoids refetch on window focus)
   }, [user?.id, user?.app_metadata?.role, router]);
 
+  // Realtime subscription: remove deleted plots from local state instantly
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("all-plots-realtime")
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "coverage_plots" },
+        (payload) => {
+          setPlots((prev) => prev.filter((p) => p.id !== payload.old.id));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const fetchAllPlots = async () => {
     try {
       setLoading(true);
@@ -106,7 +125,7 @@ export default function AllPlotsPage() {
 
       {/* Content Section */}
       <div className="mx-4 py-8">
-        <PlotsTable plots={plots} showDeleteOption={["Admin", "Super Admin"].includes(user?.app_metadata?.role)} onDelete={fetchAllPlots} />
+        <PlotsTable plots={plots} showDeleteOption={["Admin", "Super Admin"].includes(user?.app_metadata?.role)} />
       </div>
     </div>
   )

@@ -21,6 +21,25 @@ export default function MyPlotsPage() {
         // Use user.id so we don't refetch when session refreshes on window/tab focus
     }, [user?.id])
 
+    // Realtime subscription: remove deleted plots from local state instantly
+    useEffect(() => {
+        const supabase = createClient()
+        const channel = supabase
+            .channel("my-plots-realtime")
+            .on(
+                "postgres_changes",
+                { event: "DELETE", schema: "public", table: "coverage_plots" },
+                (payload) => {
+                    setPlots((prev) => prev.filter((p) => p.id !== payload.old.id))
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [])
+
     const fetchMyPlots = async () => {
         try {
             setLoading(true)
