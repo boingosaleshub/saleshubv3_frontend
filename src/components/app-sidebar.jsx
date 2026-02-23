@@ -94,7 +94,7 @@ export function AppSidebar({ ...props }) {
       items: [
         { title: t("createNew"), url: "/new-rom-form" },
         { title: t("searchRom"), url: "/all-roms" },
-        { title: t("myRoms"), url: "/my-roms" },
+        { title: t("myRoms"), url: "/my-roms", noNavigate: true },
         { title: t("approvals"), url: "#" },
       ],
     },
@@ -205,9 +205,15 @@ export function AppSidebar({ ...props }) {
                           {item.items.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
                               <SidebarMenuSubButton asChild className="text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-foreground)] font-normal text-sm">
-                                <Link href={subItem.url}>
-                                  <span className="font-sans text-[var(--sidebar-foreground)]">{subItem.title}</span>
-                                </Link>
+                                {subItem.noNavigate ? (
+                                  <span className="block w-full px-2 py-1.5 font-sans text-[var(--sidebar-foreground)] cursor-default">
+                                    {subItem.title}
+                                  </span>
+                                ) : (
+                                  <Link href={subItem.url}>
+                                    <span className="font-sans text-[var(--sidebar-foreground)]">{subItem.title}</span>
+                                  </Link>
+                                )}
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
                           ))}
@@ -262,6 +268,16 @@ export function AppSidebar({ ...props }) {
           </div>
           {menuItems.find(item => item.title === hoveredMenu)?.items?.map((subItem) => {
             const itemKey = `${hoveredMenu}-${subItem.title}`
+            if (subItem.noNavigate) {
+              return (
+                <span
+                  key={subItem.title}
+                  className="block px-4 py-2 text-sm text-[var(--sidebar-foreground)] cursor-default rounded-sm mx-1"
+                >
+                  {subItem.title}
+                </span>
+              )
+            }
             return (
               <Link
                 key={subItem.title}
