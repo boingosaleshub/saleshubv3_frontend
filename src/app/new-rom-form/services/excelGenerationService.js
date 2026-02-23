@@ -3,12 +3,11 @@
  * Generates pricing Excel sheets for ROM automation
  * Uses ExcelJS for professional Excel file generation with styling
  * 
- * For DAS ADRF: loads the actual template file and only modifies dynamic values
- * (Total Area, Considered Area, %, and Qty values). This guarantees the generated
- * file is an exact cell-by-cell mirror of the template. Keeps SIZE + CELLULAR DAS tabs.
- * 
- * For ERCES ADRF: loads the same ADRF template and only modifies dynamic values.
- * Keeps SIZE + ERCES tabs, removes CELLULAR DAS tab.
+ * Template-based generation (cell-by-cell mirror of the vendor template):
+ *   ADRF DAS:   ADRF template → CELLULAR DAS + SIZE tabs
+ *   ADRF ERCES: ADRF template → ERCES + SIZE tabs
+ *   Comba DAS:  Comba template → CELLULAR DAS + SIZE tabs
+ *   Comba ERCES: Comba template → ERCES + SIZE tabs
  * 
  * For other vendors/system types: builds workbook from scratch dynamically.
  */
@@ -183,10 +182,11 @@ const ERCES_ADRF_ITEM_ROWS = [
 ];
 
 // ========================================================
-//  ADRF: Build a case-insensitive qty lookup from
-//  the calculated vendor data (API + formulas)
+//  Build a case-insensitive qty lookup from
+//  the calculated vendor data (API + formulas).
+//  Used for all template-based generation (ADRF & Comba).
 // ========================================================
-function buildAdrfQtyMap(vendorData) {
+function buildQtyMap(vendorData) {
     const map = new Map();
     if (!vendorData) return map;
 
@@ -237,7 +237,7 @@ async function generateDasAdrfFromTemplate({ totalArea, areaPercentage, vendorDa
     ws.getCell('O3').value = areaPercentage / 100;
 
     // --- Set Qty values (column I) ---
-    const qtyMap = buildAdrfQtyMap(vendorData);
+    const qtyMap = buildQtyMap(vendorData);
     console.log('[ExcelGen] Built qty map with', qtyMap.size, 'items');
 
     for (const { row, name, defaultQty } of DAS_ADRF_ITEM_ROWS) {
@@ -354,7 +354,7 @@ async function generateErcesAdrfFromTemplate({ totalArea, areaPercentage, vendor
     // --- Set Qty values (column I) ---
     // Only override cells where we have a calculated value from vendor data.
     // Template formulas are preserved for items without calculated values.
-    const qtyMap = buildAdrfQtyMap(vendorData);
+    const qtyMap = buildQtyMap(vendorData);
     console.log('[ExcelGen] Built ERCES qty map with', qtyMap.size, 'items');
 
     for (const { row, name, aliases } of ERCES_ADRF_ITEM_ROWS) {
@@ -422,6 +422,321 @@ async function generateErcesAdrfFromTemplate({ totalArea, areaPercentage, vendor
 async function generateErcesAdrfAsBase64({ totalArea, areaPercentage, vendorData, density }) {
     const workbook = await generateErcesAdrfFromTemplate({ totalArea, areaPercentage, vendorData, density });
     const filename = generateExcelFilename({ systemType: 'ERCES', bdaVendor: 'ADRF' });
+    const buffer = await workbook.xlsx.writeBuffer();
+    const base64 = arrayBufferToBase64(buffer);
+    return { filename, buffer: base64 };
+}
+
+
+// ========================================================
+//  COMBA TEMPLATE CONFIGURATION
+// ========================================================
+const COMBA_TEMPLATE_PATH = '/Project Name - Pricing v.2.2 - Comba - Price Updated.xlsm';
+
+// ========================================================
+//  DAS COMBA: Item-to-row mapping for CELLULAR DAS tab
+// ========================================================
+const DAS_COMBA_ITEM_ROWS = [
+    // DAS HEAD-END (rows 6-14)
+    { row: 6, name: 'iDAS Master Unit v2 MIMO Rack' },
+    { row: 7, name: 'iDAS Master Unit Fiber Optical Unit - with 4 optical ports' },
+    { row: 8, name: 'iDAS Master Unit FOU Dummy Load' },
+    { row: 9, name: 'iDAS Master Unit RF Unit 700 lowerABC' },
+    { row: 10, name: 'iDAS Master Unit RF Unit 850MHz' },
+    { row: 11, name: 'iDAS Master Unit RF Unit 1900MHz' },
+    { row: 12, name: 'iDAS Master Unit RF Unit AWS Band' },
+    { row: 13, name: 'iDAS Master Unit RFU Dummy Load' },
+    { row: 14, name: 'iDAS Master Unit Power Supply Unit' },
+
+    // REMOTE UNITS (rows 16-20)
+    { row: 16, name: 'Remote Units 40W 4 bands' },
+    { row: 17, name: 'Outdoor Quad-Band Combiner' },
+    { row: 19, name: 'Remote Unit 5W 4  bands' },
+    { row: 20, name: '2W/5W Remote Unit Power Supply Unit' },
+
+    // ADD'L EQUIPMENT (rows 22-27)
+    { row: 22, name: 'Indoor Cabling & Materials' },
+    { row: 23, name: 'Outdoor Cabling & Materials' },
+    { row: 24, name: 'Outdoor Poles' },
+    { row: 25, name: 'Donor Antenna' },
+    { row: 26, name: 'GPS ( Standard)' },
+    { row: 27, name: 'Headend Miscellaneous' },
+
+    // SIGNAL SOURCE (rows 29-37)
+    { row: 29, name: 'Verizon Extender' },
+    { row: 30, name: 'AT&T MetroCell' },
+    { row: 31, name: 'OneCell - CAPEX' },
+    { row: 32, name: 'OneCell - OPEX' },
+    { row: 33, name: 'OneCell - Extra Sector CAPEX' },
+    { row: 34, name: 'AT&T Base Station' },
+    { row: 35, name: 'Verizon BAse Station' },
+    { row: 36, name: 'T-Mobile Base Station' },
+    { row: 37, name: 'Comba mBDA' },
+
+    // SERVICE & LABOR (rows 39-45)
+    { row: 39, name: 'Site Survey, Design & Mgmt.' },
+    { row: 40, name: 'Installation Labor' },
+    { row: 41, name: 'Sales Commission' },
+    { row: 42, name: 'GPO Fee' },
+    { row: 44, name: 'Monitoring & Maintenance' },
+    { row: 45, name: 'Insurance' },
+];
+
+// ========================================================
+//  ERCES COMBA: Item-to-row mapping for ERCES tab
+//  NOTE: Qty column is H (not I like ADRF)
+// ========================================================
+const ERCES_COMBA_ITEM_ROWS = [
+    // EQUIPMENT (rows 6-23)
+    { row: 6, name: '0.5W Class A BDA 700/800MHz' },
+    { row: 7, name: '2W Class A BDA 700/800MHz' },
+    { row: 8, name: '5W Class A BDA 700/800MHz' },
+    { row: 10, name: 'Fiber DAS 700/800MHz Master Unit' },
+    { row: 11, name: 'Fiber DAS 700/800MHz Remote Unit' },
+    { row: 13, name: '700/800MHz Filter' },
+    { row: 15, name: 'Battery Backup Unit 100 Amp-Hour Power System' },
+    { row: 16, name: 'Battery Backup Unit 60 Amp-Hour Power System' },
+    { row: 17, name: 'Battery Backup Unit 55 Amp-Hour Power System' },
+    { row: 19, name: 'Anunciator Panel' },
+    { row: 21, name: 'Indoor Wide Band Omni Antenna' },
+    { row: 22, name: 'Outdoor Directional Yagi Antenna' },
+    { row: 23, name: 'Type N F/F Bulkhead Coaxial RF Surge Protector' },
+
+    // CABLING & MATERIALS (rows 25-33)
+    { row: 25, name: '1/2" Low Loss Air Dialectrict Plenum-Rated Cable (per ft)', aliases: ['1/2" Low Loss Air Dialectric Plenum-Rated Cable (per ft)'] },
+    { row: 26, name: 'N-Male Connector LCF12-50' },
+    { row: 28, name: 'Preterminated Single Mode Fiber' },
+    { row: 30, name: 'Various XXdB Directional Couplers' },
+    { row: 31, name: '3ft 0.141 Jumper Cable, PIM Rated, Plenum Rated, N-M to N-M' },
+    { row: 33, name: 'Other Capex' },
+
+    // ALL-IN (rows 35-40)
+    { row: 35, name: 'NEMA-3R (1x on rooftop)', aliases: ['NEMA-3R'] },
+    { row: 36, name: 'NEMA-4 (1x per floor)', aliases: ['NEMA-4'] },
+    { row: 37, name: 'NEMA-1 (1x per antenna)', aliases: ['NEMA-1'] },
+    { row: 38, name: '12x12 Access Hatch' },
+    { row: 40, name: 'Electrical labor' },
+
+    // SERVICE & LABOR (rows 42-48)
+    { row: 42, name: 'Site Survey, Design & Mgmt.' },
+    { row: 43, name: 'Installation Labor' },
+    { row: 44, name: 'Permit' },
+    { row: 45, name: 'Sales Commission' },
+    { row: 47, name: '24x7 Monitoring & Maintenance' },
+    { row: 48, name: 'Annual Inspection' },
+];
+
+// ========================================================
+//  DAS COMBA: Generate Excel from the Comba template
+//  Keeps CELLULAR DAS + SIZE tabs, removes ERCES tab.
+// ========================================================
+async function generateDasCombaFromTemplate({ totalArea, areaPercentage, vendorData, density, numSectors }) {
+    const templateUrl = encodeURI(COMBA_TEMPLATE_PATH);
+    console.log('[ExcelGen] Fetching DAS Comba template from:', templateUrl);
+
+    const response = await fetch(templateUrl);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch DAS Comba template: ${response.status} ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+
+    const ws = workbook.getWorksheet(' CELLULAR DAS ');
+    if (!ws) {
+        throw new Error('CELLULAR DAS worksheet not found in Comba template');
+    }
+
+    // --- Set TOTAL AREA (H2, merged H2:K2) ---
+    ['H2', 'I2', 'J2', 'K2'].forEach(ref => { ws.getCell(ref).value = totalArea; });
+
+    // --- Set CONSIDERED AREA (H3, merged H3:K3) ---
+    const consideredArea = totalArea * (areaPercentage / 100);
+    ['H3', 'I3', 'J3', 'K3'].forEach(ref => { ws.getCell(ref).value = consideredArea; });
+
+    // --- Set % AREA TO CONSIDER (O3) ---
+    ws.getCell('O3').value = areaPercentage / 100;
+
+    // --- Set Sectors count (P50) ---
+    // Referenced by I6 (Rack=sectors), I14 (PSU=sectors),
+    // I13 (RFU Dummy Load), I33 (OneCell Extra Sector)
+    ws.getCell('P50').value = numSectors || 0;
+
+    // --- Set Qty values (column I) ---
+    const qtyMap = buildQtyMap(vendorData);
+    console.log('[ExcelGen] Built DAS Comba qty map with', qtyMap.size, 'items');
+
+    for (const { row, name, aliases } of DAS_COMBA_ITEM_ROWS) {
+        let calcQty = qtyMap.get(name.trim().toLowerCase()) ?? null;
+
+        if (calcQty === null && aliases) {
+            for (const alias of aliases) {
+                calcQty = qtyMap.get(alias.trim().toLowerCase()) ?? null;
+                if (calcQty !== null) break;
+            }
+        }
+
+        if (calcQty !== null) {
+            ws.getCell(`I${row}`).value = calcQty;
+            console.log(`[ExcelGen] DAS Comba I${row} = ${calcQty} (${name})`);
+        }
+    }
+
+    // --- Neutralize Opex formulas ---
+    ws.getCell('K32').value = 0;
+    ws.getCell('K44').value = 0;
+    ws.getCell('K45').value = 0;
+
+    // --- Clear USD summary section (rows 48-56) ---
+    for (const row of [48, 49, 50, 51, 52, 53, 54, 55, 56]) {
+        ws.getCell(`J${row}`).value = 0;
+        ws.getCell(`K${row}`).value = 0;
+    }
+
+    // --- Update SIZE tab ---
+    const sizeWs = workbook.getWorksheet('SIZE') || workbook.getWorksheet(' SIZE ');
+    if (sizeWs) {
+        const hpRuRequired = calculateHpRuQty(totalArea, density);
+        const totalAntennasRequired = calculateAntennaQty(totalArea, density);
+        const sqftPerAntenna = totalAntennasRequired > 0 ? Math.floor(totalArea / totalAntennasRequired) : 0;
+
+        // PUBLIC SAFETY section (first data row = 4)
+        sizeWs.getCell('D4').value = totalAntennasRequired;
+        sizeWs.getCell('E4').value = totalArea;
+
+        // CELLULAR DAS section (first data row = 16)
+        // C=5W RU, D=40W RU, E=Antennas, F=Area, G=sqft/ant
+        sizeWs.getCell('D16').value = hpRuRequired;
+        sizeWs.getCell('E16').value = totalAntennasRequired;
+        sizeWs.getCell('F16').value = totalArea;
+
+        // I25 = clear (was sqft per 40W RU static value)
+        sizeWs.getCell('I25').value = null;
+
+        console.log(`[ExcelGen] Comba SIZE tab updated: 40W RU=${hpRuRequired}, Antennas=${totalAntennasRequired}, Area=${totalArea}`);
+    } else {
+        console.warn('[ExcelGen] SIZE worksheet not found in Comba template');
+    }
+
+    // --- Remove ERCES worksheet ---
+    const ercesSheet = workbook.getWorksheet('ERCES');
+    if (ercesSheet) workbook.removeWorksheet(ercesSheet.id);
+
+    flattenSharedFormulas(workbook);
+
+    console.log('[ExcelGen] DAS Comba template generation complete');
+    return workbook;
+}
+
+async function generateDasCombaAsBase64({ totalArea, areaPercentage, vendorData, density, numSectors }) {
+    const workbook = await generateDasCombaFromTemplate({ totalArea, areaPercentage, vendorData, density, numSectors });
+    const filename = generateExcelFilename({ systemType: 'DAS', dasVendor: 'Comba' });
+    const buffer = await workbook.xlsx.writeBuffer();
+    const base64 = arrayBufferToBase64(buffer);
+    return { filename, buffer: base64 };
+}
+
+// ========================================================
+//  ERCES COMBA: Generate Excel from the Comba template
+//  Keeps ERCES + SIZE tabs, removes CELLULAR DAS tab.
+//  NOTE: Qty column is H (not I), area is G2:J2 (not H2:K2)
+// ========================================================
+async function generateErcesCombaFromTemplate({ totalArea, areaPercentage, vendorData, density }) {
+    const templateUrl = encodeURI(COMBA_TEMPLATE_PATH);
+    console.log('[ExcelGen] Fetching ERCES Comba template from:', templateUrl);
+
+    const response = await fetch(templateUrl);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch ERCES Comba template: ${response.status} ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+
+    const ws = workbook.getWorksheet('ERCES');
+    if (!ws) {
+        throw new Error('ERCES worksheet not found in Comba template');
+    }
+
+    // --- Set TOTAL AREA (G2, merged G2:J2) ---
+    ['G2', 'H2', 'I2', 'J2'].forEach(ref => { ws.getCell(ref).value = totalArea; });
+
+    // --- Set CONSIDERED AREA (G3, merged G3:J3) ---
+    const consideredArea = totalArea * (areaPercentage / 100);
+    ['G3', 'H3', 'I3', 'J3'].forEach(ref => { ws.getCell(ref).value = consideredArea; });
+
+    // --- Set % AREA TO CONSIDER (N3) ---
+    ws.getCell('N3').value = areaPercentage / 100;
+
+    // --- Set Qty values (column H — not I like ADRF) ---
+    const qtyMap = buildQtyMap(vendorData);
+    console.log('[ExcelGen] Built ERCES Comba qty map with', qtyMap.size, 'items');
+
+    for (const { row, name, aliases } of ERCES_COMBA_ITEM_ROWS) {
+        let calcQty = qtyMap.get(name.trim().toLowerCase()) ?? null;
+
+        if (calcQty === null && aliases) {
+            for (const alias of aliases) {
+                calcQty = qtyMap.get(alias.trim().toLowerCase()) ?? null;
+                if (calcQty !== null) break;
+            }
+        }
+
+        if (calcQty !== null) {
+            ws.getCell(`H${row}`).value = calcQty;
+            console.log(`[ExcelGen] ERCES Comba H${row} = ${calcQty} (${name})`);
+        }
+    }
+
+    // --- Neutralize Opex formulas ---
+    ws.getCell('J47').value = 0;
+    ws.getCell('J48').value = 0;
+
+    // --- Clear USD summary section (rows 51-58) ---
+    // In Comba ERCES: I = Capex, J = Opex
+    for (const row of [51, 52, 53, 54, 55, 56, 57, 58]) {
+        ws.getCell(`I${row}`).value = 0;
+        ws.getCell(`J${row}`).value = 0;
+    }
+
+    // --- Update SIZE tab ---
+    const sizeWs = workbook.getWorksheet('SIZE') || workbook.getWorksheet(' SIZE ');
+    if (sizeWs) {
+        const hpRuRequired = calculateHpRuQty(totalArea, density);
+        const totalAntennasRequired = calculateAntennaQty(totalArea, density);
+
+        // PUBLIC SAFETY section (first data row = 4)
+        // C=RU, D=Antennas, E=Area
+        sizeWs.getCell('D4').value = totalAntennasRequired;
+        sizeWs.getCell('E4').value = totalArea;
+
+        // CELLULAR DAS section (first data row = 16)
+        sizeWs.getCell('D16').value = hpRuRequired;
+        sizeWs.getCell('E16').value = totalAntennasRequired;
+        sizeWs.getCell('F16').value = totalArea;
+
+        sizeWs.getCell('I25').value = null;
+
+        console.log(`[ExcelGen] Comba SIZE tab updated: 40W RU=${hpRuRequired}, Antennas=${totalAntennasRequired}, Area=${totalArea}`);
+    } else {
+        console.warn('[ExcelGen] SIZE worksheet not found in Comba template');
+    }
+
+    // --- Remove CELLULAR DAS worksheet ---
+    const dasSheet = workbook.getWorksheet(' CELLULAR DAS ');
+    if (dasSheet) workbook.removeWorksheet(dasSheet.id);
+
+    flattenSharedFormulas(workbook);
+
+    console.log('[ExcelGen] ERCES Comba template generation complete');
+    return workbook;
+}
+
+async function generateErcesCombaAsBase64({ totalArea, areaPercentage, vendorData, density }) {
+    const workbook = await generateErcesCombaFromTemplate({ totalArea, areaPercentage, vendorData, density });
+    const filename = generateExcelFilename({ systemType: 'ERCES', bdaVendor: 'Comba' });
     const buffer = await workbook.xlsx.writeBuffer();
     const base64 = arrayBufferToBase64(buffer);
     return { filename, buffer: base64 };
@@ -832,8 +1147,9 @@ export async function generateRomExcelAsBase64(params) {
 
 // ========================================================
 //  MAIN ENTRY POINT: Generate Excel files for ROM
-//  For DAS ADRF: uses template-based generation
-//  For everything else: uses dynamic generation
+//  For ADRF (DAS/ERCES): uses ADRF template
+//  For Comba (DAS/ERCES): uses Comba template
+//  For other vendors: uses dynamic generation
 // ========================================================
 
 export async function generateMultipleExcelFiles(params) {
@@ -866,6 +1182,30 @@ export async function generateMultipleExcelFiles(params) {
                 files.push(dasFile);
             } catch (err) {
                 console.error('[ExcelGen] DAS ADRF template generation failed, falling back to dynamic:', err);
+                const dasFile = await generateRomExcelAsBase64({
+                    systemType,
+                    dasVendor,
+                    bdaVendor,
+                    grossSqFt,
+                    density,
+                    areaPercentage,
+                    fileType: 'DAS',
+                    vendorData: dasVendorData
+                });
+                files.push(dasFile);
+            }
+        } else if (dasVendor === 'Comba') {
+            try {
+                const dasFile = await generateDasCombaAsBase64({
+                    totalArea,
+                    areaPercentage,
+                    vendorData: dasVendorData,
+                    density,
+                    numSectors,
+                });
+                files.push(dasFile);
+            } catch (err) {
+                console.error('[ExcelGen] DAS Comba template generation failed, falling back to dynamic:', err);
                 const dasFile = await generateRomExcelAsBase64({
                     systemType,
                     dasVendor,
@@ -926,6 +1266,29 @@ export async function generateMultipleExcelFiles(params) {
                 });
                 files.push(ercesFile);
             }
+        } else if (bdaVendor === 'Comba') {
+            try {
+                const ercesFile = await generateErcesCombaAsBase64({
+                    totalArea,
+                    areaPercentage,
+                    vendorData: ercesVendorData,
+                    density,
+                });
+                files.push(ercesFile);
+            } catch (err) {
+                console.error('[ExcelGen] ERCES Comba template generation failed, falling back to dynamic:', err);
+                const ercesFile = await generateRomExcelAsBase64({
+                    systemType,
+                    dasVendor,
+                    bdaVendor,
+                    grossSqFt,
+                    density,
+                    areaPercentage,
+                    fileType: 'ERCES',
+                    vendorData: ercesVendorData
+                });
+                files.push(ercesFile);
+            }
         } else {
             const ercesFile = await generateRomExcelAsBase64({
                 systemType,
@@ -969,6 +1332,24 @@ export async function generateMultipleExcelFiles(params) {
                 });
                 files.push(file);
             }
+        } else if (dasVendor === 'Comba') {
+            try {
+                const file = await generateDasCombaAsBase64({
+                    totalArea,
+                    areaPercentage,
+                    vendorData,
+                    density,
+                    numSectors,
+                });
+                files.push(file);
+            } catch (err) {
+                console.error('[ExcelGen] DAS Comba template generation failed, falling back to dynamic:', err);
+                const file = await generateRomExcelAsBase64({
+                    ...params,
+                    vendorData
+                });
+                files.push(file);
+            }
         } else {
             const file = await generateRomExcelAsBase64({
                 ...params,
@@ -999,6 +1380,23 @@ export async function generateMultipleExcelFiles(params) {
                 files.push(file);
             } catch (err) {
                 console.error('[ExcelGen] ERCES ADRF template generation failed, falling back to dynamic:', err);
+                const file = await generateRomExcelAsBase64({
+                    ...params,
+                    vendorData
+                });
+                files.push(file);
+            }
+        } else if (bdaVendor === 'Comba') {
+            try {
+                const file = await generateErcesCombaAsBase64({
+                    totalArea,
+                    areaPercentage,
+                    vendorData,
+                    density,
+                });
+                files.push(file);
+            } catch (err) {
+                console.error('[ExcelGen] ERCES Comba template generation failed, falling back to dynamic:', err);
                 const file = await generateRomExcelAsBase64({
                     ...params,
                     vendorData
