@@ -17,6 +17,7 @@ export default function AllPlotsPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!user?.id) return;
     // Check if user is admin or super admin
     const userRole = user?.app_metadata?.role;
     const isAdmin = ["Admin", "Super Admin"].includes(userRole);
@@ -26,7 +27,8 @@ export default function AllPlotsPage() {
     }
 
     fetchAllPlots();
-  }, [user, router]);
+    // Only re-run when user id or router changes, not on session/token refresh (avoids refetch on window focus)
+  }, [user?.id, user?.app_metadata?.role, router]);
 
   const fetchAllPlots = async () => {
     try {

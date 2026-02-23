@@ -5,15 +5,13 @@ import { useRouter } from "next/navigation"
 import {
     Eye,
     MapPin,
-    User as UserIcon,
-    Calendar,
     Signal,
-    ChevronRight,
     Search,
     ArrowUpDown,
     ArrowUpAZ,
     ArrowDownAZ,
     ChevronLeft,
+    ChevronRight,
     ChevronsLeft,
     ChevronsRight,
     Trash2,
@@ -334,7 +332,7 @@ export function PlotsTable({ plots, showDeleteOption, onDelete }) {
                             <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground">
                                 {t("coverageTypes")}
                             </TableHead>
-                            <TableHead className="text-right py-4 pr-6 uppercase tracking-wider text-xs font-semibold text-muted-foreground">
+                            <TableHead className="text-left py-4 pl-4 pr-6 uppercase tracking-wider text-xs font-semibold text-muted-foreground w-[180px]">
                                 Actions
                             </TableHead>
                         </TableRow>
@@ -409,8 +407,8 @@ export function PlotsTable({ plots, showDeleteOption, onDelete }) {
                                             )}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-right pr-6 py-4">
-                                        <div className="flex items-center justify-end gap-1">
+                                    <TableCell className="text-left pl-4 pr-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex items-center justify-start gap-1">
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -432,7 +430,6 @@ export function PlotsTable({ plots, showDeleteOption, onDelete }) {
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             )}
-                                            <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-red-500 transition-colors duration-200" />
                                         </div>
                                     </TableCell>
                                 </TableRow>

@@ -18,7 +18,8 @@ export default function MyPlotsPage() {
         if (user?.id) {
             fetchMyPlots()
         }
-    }, [user])
+        // Use user.id so we don't refetch when session refreshes on window/tab focus
+    }, [user?.id])
 
     const fetchMyPlots = async () => {
         try {

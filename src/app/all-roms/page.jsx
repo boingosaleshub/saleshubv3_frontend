@@ -13,10 +13,11 @@ export default function AllRomsPage() {
     const [error, setError] = useState(null)
 
     useEffect(() => {
-        if (user) {
+        if (user?.id) {
             fetchRomProposals()
         }
-    }, [user])
+        // Use user.id so we don't refetch when session refreshes on window/tab focus
+    }, [user?.id])
 
     const fetchRomProposals = async () => {
         try {
