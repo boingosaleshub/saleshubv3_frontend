@@ -17,6 +17,7 @@ import {
     ChevronsLeft,
     ChevronsRight,
     FileSpreadsheet,
+    Trash2,
 } from "lucide-react"
 import {
     Table,
@@ -37,6 +38,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+
+import { createClient } from "@/utils/supabase/client"
 
 function getVendor(rom) {
     const vendors = [rom.das_vendor, rom.bda_vendor].filter(Boolean)
@@ -44,12 +57,13 @@ function getVendor(rom) {
     return [...new Set(vendors)].join(" / ")
 }
 
-export function RomsTable({ roms }) {
+export function RomsTable({ roms, showDeleteOption, onDelete }) {
     const router = useRouter()
     const [searchQuery, setSearchQuery] = useState("")
     const [sortOrder, setSortOrder] = useState(null)
     const [currentPage, setCurrentPage] = useState(1)
     const [rowsPerPage, setRowsPerPage] = useState(10)
+    const [romToDelete, setRomToDelete] = useState(null)
 
     const processedRoms = useMemo(() => {
         let result = [...(roms || [])]
@@ -94,6 +108,64 @@ export function RomsTable({ roms }) {
     const handleSearchChange = (e) => {
         setSearchQuery(e.target.value)
         setCurrentPage(1)
+    }
+
+    const handleDeleteClick = (e, rom) => {
+        e.stopPropagation()
+        setRomToDelete(rom)
+    }
+
+    const confirmDelete = async () => {
+        if (!romToDelete) return
+
+        try {
+            const supabase = createClient()
+            const rom = romToDelete
+
+            // Extract file paths from URLs
+            const getPathsFromUrls = (urls) => {
+                if (!urls || urls.length === 0) return []
+                return urls.map(url => {
+                    if (typeof url !== 'string') return null
+                    const parts = url.split('/rom-proposals/')
+                    return parts.length > 1 ? decodeURIComponent(parts[1]) : null
+                }).filter(Boolean)
+            }
+
+            const filesToDelete = [
+                ...getPathsFromUrls(rom.screenshot_urls),
+                ...getPathsFromUrls(rom.excel_file_urls)
+            ]
+
+            // 1. Delete files from storage if they exist
+            if (filesToDelete.length > 0) {
+                const { error: storageError } = await supabase.storage
+                    .from('rom-proposals')
+                    .remove(filesToDelete)
+
+                if (storageError) {
+                    console.warn("Could not delete some files from storage:", storageError)
+                }
+            }
+
+            // 2. Delete the record from the database
+            const { error: dbError } = await supabase
+                .from('rom_proposals')
+                .delete()
+                .eq('id', rom.id)
+
+            if (dbError) throw dbError
+
+            // 3. Notify parent to refresh
+            if (onDelete) {
+                onDelete()
+            }
+        } catch (error) {
+            console.error("Error deleting ROM proposal:", error)
+            alert("Failed to delete ROM proposal: " + error.message)
+        } finally {
+            setRomToDelete(null)
+        }
     }
 
     const handleSortChange = (value) => {
@@ -318,7 +390,20 @@ export function RomsTable({ roms }) {
                                         </TableCell>
 
                                         <TableCell className="text-right pr-6 py-4">
-                                            <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-red-500 transition-colors duration-200 ml-auto" />
+                                            <div className="flex items-center justify-end gap-1">
+                                                {showDeleteOption && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={(e) => handleDeleteClick(e, rom)}
+                                                        className="text-gray-700 dark:text-gray-200 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-all duration-200 font-medium h-8"
+                                                        title="Delete ROM proposal"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                                <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-red-500 transition-colors duration-200 ml-auto" />
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -437,6 +522,24 @@ export function RomsTable({ roms }) {
                     </div>
                 </div>
             )}
+
+            {/* Delete Confirmation Modal */}
+            <AlertDialog open={!!romToDelete} onOpenChange={(open) => !open && setRomToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete this ROM proposal and remove its files from our servers.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 focus:ring-red-600 text-white">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     )
 }
