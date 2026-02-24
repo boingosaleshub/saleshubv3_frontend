@@ -34,6 +34,17 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
 import dynamic from "next/dynamic"
 import Image from "next/image"
 
@@ -94,6 +105,10 @@ export default function RomDetailPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [selectedImage, setSelectedImage] = useState(null)
+    const [actionDialog, setActionDialog] = useState(null)
+    const [processing, setProcessing] = useState(false)
+
+    const isAdmin = ["Admin", "Super Admin"].includes(user?.app_metadata?.role)
 
     useEffect(() => {
         if (id) fetchRomData()
@@ -126,6 +141,35 @@ export default function RomDetailPage() {
             setError(err.message)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleApprovalAction = async (proposalId, action) => {
+        setProcessing(true)
+        try {
+            const supabase = createClient()
+            const newStatus = action === "approve" ? "Approved" : "Rejected"
+
+            const { error: updateError } = await supabase
+                .from("rom_proposals")
+                .update({ approval_status: newStatus })
+                .eq("id", proposalId)
+
+            if (updateError) throw updateError
+
+            toast.success(
+                action === "approve"
+                    ? "ROM proposal approved successfully"
+                    : "ROM proposal rejected"
+            )
+
+            router.push("/view-rom-proposals")
+        } catch (err) {
+            console.error(`Error ${action}ing ROM proposal:`, err)
+            toast.error(`Failed to ${action} ROM proposal: ${err.message}`)
+        } finally {
+            setProcessing(false)
+            setActionDialog(null)
         }
     }
 
@@ -811,7 +855,53 @@ export default function RomDetailPage() {
                 </Card>
             </div>
 
+            {/* Admin Action Buttons */}
+            {isAdmin && rom.approval_status === "Pending" && (
+                <div className="mx-4 mt-6 mb-8 flex items-center justify-end gap-3">
+                    <Button
+                        variant="outline"
+                        onClick={() => setActionDialog({ id: rom.id, name: rom.venue_name, action: "reject" })}
+                        className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 px-6 py-5 text-sm font-semibold shadow-sm"
+                    >
+                        <XCircle className="h-4 w-4" />
+                        Reject Proposal
+                    </Button>
+                    <Button
+                        onClick={() => setActionDialog({ id: rom.id, name: rom.venue_name, action: "approve" })}
+                        className="gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-5 text-sm font-semibold shadow-sm"
+                    >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Approve Proposal
+                    </Button>
+                </div>
+            )}
 
+            {/* Approval Action Dialog */}
+            <AlertDialog open={!!actionDialog} onOpenChange={(open) => !open && setActionDialog(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            {actionDialog?.action === "approve" ? "Approve ROM Proposal?" : "Reject ROM Proposal?"}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {actionDialog?.action === "approve"
+                                ? `Are you sure you want to approve the ROM proposal "${actionDialog?.name}"? This will mark it as an accepted proposal.`
+                                : `Are you sure you want to reject the ROM proposal "${actionDialog?.name}"? The creator will see this proposal as rejected.`}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => handleApprovalAction(actionDialog.id, actionDialog.action)}
+                            disabled={processing}
+                            className={actionDialog?.action === "approve" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}
+                        >
+                            {processing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                            {actionDialog?.action === "approve" ? "Approve" : "Reject"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

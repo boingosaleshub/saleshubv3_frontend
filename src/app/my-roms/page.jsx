@@ -3,8 +3,16 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { useAuthStore } from "@/store/useAuthStore"
-import { RomsTable } from "@/components/rom-proposals/roms-table"
-import { Loader2, FileSpreadsheet } from "lucide-react"
+import { Loader2, FileSpreadsheet, MapPin, Building2, Clock, CheckCircle2, XCircle, Cpu } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+
+function formatDate(dateStr) {
+    if (!dateStr) return "N/A"
+    return new Date(dateStr).toLocaleDateString("en-US", {
+        year: "numeric", month: "short", day: "numeric",
+    })
+}
 
 export default function MyRomsPage() {
     const { user } = useAuthStore()
@@ -12,25 +20,26 @@ export default function MyRomsPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
-    // Check if user is admin or super admin
-    const isAdmin = ["Admin", "Super Admin"].includes(user?.app_metadata?.role)
-
     useEffect(() => {
         if (user?.id) {
             fetchMyRomProposals()
         }
     }, [user])
 
-    // Realtime subscription: remove deleted ROMs from local state instantly
+    // Realtime subscription: update UI natively dynamically
     useEffect(() => {
         const supabase = createClient()
         const channel = supabase
             .channel("my-roms-realtime")
             .on(
                 "postgres_changes",
-                { event: "DELETE", schema: "public", table: "rom_proposals" },
+                { event: "*", schema: "public", table: "rom_proposals" },
                 (payload) => {
-                    setRoms((prev) => prev.filter((r) => r.id !== payload.old.id))
+                    if (payload.event === "DELETE") {
+                        setRoms((prev) => prev.filter((r) => r.id !== payload.old.id))
+                    } else if (payload.event === "UPDATE" || payload.event === "INSERT") {
+                        fetchMyRomProposals()
+                    }
                 }
             )
             .subscribe()
@@ -38,7 +47,7 @@ export default function MyRomsPage() {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [])
+    }, [user?.id])
 
     const fetchMyRomProposals = async () => {
         try {
@@ -96,11 +105,73 @@ export default function MyRomsPage() {
 
             {/* Content Section */}
             <div className="mx-4 py-8">
-                <RomsTable
-                    roms={roms}
-                    showDeleteOption={isAdmin}
-                />
+                {roms.length === 0 ? (
+                    <Card className="flex flex-col items-center justify-center h-64 text-muted-foreground bg-white dark:bg-[#1a1d21] border-dashed">
+                        <FileSpreadsheet className="h-10 w-10 mb-4 opacity-20" />
+                        <p className="text-sm font-medium">No ROM proposals found</p>
+                        <p className="text-xs text-muted-foreground mt-1">You haven't created any ROM proposals yet.</p>
+                    </Card>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                        {roms.map(rom => (
+                            <Card key={rom.id} className="p-5 overflow-hidden border shadow-sm hover:shadow-md transition-shadow dark:bg-[#1a1d21] dark:border-gray-800 rounded-xl flex flex-col justify-between">
+                                <div>
+                                    <div className="flex justify-between items-start gap-3 mb-3">
+                                        <div className="flex items-center gap-3 w-full">
+                                            <div className="h-10 w-10 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+                                                <Building2 className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                            </div>
+                                            <div className="min-w-0 pr-1 w-full">
+                                                <h3 className="font-bold text-gray-900 dark:text-gray-100 truncate w-full" title={rom.venue_name}>{rom.venue_name}</h3>
+                                                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                    <MapPin className="h-3 w-3 shrink-0" />
+                                                    <span className="truncate w-full" title={rom.venue_address}>{rom.venue_address}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 mt-4 text-sm">
+                                        <div>
+                                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">System</p>
+                                            <p className="font-medium flex items-center gap-1.5"><Cpu className="h-3.5 w-3.5 text-gray-400" />{rom.system_type}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Area / Floors</p>
+                                            <p className="font-medium">{Number(rom.gross_sq_ft).toLocaleString()} sq ft &middot; {rom.num_floors}F</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 mt-5 pt-4">
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+                                        <Clock className="h-3.5 w-3.5" />
+                                        {formatDate(rom.created_at)}
+                                    </div>
+
+                                    {rom.approval_status === "Approved" ? (
+                                        <Badge variant="secondary" className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-0 font-semibold gap-1.5">
+                                            <CheckCircle2 className="h-3.5 w-3.5" />
+                                            Approved
+                                        </Badge>
+                                    ) : rom.approval_status === "Rejected" ? (
+                                        <Badge variant="secondary" className="bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-0 font-semibold gap-1.5">
+                                            <XCircle className="h-3.5 w-3.5" />
+                                            Rejected
+                                        </Badge>
+                                    ) : (
+                                        <Badge variant="secondary" className="bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 border-0 font-semibold gap-1.5">
+                                            <Clock className="h-3.5 w-3.5" />
+                                            Pending
+                                        </Badge>
+                                    )}
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     )
 }
+
