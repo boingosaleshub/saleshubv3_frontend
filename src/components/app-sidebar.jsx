@@ -100,7 +100,7 @@ export function AppSidebar({ ...props }) {
         ] : [
           { title: t("myRoms"), url: "/my-roms" }
         ]),
-        { title: t("approvals"), url: "#" },
+        { title: t("approvals"), url: "/approvals" },
       ],
     },
     {
@@ -312,4 +312,3 @@ export function AppSidebar({ ...props }) {
     </Sidebar >
   )
 }
-
