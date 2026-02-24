@@ -444,6 +444,7 @@ export function CreateRomForm() {
 
         const fullFormData = {
             userId,
+            userRole: user?.app_metadata?.role || 'User',
             venueInfo: {
                 venueName,
                 address: address.trim(),

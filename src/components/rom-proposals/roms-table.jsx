@@ -14,6 +14,9 @@ import {
     ChevronsRight,
     FileSpreadsheet,
     Trash2,
+    Clock,
+    CheckCircle2,
+    XCircle,
 } from "lucide-react"
 import {
     Table,
@@ -323,6 +326,9 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                                 <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
                                     Sectors
                                 </TableHead>
+                                <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap text-center">
+                                    Status
+                                </TableHead>
                                 <TableHead className="py-4 pr-6 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap text-center">
                                     Action
                                 </TableHead>
@@ -405,6 +411,34 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                                             </span>
                                         </TableCell>
 
+                                        <TableCell className="py-4 text-center">
+                                            {rom.approval_status === "Approved" ? (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-0 font-medium gap-1"
+                                                >
+                                                    <CheckCircle2 className="h-3 w-3" />
+                                                    Approved
+                                                </Badge>
+                                            ) : rom.approval_status === "Rejected" ? (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-0 font-medium gap-1"
+                                                >
+                                                    <XCircle className="h-3 w-3" />
+                                                    Rejected
+                                                </Badge>
+                                            ) : (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 border-0 font-medium gap-1"
+                                                >
+                                                    <Clock className="h-3 w-3" />
+                                                    Pending
+                                                </Badge>
+                                            )}
+                                        </TableCell>
+
                                         <TableCell className="text-center pr-6 py-4" onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center justify-center gap-1">
                                                 {showDeleteOption !== false && (
@@ -424,7 +458,7 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={10} className="h-32 text-center">
+                                    <TableCell colSpan={11} className="h-32 text-center">
                                         <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                             <Search className="h-8 w-8 opacity-30" />
                                             <p className="text-sm">No records found matching &quot;{searchQuery}&quot;</p>

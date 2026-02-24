@@ -14,7 +14,8 @@ import {
   RefreshCcw,
   DollarSign,
   LogOut,
-  ListOrdered
+  ListOrdered,
+  ClipboardCheck
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
@@ -94,7 +95,11 @@ export function AppSidebar({ ...props }) {
       items: [
         { title: t("createNew"), url: "/new-rom-form" },
         { title: t("searchRom"), url: "/all-roms" },
-        { title: t("myRoms"), url: "/my-roms", noNavigate: true },
+        ...(['Admin', 'Super Admin'].includes(user?.app_metadata?.role) ? [
+          { title: t("myRoms"), url: "/view-rom-proposals" }
+        ] : [
+          { title: t("myRoms"), url: "/my-roms" }
+        ]),
         { title: t("approvals"), url: "#" },
       ],
     },

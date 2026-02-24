@@ -239,7 +239,8 @@ export function RomAutomationProvider({ children }) {
                                     venueInfo: fd.venueInfo,
                                     systemInfo: fd.systemInfo,
                                     screenshots: completeResult.screenshots || [],
-                                    excelFiles: completeResult.excelFiles || []
+                                    excelFiles: completeResult.excelFiles || [],
+                                    userRole: fd.userRole || 'User'
                                 }).then((saved) => {
                                     console.log('[ROM] ✓ ROM proposal saved to database:', saved.id)
                                 }).catch((saveErr) => {

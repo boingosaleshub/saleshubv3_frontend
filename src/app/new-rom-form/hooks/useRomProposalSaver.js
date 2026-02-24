@@ -122,6 +122,7 @@ export function useRomProposalSaver() {
      * @param {string[]} params.screenshotUrls - Supabase Storage URLs for screenshots
      * @param {string[]} params.excelFileUrls - Supabase Storage URLs for Excel files
      * @param {string} [params.status='completed'] - Proposal status
+     * @param {string} [params.userRole='User'] - Role of the creator (Admin/Super Admin auto-approves)
      * @returns {Promise<Object>} The inserted row
      */
     const saveRomProposal = useCallback(async ({
@@ -130,7 +131,8 @@ export function useRomProposalSaver() {
         systemInfo,
         screenshotUrls,
         excelFileUrls,
-        status = 'completed'
+        status = 'completed',
+        userRole = 'User'
     }) => {
         if (!userId) throw new Error('User ID is required to save ROM proposal')
         if (!venueInfo) throw new Error('Venue information is required')
@@ -182,7 +184,8 @@ export function useRomProposalSaver() {
             excel_file_urls: excelFileUrls || [],
 
             // Metadata
-            status
+            status,
+            approval_status: ['Admin', 'Super Admin'].includes(userRole) ? 'Approved' : 'Pending'
         }
 
         const { data, error } = await supabase
@@ -210,6 +213,7 @@ export function useRomProposalSaver() {
      * @param {Object} params.systemInfo - All system information from the form
      * @param {Array<{filename: string, buffer: string}>} params.screenshots - Base64 screenshots from automation
      * @param {Array<{filename: string, buffer: string}>} params.excelFiles - Base64 Excel files from generation
+     * @param {string} [params.userRole='User'] - Role of the creator
      * @returns {Promise<Object>} The saved ROM proposal record
      */
     const saveCompleteRomProposal = useCallback(async ({
@@ -217,7 +221,8 @@ export function useRomProposalSaver() {
         venueInfo,
         systemInfo,
         screenshots,
-        excelFiles
+        excelFiles,
+        userRole = 'User'
     }) => {
         console.log('[ROM Save] Starting complete ROM proposal save...')
 
@@ -250,7 +255,8 @@ export function useRomProposalSaver() {
             systemInfo,
             screenshotUrls,
             excelFileUrls,
-            status
+            status,
+            userRole
         })
 
         console.log('[ROM Save] ✓ Complete ROM proposal save finished:', saved.id)

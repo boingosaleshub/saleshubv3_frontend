@@ -3,7 +3,6 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import { useLanguage } from "@/components/providers/language-provider";
 import { useTheme } from "@/components/providers/theme-provider";
-import { useHighContrast } from "@/components/providers/high-contrast-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +35,6 @@ export default function SystemSettingsPage() {
     const { user } = useAuthStore();
     const { language, changeLanguage, t } = useLanguage();
     const { theme, toggleTheme } = useTheme();
-    const { highContrast, toggleHighContrast } = useHighContrast();
 
     const languageLabels = {
         en: t("english"),
@@ -112,138 +110,93 @@ export default function SystemSettingsPage() {
                     </div>
                 </div>
 
-                {/* Settings Tabs - Compact */}
-                <div className="space-y-2">
-                    {/* Theme Tab */}
-                    <Card className="bg-white dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer"
-                        onClick={toggleTheme}>
-                        <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-lg transition-all duration-300 ${theme === 'dark'
-                                        ? 'bg-gradient-to-br from-indigo-600 to-purple-700'
-                                        : 'bg-gradient-to-br from-amber-400 to-orange-500'
-                                        }`}>
-                                        <div className="relative w-4 h-4">
-                                            <Sun className={`h-4 w-4 text-white absolute transition-all duration-300 ${theme === 'dark' ? 'opacity-0 rotate-90 scale-0' : 'opacity-100 rotate-0 scale-100'
-                                                }`} />
-                                            <Moon className={`h-4 w-4 text-white absolute transition-all duration-300 ${theme === 'dark' ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-0'
-                                                }`} />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-                                            <Palette className="h-3.5 w-3.5 text-[#E41F26]" />
-                                            {t("themeTab")}
-                                        </h3>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {t("themeDescription")}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="hidden sm:flex items-center gap-1 text-xs">
-                                        <span className={theme === 'light' ? 'font-medium text-amber-600' : 'text-gray-400'}>{t("brightMode")}</span>
-                                        <ChevronRight className="h-3 w-3 text-gray-400" />
-                                        <span className={theme === 'dark' ? 'font-medium text-indigo-500' : 'text-gray-400'}>{t("darkModeLabel")}</span>
-                                    </div>
-                                    <Switch
-                                        checked={theme === 'dark'}
-                                        onCheckedChange={toggleTheme}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="data-[state=checked]:bg-indigo-600"
-                                    />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Language Tab */}
-                    <Card className="bg-white dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
-                        <CardContent className="p-3">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600">
-                                    <Languages className="h-4 w-4 text-white" />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-                                        <Globe className="h-3.5 w-3.5 text-[#E41F26]" />
-                                        {t("languageTab")}
-                                    </h3>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        {t("languageDescription")}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                {languages.map((lang) => (
-                                    <button
-                                        key={lang.code}
-                                        onClick={() => changeLanguage(lang.code)}
-                                        className={`py-2 px-3 rounded-lg border transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.02] ${language === lang.code
-                                            ? 'border-[#E41F26] bg-[#E41F26]/10 shadow-sm'
-                                            : 'border-gray-200 dark:border-zinc-700 hover:border-[#E41F26]/50 bg-gray-50 dark:bg-zinc-800/50'
-                                            }`}
-                                    >
-                                        <FlagIcon code={lang.code} />
-                                        <span className={`text-xs font-medium ${language === lang.code
-                                            ? 'text-[#E41F26]'
-                                            : 'text-gray-700 dark:text-gray-300'
-                                            }`}>
-                                            {lang.label}
-                                        </span>
-                                        {language === lang.code && (
-                                            <Sparkles className="h-3 w-3 text-[#E41F26]" />
-                                        )}
-                                    </button>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* High Contrast Mode Tab */}
-                    <Card className="bg-white dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer"
-                        onClick={toggleHighContrast}>
-                        <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-lg transition-all duration-300 ${highContrast
-                                        ? 'bg-black border border-white'
-                                        : 'bg-gradient-to-br from-emerald-500 to-teal-600'
-                                        }`}>
-                                        <Eye className="h-4 w-4 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-                                            <Eye className="h-3.5 w-3.5 text-[#E41F26]" />
-                                            {t("highContrastTab")}
-                                        </h3>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {t("highContrastDescription")}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Badge
-                                        variant="outline"
-                                        className={`text-xs py-0 ${highContrast
-                                            ? 'bg-black text-white border-white'
-                                            : 'text-gray-500 border-gray-300 dark:border-gray-600'
-                                            }`}
-                                    >
-                                        {highContrast ? 'ON' : 'OFF'}
-                                    </Badge>
-                                    <Switch
-                                        checked={highContrast}
-                                        onCheckedChange={toggleHighContrast}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="data-[state=checked]:bg-black"
-                                    />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                {/* Settings Cards - Taller, More Spacious */}
+<div className="space-y-4">
+    {/* Theme Card */}
+    <Card className="bg-white dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-lg cursor-pointer"
+        onClick={toggleTheme}>
+        <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-5">
+                    <div className={`p-3.5 rounded-xl transition-all duration-300 ${theme === 'dark'
+                        ? 'bg-gradient-to-br from-indigo-600 to-purple-700'
+                        : 'bg-gradient-to-br from-amber-400 to-orange-500'
+                        }`}>
+                        <div className="relative w-6 h-6">
+                            <Sun className={`h-6 w-6 text-white absolute transition-all duration-300 ${theme === 'dark' ? 'opacity-0 rotate-90 scale-0' : 'opacity-100 rotate-0 scale-100'}`} />
+                            <Moon className={`h-6 w-6 text-white absolute transition-all duration-300 ${theme === 'dark' ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-0'}`} />
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-1">
+                            <Palette className="h-4 w-4 text-[#E41F26]" />
+                            {t("themeTab")}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {t("themeDescription")}
+                        </p>
+                    </div>
                 </div>
+                <div className="flex items-center gap-3">
+                    <div className="hidden sm:flex items-center gap-2 text-sm">
+                        <span className={theme === 'light' ? 'font-medium text-amber-600' : 'text-gray-400'}>{t("brightMode")}</span>
+                        <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+                        <span className={theme === 'dark' ? 'font-medium text-indigo-500' : 'text-gray-400'}>{t("darkModeLabel")}</span>
+                    </div>
+                    <Switch
+                        checked={theme === 'dark'}
+                        onCheckedChange={toggleTheme}
+                        onClick={(e) => e.stopPropagation()}
+                        className="data-[state=checked]:bg-indigo-600 scale-125"
+                    />
+                </div>
+            </div>
+        </CardContent>
+    </Card>
+
+    {/* Language Card */}
+    <Card className="bg-white dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-lg">
+        <CardContent className="p-6">
+            <div className="flex items-center gap-5 mb-5">
+                <div className="p-3.5 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600">
+                    <Languages className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-1">
+                        <Globe className="h-4 w-4 text-[#E41F26]" />
+                        {t("languageTab")}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {t("languageDescription")}
+                    </p>
+                </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {languages.map((lang) => (
+                    <button
+                        key={lang.code}
+                        onClick={() => changeLanguage(lang.code)}
+                        className={`py-3 px-4 rounded-xl border transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.02] ${language === lang.code
+                            ? 'border-[#E41F26] bg-[#E41F26]/10 shadow-sm'
+                            : 'border-gray-200 dark:border-zinc-700 hover:border-[#E41F26]/50 bg-gray-50 dark:bg-zinc-800/50'
+                            }`}
+                    >
+                        <FlagIcon code={lang.code} />
+                        <span className={`text-sm font-medium ${language === lang.code
+                            ? 'text-[#E41F26]'
+                            : 'text-gray-700 dark:text-gray-300'
+                            }`}>
+                            {lang.label}
+                        </span>
+                        {language === lang.code && (
+                            <Sparkles className="h-3.5 w-3.5 text-[#E41F26]" />
+                        )}
+                    </button>
+                ))}
+            </div>
+        </CardContent>
+    </Card>
+</div>
             </div>
 
             {/* Custom animation style */}

@@ -24,9 +24,10 @@ import {
     Shield,
     Gauge,
     Hash,
-
     CircleDot,
     Info,
+    CheckCircle2,
+    XCircle,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -256,7 +257,24 @@ export default function RomDetailPage() {
                         <FileSpreadsheet className="h-7 w-7" />
                         ROM Proposal Details
                     </h2>
-                    <div className="w-24" />
+                    <div className="w-24 flex justify-end">
+                        {rom.approval_status === "Approved" ? (
+                            <Badge className="bg-green-500/20 text-green-100 border-green-400/30 font-semibold gap-1.5 px-3 py-1">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                Approved
+                            </Badge>
+                        ) : rom.approval_status === "Rejected" ? (
+                            <Badge className="bg-red-500/20 text-red-100 border-red-400/30 font-semibold gap-1.5 px-3 py-1">
+                                <XCircle className="h-3.5 w-3.5" />
+                                Rejected
+                            </Badge>
+                        ) : (
+                            <Badge className="bg-amber-500/20 text-amber-100 border-amber-400/30 font-semibold gap-1.5 px-3 py-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                Pending
+                            </Badge>
+                        )}
+                    </div>
                 </div>
             </div>
 
