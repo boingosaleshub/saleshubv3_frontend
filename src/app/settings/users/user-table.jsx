@@ -14,19 +14,23 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Trash2, Pencil, Calendar } from 'lucide-react'
+import { Trash2, Pencil, Calendar, Link2 } from 'lucide-react'
 import { DeleteUserDialog } from './delete-user-dialog'
 import { EditUserDialog } from './edit-user-dialog'
-import { deleteUser } from '@/actions/user-actions'
+import { deleteUser, sendPasswordSetupLink } from '@/actions/user-actions'
 import { toast } from 'sonner'
 import { useLanguage } from '@/components/providers/language-provider'
+import { useAuthStore } from '@/store/useAuthStore'
 
 export function UserTable({ users, onRefresh }) {
     const { t } = useLanguage()
+    const { user: currentUser } = useAuthStore()
+    const canSendRedirectLink = ['Admin', 'Super Admin'].includes(currentUser?.app_metadata?.role)
 
     const [userToDelete, setUserToDelete] = useState(null)
     const [userToEdit, setUserToEdit] = useState(null)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [sendingLinkForId, setSendingLinkForId] = useState(null)
 
     const handleDelete = async () => {
         if (!userToDelete) return
@@ -44,6 +48,17 @@ export function UserTable({ users, onRefresh }) {
         }
     }
 
+    const handleSendPasswordLink = async (user) => {
+        setSendingLinkForId(user.id)
+        const result = await sendPasswordSetupLink(user.id)
+        setSendingLinkForId(null)
+        if (result.error) {
+            toast.error(result.error)
+        } else {
+            toast.success(`Password setup email sent to ${user.email}`)
+        }
+    }
+
     return (
         <div className='w-full'>
             <Card className='overflow-hidden rounded-xl border bg-white dark:bg-[#1a1d21] dark:border-gray-800 shadow-lg'>
@@ -53,7 +68,9 @@ export function UserTable({ users, onRefresh }) {
                             <TableHead className="pl-6 py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground">{t("name")}</TableHead>
                             <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground">{t("role")}</TableHead>
                             <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground">{t("joined")}</TableHead>
-                            <TableHead className='text-right py-4 pr-6 uppercase tracking-wider text-xs font-semibold text-muted-foreground'>{t("actions")}</TableHead>
+                            <TableHead className='pl-6 py-4 pr-6 uppercase tracking-wider text-xs font-semibold text-muted-foreground w-[1%] whitespace-nowrap'>
+                                {t("actions")}
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -107,8 +124,24 @@ export function UserTable({ users, onRefresh }) {
                                             </span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className='text-right pr-6 py-4'>
-                                        <div className="flex justify-end gap-1">
+                                    <TableCell className='pl-6 pr-6 py-4'>
+                                        <div className="flex justify-start gap-1">
+                                            {canSendRedirectLink && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0 text-gray-900 dark:text-gray-100 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400 transition-colors"
+                                                    onClick={() => handleSendPasswordLink(user)}
+                                                    disabled={sendingLinkForId === user.id}
+                                                    title="Send password setup email (Redirect URL)"
+                                                >
+                                                    {sendingLinkForId === user.id ? (
+                                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                                    ) : (
+                                                        <Link2 className="h-4 w-4" />
+                                                    )}
+                                                </Button>
+                                            )}
                                             <Button
                                                 variant="ghost"
                                                 size="sm"

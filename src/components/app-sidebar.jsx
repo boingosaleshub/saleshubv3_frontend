@@ -118,7 +118,7 @@ export function AppSidebar({ ...props }) {
       ],
     },
     {
-      title: "Process Queue",
+      title: t("processQueue"),
       url: "/process-queue",
       icon: ListOrdered,
     },

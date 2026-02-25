@@ -656,10 +656,10 @@ export function CreateRomForm() {
                                 </div>
                             </div>
                             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-                                Create New ROM
+                                {t("createNewRom")}
                             </h1>
                             <p className="text-sm md:text-base text-gray-400 mb-10">
-                                Enter the venue address below to start creating your ROM.
+                                {t("enterVenueAddressBelow")}
                             </p>
 
                             <div className="flex flex-col items-start gap-3 max-w-2xl mx-auto">
@@ -672,7 +672,7 @@ export function CreateRomForm() {
                                         onChange={handleAddressChange}
                                         onKeyDown={handleAddressKeyDown}
                                         onBlur={handleBlur}
-                                        placeholder="Type the venue full address"
+                                        placeholder={t("venueAddressPlaceholder")}
                                         className="w-full rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-12 pr-12 h-14 text-base focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
                                     />
                                     {address.trim() && (

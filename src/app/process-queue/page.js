@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, BarChart2, Layers, FileText } from "lucide-react"
 import { useAutomationStore } from "@/store/useAutomationStore"
+import { useLanguage } from "@/components/providers/language-provider"
 
 const PROCESS_MAX_AGE_MS = 6 * 60 * 1000 // must match the store / queue API constant
 
@@ -21,6 +22,7 @@ const processColors = {
 }
 
 export default function ProcessQueuePage() {
+    const { t } = useLanguage()
     const [queue, setQueue] = useState([])
     const [isLoading, setIsLoading] = useState(true)
     
@@ -88,15 +90,15 @@ export default function ProcessQueuePage() {
         <div className="flex flex-1 items-center justify-center min-h-[calc(100vh-8rem)] bg-gray-50 dark:bg-transparent p-4">
             <div className="w-full max-w-2xl">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Process Queue</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2">Current status of all automation processes</p>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("processQueue")}</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-2">{t("processQueueSubtitle")}</p>
                 </div>
 
                 <Card className="bg-white dark:bg-[#1a1d21] shadow-xl rounded-xl overflow-hidden border-0 dark:border dark:border-gray-800">
                     <div className="bg-[#3D434A] py-4 px-6 border-b-4 border-red-600">
                         <div className="flex justify-between items-center text-white">
-                            <span className="font-semibold">Automation Queue</span>
-                            <span className="text-sm opacity-80">{mergedQueue.length} active {mergedQueue.length === 1 ? 'process' : 'processes'}</span>
+                            <span className="font-semibold">{t("automationQueue")}</span>
+                            <span className="text-sm opacity-80">{mergedQueue.length} {mergedQueue.length === 1 ? t("activeProcess") : t("activeProcesses")}</span>
                         </div>
                     </div>
 
@@ -104,12 +106,12 @@ export default function ProcessQueuePage() {
                         {isLoading && mergedQueue.length === 0 ? (
                             <div className="p-8 text-center text-gray-400">
                                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                                <p>Loading queue...</p>
+                                <p>{t("loadingQueue")}</p>
                             </div>
                         ) : mergedQueue.length === 0 ? (
                             <div className="p-12 text-center text-gray-400">
-                                <p>No active automation processes.</p>
-                                <p className="text-sm mt-1">The queue is currently empty.</p>
+                                <p>{t("noActiveProcesses")}</p>
+                                <p className="text-sm mt-1">{t("queueEmpty")}</p>
                             </div>
                         ) : (
                             mergedQueue.map((item, index) => {
@@ -144,7 +146,7 @@ export default function ProcessQueuePage() {
                                                         )}
                                                         {index === 0 && (
                                                             <Badge variant="secondary" className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] px-1.5 py-0 h-5">
-                                                                Processing
+                                                                {t("processing")}
                                                             </Badge>
                                                         )}
                                                         {hasProgress && (
@@ -154,7 +156,7 @@ export default function ProcessQueuePage() {
                                                         )}
                                                     </p>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        Joined: {new Date(item.joinedAt).toLocaleTimeString()}
+                                                        {t("joined")}: {new Date(item.joinedAt).toLocaleTimeString()}
                                                     </p>
                                                 </div>
                                             </div>
@@ -162,10 +164,10 @@ export default function ProcessQueuePage() {
                                                 {index === 0 ? (
                                                     <div className="flex items-center text-red-600 dark:text-red-400 text-sm font-medium">
                                                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                        Running
+                                                        {t("running")}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-sm text-gray-500 dark:text-gray-400">Waiting...</span>
+                                                    <span className="text-sm text-gray-500 dark:text-gray-400">{t("waiting")}</span>
                                                 )}
                                             </div>
                                         </div>
@@ -188,7 +190,7 @@ export default function ProcessQueuePage() {
                                                 <div className="flex items-start gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                                                     <FileText className="w-3.5 h-3.5 mt-0.5 shrink-0 text-gray-400 dark:text-gray-500" />
                                                     <div>
-                                                        <span className="font-medium text-gray-600 dark:text-gray-300">Waiting files: </span>
+                                                        <span className="font-medium text-gray-600 dark:text-gray-300">{t("waitingFilesLabel")}</span>
                                                         {item.waitingFiles.join(' | ')}
                                                     </div>
                                                 </div>
