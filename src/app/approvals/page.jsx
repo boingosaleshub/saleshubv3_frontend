@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { useAuthStore } from "@/store/useAuthStore"
+import { useLanguage } from "@/components/providers/language-provider"
 import {
     Loader2,
     CheckCircle2,
@@ -39,6 +40,7 @@ function getVendor(rom) {
 }
 
 export default function ApprovalsPage() {
+    const { t } = useLanguage()
     const { user } = useAuthStore()
     const router = useRouter()
     const [proposals, setProposals] = useState([])
@@ -146,7 +148,7 @@ export default function ApprovalsPage() {
         return (
             <div className="flex items-center justify-center h-screen">
                 <div className="text-center">
-                    <p className="text-red-500 mb-2">Error loading approved ROMs</p>
+                    <p className="text-red-500 mb-2">{t("errorLoadingApprovedRoms")}</p>
                     <p className="text-sm text-muted-foreground">{error}</p>
                 </div>
             </div>
@@ -161,10 +163,10 @@ export default function ApprovalsPage() {
                         <div className="h-10 w-10 rounded-xl bg-red-50 border border-red-100 dark:bg-red-600/10 dark:border-red-600/20 flex items-center justify-center">
                             <CheckCircle2 className="h-5 w-5 text-red-600 dark:text-red-500" />
                         </div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Approved ROMs</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{t("approvedRoms")}</h1>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 ml-[52px]">
-                        {isAdmin ? "All accepted ROM proposals across the platform" : "Your ROM proposals that have been accepted"}
+                        {isAdmin ? t("allAcceptedProposals") : t("yourAcceptedProposals")}
                     </p>
                 </div>
 
@@ -172,7 +174,7 @@ export default function ApprovalsPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
                         type="text"
-                        placeholder={isAdmin ? "Search by venue, address, or creator..." : "Search by venue, address, or system..."}
+                        placeholder={isAdmin ? t("searchByVenueAddressOrCreator") : t("searchByVenueAddressOrSystem")}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9 h-10 w-full bg-white dark:bg-[#1a1d21] border-gray-200 dark:border-gray-800 rounded-xl shadow-sm focus-visible:ring-red-500/30 focus-visible:border-red-500 transition-shadow"
@@ -185,7 +187,7 @@ export default function ApprovalsPage() {
                     <div className="flex flex-col items-center justify-center h-64 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600 bg-gray-50/50 dark:bg-[#1a1d21]/50">
                         <CheckCircle2 className="h-12 w-12 mb-3 opacity-20" />
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            {searchQuery ? "No approved proposals match your search" : "No approved ROM proposals yet"}
+                            {searchQuery ? t("noApprovedMatch") : t("noApprovedProposalsYet")}
                         </p>
                     </div>
                 ) : (
@@ -214,7 +216,7 @@ export default function ApprovalsPage() {
                                                     {proposal.venue_name}
                                                 </h3>
                                                 <Badge className="bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20 border-green-200 dark:border-green-500/20 shadow-none px-2.5">
-                                                    Approved
+                                                    {t("approved")}
                                                 </Badge>
                                             </div>
 

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { useAuthStore } from "@/store/useAuthStore"
+import { useLanguage } from "@/components/providers/language-provider"
 import {
     Loader2,
     FileSpreadsheet,
@@ -50,6 +51,7 @@ function getVendor(rom) {
 }
 
 export default function ViewRomProposalsPage() {
+    const { t } = useLanguage()
     const { user } = useAuthStore()
     const router = useRouter()
     const [proposals, setProposals] = useState([])
@@ -131,8 +133,8 @@ export default function ViewRomProposalsPage() {
 
             toast.success(
                 action === "approve"
-                    ? "ROM proposal approved successfully"
-                    : "ROM proposal rejected"
+                    ? t("proposalApprovedSuccess")
+                    : t("proposalRejectedSuccess")
             )
         } catch (err) {
             console.error(`Error ${action}ing ROM proposal:`, err)
@@ -166,7 +168,7 @@ export default function ViewRomProposalsPage() {
         return (
             <div className="flex items-center justify-center h-screen">
                 <div className="text-center">
-                    <p className="text-red-500 mb-2">Error loading ROM proposals</p>
+                    <p className="text-red-500 mb-2">{t("errorLoadingRomProposals")}</p>
                     <p className="text-sm text-muted-foreground">{error}</p>
                 </div>
             </div>
@@ -179,10 +181,10 @@ export default function ViewRomProposalsPage() {
             <div className="bg-gradient-to-r from-[#3D434A] to-[#4a5058] dark:from-[#3D434A] dark:to-[#4a5058] py-6 px-8 border-b-4 border-red-600 rounded-t-2xl mx-4 mt-6 shadow-lg">
                 <h2 className="text-2xl md:text-3xl font-bold text-white text-center flex items-center justify-center gap-3">
                     <FileSpreadsheet className="h-7 w-7" />
-                    My ROM's
+                    {t("myRoms")}
                 </h2>
                 <p className="text-center text-gray-200 dark:text-gray-300 mt-2 text-sm">
-                    ROM proposals awaiting your approval
+                    {t("romProposalsAwaitingApproval")}
                 </p>
             </div>
 
@@ -191,7 +193,7 @@ export default function ViewRomProposalsPage() {
                 <div className="flex items-center gap-2">
                     <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800 font-semibold gap-1.5 px-3 py-1.5 text-sm">
                         <Clock className="h-4 w-4" />
-                        {filteredProposals.length} Pending Proposal{filteredProposals.length !== 1 ? "s" : ""}
+                        {filteredProposals.length} {filteredProposals.length !== 1 ? t("pendingProposals") : t("pendingProposal")}
                     </Badge>
                 </div>
                 <div className="relative w-full sm:w-auto">
@@ -213,11 +215,11 @@ export default function ViewRomProposalsPage() {
                         <CheckCircle2 className="h-10 w-10 mb-4 opacity-20" />
                         <p className="text-sm font-medium">
                             {searchQuery
-                                ? "No pending proposals match your search"
-                                : "No pending ROM proposals"}
+                                ? t("noPendingMatch")
+                                : t("noPendingProposals")}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                            All proposals have been reviewed
+                            {t("allProposalsReviewed")}
                         </p>
                     </Card>
                 ) : (
@@ -264,7 +266,7 @@ export default function ViewRomProposalsPage() {
 
                                             <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800 font-semibold text-xs gap-1 px-2.5 py-1">
                                                 <Clock className="h-3 w-3" />
-                                                Pending
+                                                {t("pending")}
                                             </Badge>
                                         </div>
                                     </div>
@@ -303,7 +305,7 @@ export default function ViewRomProposalsPage() {
                                             className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
                                         >
                                             <XCircle className="h-3.5 w-3.5" />
-                                            Reject
+                                            {t("reject")}
                                         </Button>
                                         <Button
                                             size="sm"
@@ -314,7 +316,7 @@ export default function ViewRomProposalsPage() {
                                             className="gap-1.5 bg-green-600 hover:bg-green-700 text-white"
                                         >
                                             <CheckCircle2 className="h-3.5 w-3.5" />
-                                            Approve
+                                            {t("approve")}
                                         </Button>
                                     </div>
                                 </div>
@@ -329,23 +331,23 @@ export default function ViewRomProposalsPage() {
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>
-                            {actionDialog?.action === "approve" ? "Approve ROM Proposal?" : "Reject ROM Proposal?"}
+                            {actionDialog?.action === "approve" ? t("approveRomProposalTitle") : t("rejectRomProposalTitle")}
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                             {actionDialog?.action === "approve"
-                                ? `Are you sure you want to approve the ROM proposal "${actionDialog?.name}"? This will mark it as an accepted proposal.`
-                                : `Are you sure you want to reject the ROM proposal "${actionDialog?.name}"? The creator will see this proposal as rejected.`}
+                                ? t("approveRomProposalConfirm")
+                                : t("rejectRomProposalConfirm")}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel disabled={processing}>{t("cancel")}</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => handleApprovalAction(actionDialog.id, actionDialog.action)}
                             disabled={processing}
                             className={actionDialog?.action === "approve" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}
                         >
                             {processing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                            {actionDialog?.action === "approve" ? "Approve" : "Reject"}
+                            {actionDialog?.action === "approve" ? t("approve") : t("reject")}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

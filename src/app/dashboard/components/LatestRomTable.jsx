@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { useLanguage } from "@/components/providers/language-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Table,
@@ -13,7 +15,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Download, Star, MoreHorizontal, ArrowUp, ArrowDown } from "lucide-react";
-import { useState } from "react";
 
 // Mock data for the table
 const tableData = [
@@ -56,32 +57,33 @@ const tableData = [
 ];
 
 // Status badge component
-function StatusBadge({ status }) {
+function StatusBadge({ status, t }) {
     const statusConfig = {
         LOST: {
             bg: "bg-red-100 dark:bg-red-900/30",
             text: "text-red-600 dark:text-red-400",
-            label: "LOST",
+            labelKey: "lost",
         },
         WON: {
             bg: "bg-green-100 dark:bg-green-900/30",
             text: "text-green-600 dark:text-green-400",
-            label: "WON",
+            labelKey: "won",
         },
         "On-going": {
             bg: "bg-amber-100 dark:bg-amber-900/30",
             text: "text-amber-600 dark:text-amber-400",
-            label: "On-going",
+            labelKey: "onGoing",
         },
     };
 
     const config = statusConfig[status] || statusConfig["On-going"];
+    const label = t ? t(config.labelKey) : status;
 
     return (
         <span
             className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${config.bg} ${config.text}`}
         >
-            {config.label}
+            {label}
         </span>
     );
 }
@@ -119,6 +121,7 @@ function FrequencyBadge({ value, isUp }) {
 }
 
 export function LatestRomTable() {
+    const { t } = useLanguage();
     const [selectedRows, setSelectedRows] = useState([1]); // First row selected by default
 
     const toggleRow = (id) => {
@@ -136,7 +139,7 @@ export function LatestRomTable() {
             <Card className="border-0 shadow-md bg-white dark:bg-gray-900/50">
                 <CardHeader className="flex flex-row items-center justify-between pb-4">
                     <CardTitle className="text-lg font-bold text-foreground">
-                        Latest ROM Requested
+                        {t("latestRomRequested")}
                     </CardTitle>
                     <Button variant="ghost" size="icon" className="text-muted-foreground">
                         <MoreHorizontal className="size-5" />
@@ -148,35 +151,35 @@ export function LatestRomTable() {
                             <TableRow className="border-b border-gray-200 dark:border-gray-700 hover:bg-transparent">
                                 <TableHead className="w-12 pl-6"></TableHead>
                                 <TableHead className="font-medium text-muted-foreground">
-                                    Property Name
+                                    {t("propertyName")}
                                     <span className="ml-1 text-xs">⇅</span>
                                 </TableHead>
                                 <TableHead className="font-medium text-muted-foreground">
-                                    Area (sq. ft.)
+                                    {t("areaSqFt")}
                                     <span className="ml-1 text-xs">⇅</span>
                                 </TableHead>
                                 <TableHead className="font-medium text-muted-foreground">
-                                    Frequency
+                                    {t("frequency")}
                                     <span className="ml-1 text-xs">⇅</span>
                                 </TableHead>
                                 <TableHead className="font-medium text-muted-foreground">
-                                    Solution
+                                    {t("solution")}
                                     <span className="ml-1 text-xs">⇅</span>
                                 </TableHead>
                                 <TableHead className="font-medium text-muted-foreground">
-                                    Last Update
+                                    {t("lastUpdate")}
                                     <span className="ml-1 text-xs">⇅</span>
                                 </TableHead>
                                 <TableHead className="font-medium text-muted-foreground">
-                                    Status
+                                    {t("status")}
                                     <span className="ml-1 text-xs">⇅</span>
                                 </TableHead>
                                 <TableHead className="font-medium text-muted-foreground">
-                                    Local Connectivity
+                                    {t("localConnectivity")}
                                     <span className="ml-1 text-xs">⇅</span>
                                 </TableHead>
                                 <TableHead className="font-medium text-muted-foreground pr-6">
-                                    Download
+                                    {t("download")}
                                 </TableHead>
                             </TableRow>
                         </TableHeader>
@@ -227,7 +230,7 @@ export function LatestRomTable() {
                                         {row.lastUpdate}
                                     </TableCell>
                                     <TableCell>
-                                        <StatusBadge status={row.status} />
+                                        <StatusBadge status={row.status} t={t} />
                                     </TableCell>
                                     <TableCell>
                                         <StarRating rating={row.connectivity} />

@@ -120,13 +120,13 @@ export function PlotsTable({ plots, showDeleteOption, onDelete }) {
 
             if (dbError) throw dbError
 
-            toast.success("Coverage plot deleted")
+            toast.success(t("coveragePlotDeleted"))
             if (onDelete) {
                 onDelete()
             }
         } catch (error) {
             console.error("Error deleting plot:", error)
-            toast.error("Failed to delete plot: " + (error?.message || "Unknown error"))
+            toast.error(t("failedToDeletePlot") + ": " + (error?.message || "Unknown error"))
         } finally {
             setPlotToDelete(null)
         }
@@ -289,25 +289,25 @@ export function PlotsTable({ plots, showDeleteOption, onDelete }) {
                     <SelectTrigger className="w-full sm:w-[190px] h-9 bg-white dark:bg-[#1a1d21] border-gray-200 dark:border-gray-700 text-sm">
                         <div className="flex items-center gap-2">
                             <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-                            <SelectValue placeholder="Sort by Address" />
+                            <SelectValue placeholder={t("sortByAddress")} />
                         </div>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="none">
                             <span className="flex items-center gap-2">
-                                No Sorting
+                                {t("noSorting")}
                             </span>
                         </SelectItem>
                         <SelectItem value="asc">
                             <span className="flex items-center gap-2">
                                 <ArrowUpAZ className="h-4 w-4" />
-                                Address: A → Z
+                                {t("addressAZ")}
                             </span>
                         </SelectItem>
                         <SelectItem value="desc">
                             <span className="flex items-center gap-2">
                                 <ArrowDownAZ className="h-4 w-4" />
-                                Address: Z → A
+                                {t("addressZA")}
                             </span>
                         </SelectItem>
                     </SelectContent>
@@ -356,7 +356,7 @@ export function PlotsTable({ plots, showDeleteOption, onDelete }) {
                                             </Avatar>
                                             <div className="flex flex-col">
                                                 <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">
-                                                    {plot.user_name || "Unknown User"}
+                                                    {plot.user_name || t("unknownUser")}
                                                 </span>
                                                 {plot.user_email && (
                                                     <span className="text-xs text-muted-foreground">

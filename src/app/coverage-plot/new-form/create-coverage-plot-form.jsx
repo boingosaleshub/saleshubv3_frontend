@@ -196,8 +196,8 @@ export function CreateCoveragePlotForm() {
         setFormErrors(errors)
 
         if (errors.address || errors.carrierRequirements || errors.coverageType) {
-            toast.error("Please fill in all mandatory fields.", {
-                description: "Venue Address, Carrier Requirements, and Coverage Type are required."
+            toast.error(t("pleaseFillMandatoryFields"), {
+                description: t("mandatoryFieldsDescription")
             })
             return false
         }
@@ -318,9 +318,9 @@ export function CreateCoveragePlotForm() {
             }}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-center">Success!</DialogTitle>
+                        <DialogTitle className="text-center">{t("success")}</DialogTitle>
                         <DialogDescription className="text-center pt-2">
-                            Snapshots of coverage plot for <strong>{address}</strong> has been downloaded
+                            {t("snapshotsDownloaded")} <strong>{address}</strong> {t("hasBeenDownloaded")}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-center pt-4">
@@ -331,7 +331,7 @@ export function CreateCoveragePlotForm() {
                             }}
                             className="bg-red-600 hover:bg-red-700 text-white"
                         >
-                            Close
+                            {t("close")}
                         </Button>
                     </div>
                 </DialogContent>
@@ -353,10 +353,10 @@ export function CreateCoveragePlotForm() {
                                     </div>
                                 </div>
                                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-                                    Create New Coverage Plot
+                                    {t("createCoveragePlot")}
                                 </h1>
                                 <p className="text-sm md:text-base text-gray-400 mb-10">
-                                    Enter the address below to start creating your new coverage plot.
+                                    {t("enterAddressBelow")}
                                 </p>
 
                                 <div className="flex flex-col items-start gap-3 max-w-2xl mx-auto">
@@ -413,7 +413,7 @@ export function CreateCoveragePlotForm() {
                             <div className="bg-gradient-to-r from-[#3D434A] to-[#4a5058] py-6 px-8 border-b-4 border-red-600 shrink-0">
                                 <h2 className="text-2xl md:text-3xl font-bold text-white text-center flex items-center justify-center gap-3">
                                     <Layers className="h-7 w-7" />
-                                    Coverage Plot
+                                    {t("coveragePlot")}
                                 </h2>
                             </div>
 
@@ -434,7 +434,7 @@ export function CreateCoveragePlotForm() {
                                                     value={address}
                                                     onChange={handleAddressChange}
                                                     onBlur={handleBlur}
-                                                    placeholder="Type the venue full address"
+                                                    placeholder={t("venueAddressPlaceholder")}
                                                     className={`
                                                         bg-gray-100 dark:bg-gray-800 dark:text-gray-200 border-none rounded-xl px-4 py-3 w-full h-12 text-base 
                                                         transition-all duration-200
@@ -506,7 +506,7 @@ export function CreateCoveragePlotForm() {
                                             <div className="flex items-center gap-2">
                                                 <Layers className="h-5 w-5 text-red-500" />
                                                 <Label className="text-gray-700 dark:text-gray-300 font-semibold text-base">
-                                                    Coverage Type <span className="text-red-500">*</span>
+                                                    {t("coverageTypeRequired")} <span className="text-red-500">*</span>
                                                 </Label>
                                             </div>
                                             <div className={`flex flex-wrap gap-4 p-4 rounded-xl transition-colors ${formErrors.coverageType ? 'bg-red-50 dark:bg-red-900/10 border border-dashed border-red-300 dark:border-red-800' : ''}`}>
@@ -534,7 +534,7 @@ export function CreateCoveragePlotForm() {
                                                             className="pointer-events-none"
                                                         />
                                                         <label htmlFor={`coverage-${type}`} className="text-sm font-medium leading-none text-gray-600 dark:text-gray-300 cursor-pointer">
-                                                            {type}
+                                                            {type === COVERAGE_TYPES.INDOOR ? t("indoor") : type === COVERAGE_TYPES.OUTDOOR ? t("outdoor") : t("indoorOutdoor")}
                                                         </label>
                                                     </div>
                                                 ))}
@@ -559,7 +559,7 @@ export function CreateCoveragePlotForm() {
                                     disabled={isCreating}
                                     className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl px-10 py-3 h-12 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-200"
                                 >
-                                    {isCreating ? "Creating..." : "Create Coverage Plot"}
+                                    {isCreating ? t("creating") : t("createCoveragePlotButton")}
                                 </Button>
                             </div>
                         </Card>
