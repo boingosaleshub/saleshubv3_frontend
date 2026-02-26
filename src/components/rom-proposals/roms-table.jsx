@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
+import { useLanguage } from "@/components/providers/language-provider"
 import {
     MapPin,
     Search,
@@ -58,6 +59,7 @@ function getVendor(rom) {
 }
 
 export function RomsTable({ roms, showDeleteOption, onDelete }) {
+    const { t } = useLanguage()
     const router = useRouter()
     const [searchQuery, setSearchQuery] = useState("")
     const [sortOrder, setSortOrder] = useState(null)
@@ -174,13 +176,13 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                 return
             }
 
-            toast.success("ROM proposal deleted")
+            toast.success(t("romProposalDeleted"))
             if (onDelete) {
                 onDelete()
             }
         } catch (error) {
             console.error("Error deleting ROM proposal:", error)
-            toast.error("Failed to delete ROM proposal: " + (error?.message || "Unknown error"))
+            toast.error(t("failedToDeleteRom") + ": " + (error?.message || "Unknown error"))
         } finally {
             setRomToDelete(null)
         }
@@ -239,7 +241,7 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
         return (
             <Card className="flex flex-col items-center justify-center h-64 text-muted-foreground bg-white dark:bg-[#1a1d21] border-dashed">
                 <FileSpreadsheet className="h-10 w-10 mb-4 opacity-20" />
-                <p className="text-sm">No ROM proposals found</p>
+                <p className="text-sm">{t("noRomProposalsFound")}</p>
             </Card>
         )
     }
@@ -253,7 +255,7 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
                         type="text"
-                        placeholder="Search by venue name, address, type, vendor..."
+                        placeholder={t("searchByVenueNameAddress")}
                         value={searchQuery}
                         onChange={handleSearchChange}
                         className="pl-10 h-10 w-full sm:w-[500px] bg-white dark:bg-[#1a1d21] border-gray-200 dark:border-gray-700 focus-visible:ring-red-500/30 focus-visible:border-red-500 text-sm"
@@ -268,25 +270,25 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                     <SelectTrigger className="w-full sm:w-[220px] h-9 bg-white dark:bg-[#1a1d21] border-gray-200 dark:border-gray-700 text-sm">
                         <div className="flex items-center gap-2">
                             <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-                            <SelectValue placeholder="Sort by Venue Name" />
+                            <SelectValue placeholder={t("sortByVenueName")} />
                         </div>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="none">
                             <span className="flex items-center gap-2">
-                                No Sorting
+                                {t("noSorting")}
                             </span>
                         </SelectItem>
                         <SelectItem value="asc">
                             <span className="flex items-center gap-2">
                                 <ArrowUpAZ className="h-4 w-4" />
-                                Venue Name: A → Z
+                                {t("venueNameAZ")}
                             </span>
                         </SelectItem>
                         <SelectItem value="desc">
                             <span className="flex items-center gap-2">
                                 <ArrowDownAZ className="h-4 w-4" />
-                                Venue Name: Z → A
+                                {t("venueNameZA")}
                             </span>
                         </SelectItem>
                     </SelectContent>
@@ -300,37 +302,37 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                         <TableHeader className="bg-gray-50/50 dark:bg-gray-900/50">
                             <TableRow className="hover:bg-transparent border-gray-100 dark:border-gray-800">
                                 <TableHead className="py-4 pl-6 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                                    Venue Name
+                                    {t("venueName")}
                                 </TableHead>
                                 <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                                    Venue Address
+                                    {t("venueAddress")}
                                 </TableHead>
                                 <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                                    Type
+                                    {t("typeColumn")}
                                 </TableHead>
                                 <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                                    Floors
+                                    {t("floors")}
                                 </TableHead>
                                 <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                                    Total Coverage Area (sq ft)
+                                    {t("totalCoverageAreaSqFt")}
                                 </TableHead>
                                 <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                                    Parking
+                                    {t("parking")}
                                 </TableHead>
                                 <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                                    System Type
+                                    {t("systemType")}
                                 </TableHead>
                                 <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                                    Vendor
+                                    {t("vendor")}
                                 </TableHead>
                                 <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                                    Sectors
+                                    {t("sectors")}
                                 </TableHead>
                                 <TableHead className="py-4 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap text-center">
-                                    Status
+                                    {t("status")}
                                 </TableHead>
                                 <TableHead className="py-4 pr-6 uppercase tracking-wider text-xs font-semibold text-muted-foreground whitespace-nowrap text-center">
-                                    Action
+                                    {t("action")}
                                 </TableHead>
                             </TableRow>
                         </TableHeader>
@@ -386,7 +388,7 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                                                     : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-0 font-medium"
                                                 }
                                             >
-                                                {rom.has_parking_garage ? "Yes" : "No"}
+                                                {rom.has_parking_garage ? t("yes") : t("no")}
                                             </Badge>
                                         </TableCell>
 
@@ -418,7 +420,7 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                                                     className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-0 font-medium gap-1"
                                                 >
                                                     <CheckCircle2 className="h-3 w-3" />
-                                                    Approved
+                                                    {t("approved")}
                                                 </Badge>
                                             ) : rom.approval_status === "Rejected" ? (
                                                 <Badge
@@ -426,7 +428,7 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                                                     className="bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-0 font-medium gap-1"
                                                 >
                                                     <XCircle className="h-3 w-3" />
-                                                    Rejected
+                                                    {t("rejected")}
                                                 </Badge>
                                             ) : (
                                                 <Badge
@@ -434,7 +436,7 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                                                     className="bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 border-0 font-medium gap-1"
                                                 >
                                                     <Clock className="h-3 w-3" />
-                                                    Pending
+                                                    {t("pending")}
                                                 </Badge>
                                             )}
                                         </TableCell>
@@ -477,7 +479,7 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
                     {/* Rows per page selector + record info */}
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</span>
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">{t("rowsPerPage")}:</span>
                             <Select
                                 value={String(rowsPerPage)}
                                 onValueChange={handleRowsPerPageChange}
@@ -576,15 +578,15 @@ export function RomsTable({ roms, showDeleteOption, onDelete }) {
             <AlertDialog open={!!romToDelete} onOpenChange={(open) => !open && setRomToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogTitle>{t("confirmDeleteRom")}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete this ROM proposal and remove its files from our servers.
+                            {t("confirmDeleteRomDesc")}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 focus:ring-red-600 text-white">
-                            Delete
+                            {t("deleteButton")}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

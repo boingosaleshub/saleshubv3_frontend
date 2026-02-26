@@ -133,6 +133,52 @@ export async function deleteUser(userId) {
   return { success: true }
 }
 
+/**
+ * Send password setup / redirect URL email to an existing user.
+ * Only callable by Admin or Super Admin. User will receive email and can set password and log in.
+ */
+export async function sendPasswordSetupLink(userId) {
+  const supabase = await createClient()
+  const supabaseAdmin = createAdminClient()
+
+  const { data: { user: currentUser } } = await supabase.auth.getUser()
+  const role = currentUser?.app_metadata?.role
+  if (!['Admin', 'Super Admin'].includes(role)) {
+    return { error: 'Only Admin or Super Admin can send password setup links.' }
+  }
+
+  const { data: targetUser, error: fetchError } = await supabaseAdmin
+    .from('Users')
+    .select('id, email, name')
+    .eq('id', userId)
+    .single()
+
+  if (fetchError || !targetUser) {
+    return { error: 'User not found.' }
+  }
+
+  const siteUrl = await getSiteUrl()
+  const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'recovery',
+    email: targetUser.email,
+    options: { redirectTo: `${siteUrl}/set-password` }
+  })
+
+  if (linkError) {
+    console.error('Link Generation Error:', linkError)
+    return { error: linkError.message || 'Failed to generate password setup link.' }
+  }
+
+  const recoveryLink = linkData.properties.action_link
+  const emailResult = await sendPasswordSetupEmail(targetUser.email, targetUser.name, recoveryLink)
+
+  if (!emailResult.success) {
+    return { error: emailResult.error || 'Failed to send email.' }
+  }
+
+  return { success: true }
+}
+
 export async function setInitialPassword(accessToken, newPassword) {
   const supabaseAdmin = createAdminClient()
 

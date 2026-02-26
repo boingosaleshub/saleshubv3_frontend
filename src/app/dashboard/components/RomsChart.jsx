@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { useLanguage } from "@/components/providers/language-provider";
 import {
     AreaChart,
     Area,
@@ -20,8 +22,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { Download } from "lucide-react";
 
 // Mock data for the chart - monthly ROM requests
 const chartData = [
@@ -85,6 +86,7 @@ function CustomLegend() {
 }
 
 export function RomsChart() {
+    const { t } = useLanguage();
     const [timeFilter, setTimeFilter] = useState("thisYear");
 
     return (
@@ -96,18 +98,18 @@ export function RomsChart() {
             <Card className="border-0 shadow-md bg-white dark:bg-gray-900/50">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-lg font-bold text-foreground">
-                        ROMs Requested
+                        {t("romsRequested")}
                     </CardTitle>
                     <div className="flex items-center gap-3">
                         <Select value={timeFilter} onValueChange={setTimeFilter}>
                             <SelectTrigger className="w-[140px] h-9 bg-gray-100 dark:bg-gray-800 border-0">
-                                <SelectValue placeholder="This Year" />
+                                <SelectValue placeholder={t("thisYear")} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="thisYear">This Year</SelectItem>
-                                <SelectItem value="lastYear">Last Year</SelectItem>
-                                <SelectItem value="last6Months">Last 6 Months</SelectItem>
-                                <SelectItem value="last3Months">Last 3 Months</SelectItem>
+                                <SelectItem value="thisYear">{t("thisYear")}</SelectItem>
+                                <SelectItem value="lastYear">{t("lastYear")}</SelectItem>
+                                <SelectItem value="last6Months">{t("last6Months")}</SelectItem>
+                                <SelectItem value="last3Months">{t("last3Months")}</SelectItem>
                             </SelectContent>
                         </Select>
                         <Button
@@ -116,7 +118,7 @@ export function RomsChart() {
                             className="bg-[#3D434A] hover:bg-[#2d3339] text-white dark:bg-[#3D434A] dark:hover:bg-[#4d535a] gap-2"
                         >
                             <Download className="size-4" />
-                            Download
+                            {t("download")}
                         </Button>
                     </div>
                 </CardHeader>

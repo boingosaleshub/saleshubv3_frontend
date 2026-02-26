@@ -50,7 +50,7 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <CircularGauge
               percentage={80}
-              label="Lead Conversion Rate"
+              label={t("leadConversionRate")}
               value="15%"
               subValue="+3.96%"
               trend="+20.90%"
@@ -64,7 +64,7 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <CircularGauge
               percentage={79}
-              label="ROM to Proposal Rate"
+              label={t("romToProposalRate")}
               value="20%"
               subValue="+9.64%"
               trend="+20.90%"
@@ -78,7 +78,7 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <CircularGauge
               percentage={52}
-              label="On-going Deals"
+              label={t("onGoingDeals")}
               value="10"
               subValue="+5.13%"
               trend="+20.90%"
