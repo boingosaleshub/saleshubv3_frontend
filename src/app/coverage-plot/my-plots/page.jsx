@@ -21,11 +21,42 @@ export default function MyPlotsPage() {
         // Use user.id so we don't refetch when session refreshes on window/tab focus
     }, [user?.id])
 
-    // Realtime subscription: remove deleted plots from local state instantly
+    // Realtime subscription: sync inserts and deletes to local state instantly
     useEffect(() => {
+        if (!user?.id) return
+
         const supabase = createClient()
         const channel = supabase
             .channel("my-plots-realtime")
+            .on(
+                "postgres_changes",
+                { event: "INSERT", schema: "public", table: "coverage_plots" },
+                async (payload) => {
+                    const newPlot = payload.new
+                    // Only add if it belongs to the current user
+                    if (newPlot.user_id !== user.id) return
+
+                    try {
+                        const { data: userData } = await supabase
+                            .from("Users")
+                            .select("id, name, email")
+                            .eq("id", user.id)
+                            .single()
+                        setPlots((prev) => [
+                            {
+                                ...newPlot,
+                                user_name: userData?.name || userData?.email || "You",
+                            },
+                            ...prev,
+                        ])
+                    } catch {
+                        setPlots((prev) => [
+                            { ...newPlot, user_name: "You" },
+                            ...prev,
+                        ])
+                    }
+                }
+            )
             .on(
                 "postgres_changes",
                 { event: "DELETE", schema: "public", table: "coverage_plots" },
@@ -38,7 +69,7 @@ export default function MyPlotsPage() {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [])
+    }, [user?.id])
 
     const fetchMyPlots = async () => {
         try {

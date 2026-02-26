@@ -15,9 +15,9 @@ export async function createSSEConnection(response, onProgress, onComplete, onEr
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
-    
+
     console.log('[SSE] Connection established, starting to read stream...')
-    
+
     try {
         while (true) {
             const { done, value } = await reader.read()
@@ -25,18 +25,18 @@ export async function createSSEConnection(response, onProgress, onComplete, onEr
                 console.log('[SSE] Stream ended')
                 break
             }
-            
+
             buffer += decoder.decode(value, { stream: true })
             const lines = buffer.split('\n')
             buffer = lines.pop() || ''
-            
+
             for (const line of lines) {
                 if (line.startsWith('data: ')) {
                     try {
                         const jsonStr = line.slice(6)
                         console.log('[SSE] Received data:', jsonStr)
                         const data = JSON.parse(jsonStr)
-                        
+
                         if (data.final) {
                             // Final response with screenshots
                             console.log('[SSE] Final data received:', data)
@@ -48,10 +48,6 @@ export async function createSSEConnection(response, onProgress, onComplete, onEr
                             return
                         } else {
                             // Progress update
-                            console.log(`[SSE] Progress: ${data.progress}% - ${data.step}`)
-                            // #region agent log
-                            fetch('http://127.0.0.1:7243/ingest/34d748ff-628f-42e2-b92c-c8daf6c96a9e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sseClient.js:onProgress',message:'Calling onProgress callback',data:{progress:data.progress,step:data.step,status:data.status},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-                            // #endregion
                             onProgress(data.progress, data.step, data.status)
                         }
                     } catch (e) {

@@ -30,11 +30,40 @@ export default function AllPlotsPage() {
     // Only re-run when user id or router changes, not on session/token refresh (avoids refetch on window focus)
   }, [user?.id, user?.app_metadata?.role, router]);
 
-  // Realtime subscription: remove deleted plots from local state instantly
+  // Realtime subscription: sync inserts and deletes to local state instantly
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
       .channel("all-plots-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "coverage_plots" },
+        async (payload) => {
+          const newPlot = payload.new;
+          // Fetch user info for the new record
+          try {
+            const { data: userData } = await supabase
+              .from("Users")
+              .select("id, name, email")
+              .eq("id", newPlot.user_id)
+              .single();
+            setPlots((prev) => [
+              {
+                ...newPlot,
+                user_name: userData?.name || userData?.email || "Unknown User",
+                user_email: userData?.email,
+              },
+              ...prev,
+            ]);
+          } catch {
+            // Fallback: add with no enrichment – still visible in the table
+            setPlots((prev) => [
+              { ...newPlot, user_name: "Unknown User", user_email: "" },
+              ...prev,
+            ]);
+          }
+        }
+      )
       .on(
         "postgres_changes",
         { event: "DELETE", schema: "public", table: "coverage_plots" },
