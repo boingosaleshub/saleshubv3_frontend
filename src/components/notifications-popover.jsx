@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Mail, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import {
     DropdownMenu,
@@ -23,6 +23,9 @@ export function NotificationsPopover() {
     const [processingId, setProcessingId] = useState(null);
     const [open, setOpen] = useState(false);
 
+    const prevUnreadCountRef = useRef(0);
+    const initialLoadRef = useRef(true);
+
     const isAdmin = ["Admin", "Super Admin"].includes(user?.app_metadata?.role) || ["Admin", "Super Admin"].includes(user?.user_metadata?.role);
 
     const fetchNotifications = useCallback(async () => {
@@ -46,63 +49,70 @@ export function NotificationsPopover() {
                 .order('created_at', { ascending: false })
                 .limit(20);
 
-            if (error) {
-                // Table probably doesn't exist yet, fallback to fetching from rom_proposals to build dynamic admin notifications
-                if (isAdmin) {
-                    const { data: proposals, error: propError } = await supabase
-                        .from('rom_proposals')
-                        .select('id, user_id, venue_name, created_at')
-                        .eq('approval_status', 'Pending')
-                        .order('created_at', { ascending: false });
-
-                    if (!propError && proposals) {
-                        const userIds = [...new Set(proposals.map(p => p.user_id))];
-                        let usersMap = {};
-                        if (userIds.length > 0) {
-                            const { data: usersData } = await supabase
-                                .from('Users')
-                                .select('id, name')
-                                .in('id', userIds);
-                            if (usersData) {
-                                usersData.forEach(u => usersMap[u.id] = u.name);
-                            }
-                        }
-
-                        const simulatedNotifications = proposals.map(p => ({
-                            id: `sim_admin_${p.id}`,
-                            rom_id: p.id,
-                            type: 'ROM_REQUEST',
-                            message: `${usersMap[p.user_id] || 'A user'} has made a ROM Generation process`,
-                            is_read: false,
-                            created_at: p.created_at
-                        }));
-                        setNotifications(simulatedNotifications);
-                    }
-                } else {
-                    // Generate for regular users based on approved/rejected
-                    const { data: proposals, error: propError } = await supabase
-                        .from('rom_proposals')
-                        .select('id, venue_name, approval_status, updated_at')
-                        .eq('user_id', user.id)
-                        .in('approval_status', ['Approved', 'Rejected'])
-                        .order('updated_at', { ascending: false })
-                        .limit(10);
-
-                    if (!propError && proposals) {
-                        const simulatedNotifications = proposals.map(p => ({
-                            id: `sim_user_${p.id}_${p.approval_status}`,
-                            rom_id: p.id,
-                            type: p.approval_status === 'Approved' ? 'ROM_ACCEPTED' : 'ROM_REJECTED',
-                            message: `An Admin has ${p.approval_status.toLowerCase()} your ROM Request for ${p.venue_name}`,
-                            is_read: false, // In fallback mode, we can't track read state easily
-                            created_at: p.updated_at
-                        }));
-                        setNotifications(simulatedNotifications);
-                    }
-                }
-            } else {
-                setNotifications(data || []);
+            let realNotifications = [];
+            if (!error && data) {
+                realNotifications = data;
             }
+
+            let simulatedNotifications = [];
+
+            if (isAdmin) {
+                // For Admins, always show Pending ROM requests as action-required notifications
+                const { data: proposals, error: propError } = await supabase
+                    .from('rom_proposals')
+                    .select('id, user_id, venue_name, created_at')
+                    .eq('approval_status', 'Pending')
+                    .order('created_at', { ascending: false });
+
+                if (!propError && proposals) {
+                    const userIds = [...new Set(proposals.map(p => p.user_id))];
+                    let usersMap = {};
+                    if (userIds.length > 0) {
+                        const { data: usersData } = await supabase
+                            .from('Users')
+                            .select('id, name')
+                            .in('id', userIds);
+                        if (usersData) {
+                            usersData.forEach(u => usersMap[u.id] = u.name);
+                        }
+                    }
+
+                    simulatedNotifications = proposals.map(p => ({
+                        id: `sim_admin_${p.id}`,
+                        rom_id: p.id,
+                        type: 'ROM_REQUEST',
+                        message: `${usersMap[p.user_id] || 'A user'} has made a ROM Generation process for ${p.venue_name}`,
+                        is_read: false,
+                        created_at: p.created_at
+                    }));
+                }
+            } else if (error) {
+                // If user is not admin and 'notifications' table schema is missing, fallback to simulated
+                const { data: proposals, error: propError } = await supabase
+                    .from('rom_proposals')
+                    .select('id, venue_name, approval_status, updated_at')
+                    .eq('user_id', user.id)
+                    .in('approval_status', ['Approved', 'Rejected'])
+                    .order('updated_at', { ascending: false })
+                    .limit(10);
+
+                if (!propError && proposals) {
+                    simulatedNotifications = proposals.map(p => ({
+                        id: `sim_user_${p.id}_${p.approval_status}`,
+                        rom_id: p.id,
+                        type: p.approval_status === 'Approved' ? 'ROM_ACCEPTED' : 'ROM_REJECTED',
+                        message: `An Admin has ${p.approval_status.toLowerCase()} your ROM Request for ${p.venue_name}`,
+                        is_read: false,
+                        created_at: p.updated_at
+                    }));
+                }
+            }
+
+            // Combine and sort
+            const allNotifications = [...realNotifications, ...simulatedNotifications];
+            allNotifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            setNotifications(allNotifications);
         } catch (err) {
             console.error("Error fetching notifications:", err);
         } finally {
@@ -113,6 +123,40 @@ export function NotificationsPopover() {
     useEffect(() => {
         fetchNotifications();
     }, [fetchNotifications]);
+
+    const playNotificationSound = useCallback(() => {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+
+            // Resume context if suspended (browsers block autoplay without interaction)
+            if (ctx.state === 'suspended') {
+                ctx.resume().catch(e => console.log("AudioContext resume failed:", e));
+            }
+
+            // Oscillator for a "ting" sound
+            const osc = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+            osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1); // A6
+
+            // Envelope
+            gainNode.gain.setValueAtTime(0, ctx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+
+            osc.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
+        } catch (e) {
+            console.error("Failed to play notification sound", e);
+        }
+    }, []);
 
     useEffect(() => {
         if (!user?.id) return;
@@ -136,6 +180,35 @@ export function NotificationsPopover() {
             if (channel) supabase.removeChannel(channel);
         };
     }, [user?.id, fetchNotifications]);
+
+    // Robust trigger for sound and toasts:
+    // If unread count increases after initial load, a new notification arrived
+    useEffect(() => {
+        const unreadCount = notifications.filter(n => !n.is_read).length;
+
+        if (initialLoadRef.current) {
+            if (!loading) {
+                initialLoadRef.current = false;
+                prevUnreadCountRef.current = unreadCount;
+            }
+            return;
+        }
+
+        if (unreadCount > prevUnreadCountRef.current && notifications.length > 0) {
+            playNotificationSound();
+            const newest = notifications.find(n => !n.is_read);
+            if (newest) {
+                toast(newest.message || "New notification", {
+                    description: "Just now",
+                    action: {
+                        label: 'View',
+                        onClick: () => setOpen(true)
+                    }
+                });
+            }
+        }
+        prevUnreadCountRef.current = unreadCount;
+    }, [notifications, loading, playNotificationSound]);
 
     const handleMarkAsRead = async (id, isSimulated = false) => {
         if (isSimulated) return; // Can't mark fallback notifications as read
@@ -258,7 +331,7 @@ export function NotificationsPopover() {
                                         router.push(`/all-roms/${notification.rom_id}`);
                                     } else {
                                         setOpen(false);
-                                        router.push(`/all-roms/${notification.rom_id}`);
+                                        router.push(`/my-roms`);
                                     }
                                 }}
                             >
