@@ -2,44 +2,13 @@
 
 import { createAdminClient } from "@/lib/supabase-admin"
 import { createClient } from "@/utils/supabase/server"
-import { headers } from "next/headers"
 import { sendPasswordSetupEmail } from "@/lib/email"
 
-async function getSiteUrl() {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL
-
-  if (configured) {
-    if (configured.includes('vercel.app')) {
-      return 'https://saleshub.boingo.com'
-    }
-    return configured.replace(/\/$/, '')
-  }
-
-  const h = await headers()
-  const origin = h.get('origin')
-  if (origin) {
-    if (origin.includes('vercel.app')) {
-      return 'https://saleshub.boingo.com'
-    }
-    return origin.replace(/\/$/, '')
-  }
-
-  const host = h.get('x-forwarded-host') ?? h.get('host')
-  const proto = h.get('x-forwarded-proto') ?? 'https'
-  if (!host) return 'http://localhost:3000'
-
-  const resolvedUrl = `${proto}://${host}`.replace(/\/$/, '')
-  if (resolvedUrl.includes('vercel.app')) {
-    return 'https://saleshub.boingo.com'
-  }
-
-  return resolvedUrl
-}
+const SITE_URL = 'https://saleshub.boingo.com'
 
 export async function getUsers() {
   const supabase = await createClient()
 
-  // Fetch from public.Users table which is synced with auth.users
   const { data, error } = await supabase
     .from('Users')
     .select('*')
@@ -60,15 +29,13 @@ export async function createUser(formData) {
   const name = formData.get('name')
   const role = formData.get('role') || 'User'
 
-  const siteUrl = await getSiteUrl()
-
   // 1. Create user (confirmed) with a temp password
   const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12)
 
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password: tempPassword,
-    email_confirm: true, // Auto-confirm so they can just set password
+    email_confirm: true,
     user_metadata: { name },
     app_metadata: { role }
   })
@@ -98,7 +65,7 @@ export async function createUser(formData) {
   const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
     type: 'recovery',
     email,
-    options: { redirectTo: `${siteUrl}/set-password` }
+    options: { redirectTo: `${SITE_URL}/set-password` }
   })
 
   if (linkError) {
@@ -118,7 +85,6 @@ export async function createUser(formData) {
 
   if (!emailResult.success) {
     console.warn('Email sending failed:', emailResult.error)
-    // Log the link for admin fallback
     console.log('----------------------------------------')
     console.log('MANUAL RECOVERY LINK (EMAIL FAILED):')
     console.log(`User: ${email}`)
@@ -140,7 +106,6 @@ export async function createUser(formData) {
 export async function deleteUser(userId) {
   const supabaseAdmin = createAdminClient()
 
-  // Delete from auth.users (cascades to public.User usually)
   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
   if (error) {
@@ -150,10 +115,6 @@ export async function deleteUser(userId) {
   return { success: true }
 }
 
-/**
- * Send password setup / redirect URL email to an existing user.
- * Only callable by Admin or Super Admin. User will receive email and can set password and log in.
- */
 export async function sendPasswordSetupLink(userId) {
   const supabase = await createClient()
   const supabaseAdmin = createAdminClient()
@@ -174,11 +135,10 @@ export async function sendPasswordSetupLink(userId) {
     return { error: 'User not found.' }
   }
 
-  const siteUrl = await getSiteUrl()
   const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
     type: 'recovery',
     email: targetUser.email,
-    options: { redirectTo: `${siteUrl}/set-password` }
+    options: { redirectTo: `${SITE_URL}/set-password` }
   })
 
   if (linkError) {
@@ -199,7 +159,6 @@ export async function sendPasswordSetupLink(userId) {
 export async function setInitialPassword(accessToken, newPassword) {
   const supabaseAdmin = createAdminClient()
 
-  // Validate inputs
   if (!accessToken) {
     return { error: 'Invalid session. Please click the link in your email again.' }
   }
@@ -209,7 +168,6 @@ export async function setInitialPassword(accessToken, newPassword) {
   }
 
   try {
-    // Verify the access token and get the user identity
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(accessToken)
 
     if (userError || !user) {
@@ -217,7 +175,6 @@ export async function setInitialPassword(accessToken, newPassword) {
       return { error: 'Session expired or invalid. Please click the link in your email again.' }
     }
 
-    // Update the password using the admin API (bypasses client-side session issues)
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       user.id,
       { password: newPassword }
@@ -239,25 +196,20 @@ export async function setInitialPassword(accessToken, newPassword) {
 export async function updateUser(userId, data) {
   const supabaseAdmin = createAdminClient()
 
-  // Prepare update data for auth.users
   const authUpdate = {}
 
-  // Update email if provided
   if (data.email) {
     authUpdate.email = data.email
   }
 
-  // Update user_metadata for name
   if (data.name) {
     authUpdate.user_metadata = { name: data.name }
   }
 
-  // Update app_metadata for role (secure)
   if (data.role) {
     authUpdate.app_metadata = { role: data.role }
   }
 
-  // Update auth.users (password updates removed - users should use forgot password flow)
   const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
     userId,
     authUpdate
@@ -267,7 +219,6 @@ export async function updateUser(userId, data) {
     return { error: authError.message }
   }
 
-  // Update public.Users table
   const { error: dbError } = await supabaseAdmin
     .from('Users')
     .update({

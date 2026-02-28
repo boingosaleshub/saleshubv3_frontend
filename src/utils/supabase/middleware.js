@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
+const SITE_URL = 'https://saleshub.boingo.com'
+
 export async function updateSession(request) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -44,10 +46,7 @@ export async function updateSession(request) {
     !request.nextUrl.pathname.startsWith('/auth') &&
     !request.nextUrl.pathname.startsWith('/set-password')
   ) {
-    // no user, redirect to the login page at root
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
+    return NextResponse.redirect(new URL('/', SITE_URL))
   }
 
   return supabaseResponse
