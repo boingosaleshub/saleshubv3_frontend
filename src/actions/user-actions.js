@@ -7,16 +7,33 @@ import { sendPasswordSetupEmail } from "@/lib/email"
 
 async function getSiteUrl() {
   const configured = process.env.NEXT_PUBLIC_SITE_URL
-  if (configured) return configured.replace(/\/$/, '')
+
+  if (configured) {
+    if (configured.includes('vercel.app')) {
+      return 'https://saleshub.boingo.com'
+    }
+    return configured.replace(/\/$/, '')
+  }
 
   const h = await headers()
   const origin = h.get('origin')
-  if (origin) return origin.replace(/\/$/, '')
+  if (origin) {
+    if (origin.includes('vercel.app')) {
+      return 'https://saleshub.boingo.com'
+    }
+    return origin.replace(/\/$/, '')
+  }
 
   const host = h.get('x-forwarded-host') ?? h.get('host')
   const proto = h.get('x-forwarded-proto') ?? 'https'
   if (!host) return 'http://localhost:3000'
-  return `${proto}://${host}`.replace(/\/$/, '')
+
+  const resolvedUrl = `${proto}://${host}`.replace(/\/$/, '')
+  if (resolvedUrl.includes('vercel.app')) {
+    return 'https://saleshub.boingo.com'
+  }
+
+  return resolvedUrl
 }
 
 export async function getUsers() {

@@ -47,7 +47,7 @@ export function NotificationsPopover() {
                 .select('*')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
-                .limit(20);
+                .limit(6);
 
             let realNotifications = [];
             if (!error && data) {
@@ -112,7 +112,7 @@ export function NotificationsPopover() {
             const allNotifications = [...realNotifications, ...simulatedNotifications];
             allNotifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-            setNotifications(allNotifications);
+            setNotifications(allNotifications.slice(0, 6));
         } catch (err) {
             console.error("Error fetching notifications:", err);
         } finally {
